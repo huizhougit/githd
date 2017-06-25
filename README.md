@@ -9,3 +9,6 @@ NOTE: This extension uses the SourceControl UI on ActivityBar but it actually on
 * View the diff of a specified ref
 
 ![Image of the demo](https://media.githubusercontent.com/media/huizhougit/githd/master/resources/demo.gif)
+
+## License
+[MIT](https://raw.githubusercontent.com/huizhougit/githd/master/LICENSE)

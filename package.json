@@ -31,7 +31,16 @@
         "test": "node ./node_modules/vscode/bin/test"
     },
     "contributes": {
-        "commands":[
+        "commands": [
+            {
+                "command": "githd.updateSha",
+                "title": "Check",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/check.svg",
+                    "dark": "resources/icons/dark/check.svg"
+                }
+            },
             {
                 "command": "githd.clear",
                 "title": "Clear",
@@ -52,7 +61,26 @@
             }
         ],
         "menus": {
+            "commandPalette": [
+                {
+                    "command": "githd.clear",
+                    "when": "scmProvider == githd"
+                },
+                {
+                    "command": "githd.switch",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.updateSha",
+                    "when": "false"
+                }
+            ],
             "scm/title": [
+                {
+                    "command": "githd.updateSha",
+                    "group": "navigation",
+                    "when": "scmProvider == githd"
+                },
                 {
                     "command": "githd.switch",
                     "group": "navigation"
