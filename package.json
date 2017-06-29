@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git history diff",
     "description": "View the diff of specified commit",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
