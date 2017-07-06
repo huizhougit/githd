@@ -8,7 +8,7 @@ import { spawn } from 'child_process';
 import path = require('path');
 
 const iconsRootPath = path.join(path.dirname(__dirname), '..', 'resources', 'icons');
-function getIconUri(iconName: string, theme: string): Uri {
+export function getIconUri(iconName: string, theme: string): Uri {
     return Uri.file(path.join(iconsRootPath, theme, `${iconName}.svg`));
 }
 
