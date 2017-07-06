@@ -1,105 +1,110 @@
 {
-    "name": "githd",
-    "displayName": "Git history diff",
-    "description": "View the diff of specified commit",
-    "version": "0.1.0",
-    "publisher": "huizhou",
-    "author": {
-        "name": "Hui Zhou",
-        "email": "zhou_hui@outlook.com"
-    },
-    "engines": {
-        "vscode": "^1.12.0"
-    },
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/huizhougit/githd.git"
-    },
-    "icon": "resources/icons/icon.png",
-    "categories": [
-        "Other"
-    ],
-    "activationEvents": [
-        "*"
-    ],
-    "main": "./out/src/extension",
-    "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "node ./node_modules/vscode/bin/test"
-    },
-    "contributes": {
-        "commands": [
-            {
-                "command": "githd.updateSha",
-                "title": "Check",
-                "category": "GitHD",
-                "icon": {
-                    "light": "resources/icons/light/check.svg",
-                    "dark": "resources/icons/dark/check.svg"
-                }
-            },
-            {
-                "command": "githd.clear",
-                "title": "Clear",
-                "category": "GitHD",
-                "icon": {
-                    "light": "resources/icons/light/clear.svg",
-                    "dark": "resources/icons/dark/clear.svg"
-                }
-            },
-            {
-                "command": "githd.switch",
-                "title": "Switch",
-                "category": "GitHD",
-                "icon": {
-                    "light": "resources/icons/light/three-bars.svg",
-                    "dark": "resources/icons/dark/three-bars.svg"
-                }
-            }
-        ],
-        "menus": {
-            "commandPalette": [
-                {
-                    "command": "githd.clear",
-                    "when": "scmProvider == githd"
-                },
-                {
-                    "command": "githd.switch",
-                    "when": "false"
-                },
-                {
-                    "command": "githd.updateSha",
-                    "when": "false"
-                }
-            ],
-            "scm/title": [
-                {
-                    "command": "githd.updateSha",
-                    "group": "navigation",
-                    "when": "scmProvider == githd"
-                },
-                {
-                    "command": "githd.switch",
-                    "group": "navigation"
-                }
-            ],
-            "scm/resourceGroup/context": [
-                {
-                    "command": "githd.clear",
-                    "when": "scmProvider == githd",
-                    "group": "inline"
-                }
-            ]
+  "name": "githd",
+  "displayName": "Git history diff",
+  "description": "View the diff of specified commit",
+  "version": "0.1.0",
+  "publisher": "huizhou",
+  "author": {
+    "name": "Hui Zhou",
+    "email": "zhou_hui@outlook.com"
+  },
+  "engines": {
+    "vscode": "^1.12.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/huizhougit/githd.git"
+  },
+  "icon": "resources/icons/icon.png",
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/src/extension",
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "node ./node_modules/vscode/bin/test"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "githd.updateSha",
+        "title": "Check",
+        "category": "GitHD",
+        "icon": {
+          "light": "resources/icons/light/check.svg",
+          "dark": "resources/icons/dark/check.svg"
         }
-    },
-    "devDependencies": {
-        "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
-        "mocha": "^2.3.3",
-        "@types/node": "^6.0.40",
-        "@types/mocha": "^2.2.32"
+      },
+      {
+        "command": "githd.clear",
+        "title": "Clear",
+        "category": "GitHD",
+        "icon": {
+          "light": "resources/icons/light/clear.svg",
+          "dark": "resources/icons/dark/clear.svg"
+        }
+      },
+      {
+        "command": "githd.switch",
+        "title": "Switch",
+        "category": "GitHD",
+        "icon": {
+          "light": "resources/icons/light/three-bars.svg",
+          "dark": "resources/icons/dark/three-bars.svg"
+        }
+      },
+      {
+        "command": "githd.showHistory",
+        "title": "Show history",
+        "category": "GitHD"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "githd.clear",
+          "when": "false"
+        },
+        {
+          "command": "githd.switch",
+          "when": "false"
+        },
+        {
+          "command": "githd.updateSha",
+          "when": "false"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "githd.updateSha",
+          "group": "navigation",
+          "when": "scmProvider == githd"
+        },
+        {
+          "command": "githd.switch",
+          "group": "navigation"
+        }
+      ],
+      "scm/resourceGroup/context": [
+        {
+          "command": "githd.clear",
+          "when": "scmProvider == githd",
+          "group": "inline"
+        }
+      ]
     }
+  },
+  "devDependencies": {
+    "@types/mocha": "^2.2.32",
+    "@types/node": "^6.0.40",
+    "mocha": "^2.3.3",
+    "typescript": "^2.0.3",
+    "vscode": "^1.0.0"
+  }
 }

@@ -1,8 +1,8 @@
 'use strict'
 
-import { Uri, SourceControlResourceState, commands, scm, Disposable } from 'vscode';
+import { Uri, commands, scm, Disposable, workspace, window } from 'vscode';
 import { Resource, Model } from './model';
-import * as extension from './extension';
+import { HistoryViewProvider } from './historyViewProvider';
 
 function fromGitUri(uri: Uri): { path: string, ref: string; } {
     return JSON.parse(uri.query);
@@ -37,8 +37,8 @@ function command(id: string) {
 
 export class CommandCenter {
     private _disposables: Disposable[];
-    constructor(private _model: Model) {
-        this._disposables = Commands.map(({id, method}) => {
+    constructor(private _model: Model, private _viewProvider: HistoryViewProvider) {
+        this._disposables = Commands.map(({ id, method }) => {
             return commands.registerCommand(id, (...args: any[]) => {
                 Promise.resolve(method.apply(this, args));
             });
@@ -70,5 +70,11 @@ export class CommandCenter {
     @command('githd.switch')
     async close(): Promise<void> {
         await commands.executeCommand<void>('scm.switch', ['Git']);
+    }
+
+    @command('githd.showHistory')
+    async showHistory(): Promise<void> {
+        this._viewProvider.update();
+        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => window.showTextDocument(doc));
     }
 }
