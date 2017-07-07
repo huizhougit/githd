@@ -12,7 +12,7 @@ View the git log. And see the commit change details.
 
 ## Usage
 * _Press F1_ and type or select **_GitHD:View Log_** to get the log view.
-* _press F1_ and type or select **_SCM:Switch SCM Provider_** and select **_GitHistoryDff_** so you can see the diff of each files of the specified/selected commit.
+* _press F1_ and type or select **_SCM:Switch SCM Provider_** then select **_GitHistoryDff_** so you can see the diff of each files of the specified/selected commit.
 * On log view, follow the link of each commit to see the details of the changes.
 
 ## Blemish
@@ -28,6 +28,9 @@ View the git log. And see the commit change details.
 
 ## Unofficial Author's Words
 >This is the tool I wanted but could not find so wrote myself.
+>
 >I don't know why I put the Blemish here.
+>
 >我会说中文。
+>
 >Enjoy it!
