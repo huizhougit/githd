@@ -15,13 +15,13 @@ View the git log. And see the commit change details.
 * _press F1_ and type or select **_SCM:Switch SCM Provider_** then select **_GitHistoryDff_** so you can see the diff of each files of the specified/selected commit.
 * On log view, follow the link of each commit to see the details of the changes.
 
-## Blemish
-* __Cannot switch the SCMProvider automatically.__
-* __Cannot follow the link by single-click.__
-* __Cannot listen to the link clicked event but leverage creating a temp file and followed by a quick delete.__
-
 ![Image of commit input](https://raw.githubusercontent.com/huizhougit/githd/master/resources/commit_input.gif)
 ![Image of log view](https://raw.githubusercontent.com/huizhougit/githd/master/resources/log_view.gif)
+
+## Blemish
+* _Cannot switch the SCMProvider automatically._
+* _Cannot follow the link by single-click._
+* _Cannot listen to the link clicked event but leverage creating a temp file and followed by a quick delete._
 
 ## License
 [MIT](https://raw.githubusercontent.com/huizhougit/githd/master/LICENSE)
