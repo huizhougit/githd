@@ -1,8 +1,8 @@
 {
   "name": "githd",
-  "displayName": "Git history diff",
-  "description": "View the diff of specified commit",
-  "version": "0.1.0",
+  "displayName": "Git History Diff",
+  "description": "View the git log. View the change details of a specified commit",
+  "version": "0.2.0",
   "publisher": "huizhou",
   "author": {
     "name": "Hui Zhou",
@@ -61,7 +61,7 @@
       },
       {
         "command": "githd.showHistory",
-        "title": "Show history",
+        "title": "View Log",
         "category": "GitHD"
       }
     ],
