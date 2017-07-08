@@ -37,6 +37,7 @@ export interface LogEntry {
     author: string;
     email: string;
     date: string;
+    stat: string;
 }
 
 export class Resource implements SourceControlResourceState {
@@ -158,9 +159,9 @@ export class Model implements Disposable {
     async getLogEntries(start: number, count: number): Promise<LogEntry[]> {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
-        const format = `--format=${itemSeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%cr${entrySeparator}`;
+        const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%cr${itemSeparator}`;
         let entries: LogEntry[] = [];
-        await runGitCommand(['log', format, `--skip=${start}`, `--max-count=${count}`], content => {
+        await runGitCommand(['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`], content => {
             content.split(entrySeparator).forEach(entry => {
                 if (!entry) {
                     return;
@@ -171,13 +172,14 @@ export class Model implements Disposable {
                 let author: string;
                 let email: string;
                 let date: string;
+                let stat: string;
                 entry.split(itemSeparator).forEach((value, index) => {
-                    if (index == 0) {
-                        // whitespace
-                        return;
-                    }
-                    --index;
-                    switch (index % 6) {
+                    // if (index == 0) {
+                    //     // whitespace
+                    //     return;
+                    // }
+                    // --index;
+                    switch (index % 7) {
                         case 0:
                             subject = value;
                             break;
@@ -195,7 +197,10 @@ export class Model implements Disposable {
                             break;
                         case 5:
                             date = value;
-                            entries.push({ subject, hash, ref, author, email, date });
+                            break;
+                        case 6:
+                            stat = value.replace(/\r?\n*/g, '');
+                            entries.push({ subject, hash, ref, author, email, date, stat });
                             break;
                     }
                 });

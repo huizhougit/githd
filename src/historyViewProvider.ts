@@ -2,7 +2,7 @@
 
 import {
     TextDocumentContentProvider, Uri, Disposable, workspace, window, commands, scm, Range, TextEditor,
-    DocumentLinkProvider, DocumentLink, ProviderResult, languages, EventEmitter, Event
+    DocumentLinkProvider, DocumentLink, ProviderResult, languages, EventEmitter, Event, TextEditorDecorationType
 } from 'vscode';
 import { Model, LogEntry, getIconUri } from './model';
 import path = require('path');
@@ -30,6 +30,9 @@ const refDecorationType = window.createTextEditorDecorationType({
     dark: { color: '#608b4e' }
 });
 const authorDecorationType = window.createTextEditorDecorationType({
+    // variable color
+    light: { color: '#001080' },
+    dark: { color: '#9CDCFE' }
 });
 const emailDecorationType = window.createTextEditorDecorationType({
     // function color
@@ -104,8 +107,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
     private _content: string;
     private _logCount: number = 0;
-    private _separatorCount: number = 0;
-    private _isLoading: boolean = false;
+    private _currentLine: number = 0;
+    private _loadingMore: boolean = false;
+    private _loadAll: boolean = false;
     private _onDidChange = new EventEmitter<Uri>();
     private _disposables: Disposable[] = [];
 
@@ -132,23 +136,22 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._disposables.push(this._onDidChange);
 
         window.onDidChangeActiveTextEditor(editor => {
-            if (editor.document.uri.scheme === HistoryViewProvider.scheme) {
+            if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
                 this._setDecorations(editor);
             }
         }, null, this._disposables);
 
-        workspace.onDidChangeTextDocument(event => {
-            let editor: TextEditor = window.activeTextEditor;
-            if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme &&
-                event.document === editor.document) {
+        window.onDidChangeTextEditorSelection(event => {
+            let editor = event.textEditor;
+            if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
                 this._setDecorations(editor);
             }
         }, null, this._disposables);
     }
 
-    get isLoading(): boolean {
-        return this._isLoading;
-    }
+    get loadingMore(): boolean { return this._loadingMore; }
+    get onDidChange(): Event<Uri> { return this._onDidChange.event; }
+
     async provideTextDocumentContent(uri: Uri): Promise<string> {
         if (uri.query) {
             // There is no mouse click event to listen. So it is a little hacky here.
@@ -163,7 +166,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         if (uri.fragment) {
             if (uri.fragment === HistoryViewProvider._moreLabel) {
                 commands.executeCommand('workbench.action.closeActiveEditor');
-                this._isLoading = true;
+                this._loadingMore = true;
                 this.update();
                 return "";
             }
@@ -174,18 +177,22 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             }
         }
 
-        const isLoading: boolean = this._isLoading;
+        const loadingMore: boolean = this._loadingMore;
+        const loadAll: boolean = this._loadAll;
         let logStart = 0;
-        const logCount = 200;
-        if (isLoading) {
-            this._isLoading = false;
+        if (loadingMore) {
+            this._loadingMore = false;
             logStart = this._logCount;
             this._content += HistoryViewProvider._separatorLabel + '\n\n';
-            ++this._separatorCount;
+            this._currentLine += 2;
         }
         const commitsCount: number = await this._model.getCommitsCount();
+        if (this._loadAll && commitsCount > 1000) {
+            window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
+        }
+        const logCount = this._loadAll ? commitsCount : 200;
         const entries: LogEntry[] = await this._model.getLogEntries(logStart, logCount);
-        if (!isLoading) {
+        if (!loadingMore) {
             const branchName: string = await this._model.getCurrentBranch();
             this._reset();
 
@@ -199,68 +206,74 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             );
             this._content += branchName;
             this._content += '\n\n';
+            this._currentLine += 2;
         }
+
         return new Promise<string>(resolve => {
-            // 2 lines for title and 2 lines for each separator
-            let line = 2 + this._logCount * 3 + this._separatorCount * 2;
             const hasMore: boolean = commitsCount > logCount + this._logCount;
 
             entries.forEach(entry => {
                 ++this._logCount;
+                decorateWithoutWhitspace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);
                 this._content += entry.subject + '\n';
-                decorateWithoutWhitspace(this._subjectDecorationOptions, entry.subject, line++, 0);
+                ++this._currentLine;
 
                 let info: string = entry.hash;
-                let range = new Range(line, 0, line, info.length);
+                let range = new Range(this._currentLine, 0, this._currentLine, info.length);
                 this._hashDecorationOptions.push(range);
                 this._links.push(new DocumentLink(range, uri.with({ path: null, query: entry.hash })));
 
                 if (entry.ref) {
                     let start: number = info.length;
                     info += entry.ref;
-                    decorateWithoutWhitspace(this._refDecorationOptions, entry.ref, line, start);
+                    decorateWithoutWhitspace(this._refDecorationOptions, entry.ref, this._currentLine, start);
                 }
                 if (entry.author) {
                     info += ' by ';
                     let start: number = info.length;
                     info += entry.author;
-                    decorateWithoutWhitspace(this._authorDecorationOptions, entry.author, line, start);
+                    decorateWithoutWhitspace(this._authorDecorationOptions, entry.author, this._currentLine, start);
                 }
                 if (entry.email) {
                     info += ' <';
                     let start: number = info.length - 1;
                     info += entry.email;
-                    this._emailDecorationOptions.push(new Range(line, start, line, info.length + 1));
+                    this._emailDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, info.length + 1));
                     info += '>';
                 }
                 if (entry.date) {
                     info += ', ';
                     let start: number = info.length;
                     info += entry.date;
-                    decorateWithoutWhitspace(this._dateDecorationOptions, entry.date, line, start);
+                    decorateWithoutWhitspace(this._dateDecorationOptions, entry.date, this._currentLine, start);
                 }
-                this._content += info + '\n\n';
-                line += 2;
+                this._content += info + '\n';
+                ++this._currentLine;
+
+                if (entry.stat) {
+                    this._content += entry.stat + '\n';
+                    ++this._currentLine;
+                }
+
+                this._content += '\n';
+                ++this._currentLine;
             });
             if (hasMore) {
                 this._more = new Clickable(uri.with({ path: null, fragment: HistoryViewProvider._moreLabel }),
-                    new Range(line, 0, line, HistoryViewProvider._moreLabel.length));
+                    new Range(this._currentLine, 0, this._currentLine, HistoryViewProvider._moreLabel.length));
                 resolve(this._content + HistoryViewProvider._moreLabel);
             } else {
                 this._more = null;
                 resolve(this._content);
-            }
-            if (!isLoading) {
-                commands.executeCommand('cursorTop');
+                if (loadAll) {
+                    window.showInformationMessage(`All ${commitsCount} commits are loaded.`);
+                }
             }
         });
     }
 
-    get onDidChange(): Event<Uri> {
-        return this._onDidChange.event;
-    }
-
-    update(uri: Uri = HistoryViewProvider.defaultUri): void {
+    update(loadAll: boolean = false, uri: Uri = HistoryViewProvider.defaultUri): void {
+        this._loadAll = loadAll;
         this._onDidChange.fire(uri);
     }
 
@@ -276,21 +289,42 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     }
 
     private _setDecorations(editor: TextEditor): void {
+        let currentLine = editor.selection.active.line;
         editor.setDecorations(titleDecorationType, this._titleDecorationOptions);
-        editor.setDecorations(subjectDecorationType, this._subjectDecorationOptions);
-        editor.setDecorations(hashDecorationType, this._hashDecorationOptions);
-        editor.setDecorations(refDecorationType, this._refDecorationOptions);
-        editor.setDecorations(authorDecorationType, this._authorDecorationOptions);
-        editor.setDecorations(emailDecorationType, this._emailDecorationOptions);
+
+        this._decorate(editor, subjectDecorationType, this._subjectDecorationOptions);
+        this._decorate(editor, hashDecorationType, this._hashDecorationOptions);
+        this._decorate(editor, refDecorationType, this._refDecorationOptions);
+        this._decorate(editor, authorDecorationType, this._authorDecorationOptions);
+        this._decorate(editor, emailDecorationType, this._emailDecorationOptions);
+
         editor.setDecorations(refreshDecorationType, [this._refresh.range]);
         if (this._more) {
             editor.setDecorations(moreDecorationType, [this._more.range]);
         }
     }
+    private _decorate(editor: TextEditor, type: TextEditorDecorationType, ranges: Range[]): void {
+        if (this._logCount < 1000) {
+            editor.setDecorations(type, ranges);
+            return;
+        }
+        const displayCount = 250;
+        let currentLine = editor.selection.active.line;
+        let start: number = ranges.findIndex(range => {
+            return range.start.line > currentLine - displayCount;
+        });
+        let end: number = ranges.findIndex(range => {
+            return range.start.line > currentLine + displayCount;
+        });
+        if (end ===-1) {
+            end = ranges.length;
+        }
+        editor.setDecorations(type, ranges.slice(start, end));
+    }
     private _reset(): void {
         this._content = HistoryViewProvider._titleLabel;
         this._logCount = 0;
-        this._separatorCount = 0;
+        this._currentLine = 0;
         this._more = null;
         this._refresh = null;
         this._links = [];

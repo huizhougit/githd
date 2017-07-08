@@ -72,9 +72,25 @@ export class CommandCenter {
         await commands.executeCommand<void>('scm.switch', ['Git']);
     }
 
-    @command('githd.showHistory')
-    async showHistory(): Promise<void> {
+    @command('githd.viewHistory')
+    async viewHistory(): Promise<void> {
         this._viewProvider.update();
-        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => window.showTextDocument(doc));
+        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
+            window.showTextDocument(doc);
+            if (!this._viewProvider.loadingMore) {
+                commands.executeCommand('cursorTop');
+            }
+        });
+    }
+
+    @command('githd.viewAllHistory')
+    async viewAllHistory(): Promise<void> {
+        this._viewProvider.update(true);
+        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
+            window.showTextDocument(doc);
+            if (!this._viewProvider.loadingMore) {
+                commands.executeCommand('cursorTop');
+            }
+        });
     }
 }
