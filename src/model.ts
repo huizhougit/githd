@@ -4,7 +4,7 @@ import {
     SourceControlResourceState, SourceControlResourceGroup, scm, SourceControlResourceDecorations,
     Uri, workspace, Disposable, Command
 } from 'vscode';
-import { spawn } from 'child_process';
+import { git } from './git';
 import path = require('path');
 
 const iconsRootPath = path.join(path.dirname(__dirname), '..', 'resources', 'icons');
@@ -15,19 +15,6 @@ export function getIconUri(iconName: string, theme: string): Uri {
 function createUri(relativePath: string): Uri {
     const absPath = path.join(workspace.rootPath, relativePath);
     return Uri.file(absPath);
-}
-
-async function runGitCommand(args: string[], endAction: (content: string) => void): Promise<void> {
-    let content: string = '';
-    let gitShow = spawn('git', args, { cwd: workspace.rootPath });
-    let out = gitShow.stdout;
-    out.setEncoding('utf8');
-    return new Promise<void>((resolve, reject) => {
-        out.on('data', data => content += data);
-        out.on('end', () => endAction(content));
-        out.on('error', err => reject(err));
-        out.on('close', () => resolve());
-    });
 }
 
 export interface LogEntry {
@@ -156,82 +143,69 @@ export class Model implements Disposable {
         this._resourceGroup.resourceStates = await this._updateResources(sha);
     }
 
-    async getLogEntries(start: number, count: number): Promise<LogEntry[]> {
+    async getLogEntries(start: number, count: number, branch: string): Promise<LogEntry[]> {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%cr${itemSeparator}`;
+        const result = await git.exec(['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch]);
         let entries: LogEntry[] = [];
-        await runGitCommand(['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`], content => {
-            content.split(entrySeparator).forEach(entry => {
-                if (!entry) {
-                    return;
+
+        result.split(entrySeparator).forEach(entry => {
+            if (!entry) {
+                return;
+            }
+            let subject: string;
+            let hash: string;
+            let ref: string;
+            let author: string;
+            let email: string;
+            let date: string;
+            let stat: string;
+            entry.split(itemSeparator).forEach((value, index) => {
+                // if (index == 0) {
+                //     // whitespace
+                //     return;
+                // }
+                // --index;
+                switch (index % 7) {
+                    case 0:
+                        subject = value;
+                        break;
+                    case 1:
+                        hash = value;
+                        break;
+                    case 2:
+                        ref = value;
+                        break;
+                    case 3:
+                        author = value;
+                        break;
+                    case 4:
+                        email = value;
+                        break;
+                    case 5:
+                        date = value;
+                        break;
+                    case 6:
+                        stat = value.replace(/\r?\n*/g, '');
+                        entries.push({ subject, hash, ref, author, email, date, stat });
+                        break;
                 }
-                let subject: string;
-                let hash: string;
-                let ref: string;
-                let author: string;
-                let email: string;
-                let date: string;
-                let stat: string;
-                entry.split(itemSeparator).forEach((value, index) => {
-                    // if (index == 0) {
-                    //     // whitespace
-                    //     return;
-                    // }
-                    // --index;
-                    switch (index % 7) {
-                        case 0:
-                            subject = value;
-                            break;
-                        case 1:
-                            hash = value;
-                            break;
-                        case 2:
-                            ref = value;
-                            break;
-                        case 3:
-                            author = value;
-                            break;
-                        case 4:
-                            email = value;
-                            break;
-                        case 5:
-                            date = value;
-                            break;
-                        case 6:
-                            stat = value.replace(/\r?\n*/g, '');
-                            entries.push({ subject, hash, ref, author, email, date, stat });
-                            break;
-                    }
-                });
             });
         });
         return entries;
     }
 
-    async getCurrentBranch(): Promise<string> {
-        let name: string = '';
-        await runGitCommand(['rev-parse', '--abbrev-ref', 'HEAD'], content => name = content);
-        return name.trim();
-    }
-
-    async getCommitsCount(): Promise<number> {
-        let count: number;
-        await runGitCommand(['rev-list', '--count', 'HEAD'], content => count = parseInt(content));
-        return count;
-    }
-
     private async _updateResources(sha: string): Promise<Resource[]> {
+        const result = await git.exec(['show', '--format=%h', '--name-status', sha]);
         let resources: Resource[] = [];
-        await runGitCommand(['show', '--format=%h', '--name-status', sha], content => {
-            content.split(/\r?\n/g).forEach((value, index) => {
-                if (index === 0) {
-                    this._sha = value;
-                }
-                if (index > 1 && value) {
-                    resources.push(new Resource(value));
-                }
-            });
+        result.split(/\r?\n/g).forEach((value, index) => {
+            if (index === 0) {
+                this._sha = value;
+            }
+            if (index > 1 && value) {
+                resources.push(new Resource(value));
+            }
         });
         return resources;
     }

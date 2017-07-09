@@ -61,12 +61,17 @@
             },
             {
                 "command": "githd.viewHistory",
-                "title": "View Log",
+                "title": "View Logs",
                 "category": "GitHD"
             },
             {
                 "command": "githd.viewAllHistory",
-                "title": "View All Log",
+                "title": "View All Logs (it may take a long time if the history is long)",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.selectBranch",
+                "title": "Select Branch",
                 "category": "GitHD"
             }
         ],

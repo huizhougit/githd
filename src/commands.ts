@@ -3,6 +3,7 @@
 import { Uri, commands, scm, Disposable, workspace, window } from 'vscode';
 import { Resource, Model } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
+import { git } from './git';
 
 function fromGitUri(uri: Uri): { path: string, ref: string; } {
     return JSON.parse(uri.query);
@@ -91,6 +92,26 @@ export class CommandCenter {
             if (!this._viewProvider.loadingMore) {
                 commands.executeCommand('cursorTop');
             }
+        });
+    }
+
+    @command('githd.selectBranch')
+    async selectBranch(): Promise<void> {
+        const refs = await git.getRefs();
+        const picks = refs.map(ref => {
+            let description: string;
+            if (ref.type === git.RefType.Head) {
+                description = ref.commit;
+            } else if (ref.type === git.RefType.Tag) {
+                description = `Tag at ${ref.commit}`;
+            } else if (ref.type === git.RefType.RemoteHead) {
+                description = `Remote branch at ${ref.commit}`;
+            }
+            return { label: ref.name || ref.commit, description: description };
+        });
+        window.showQuickPick(picks, { placeHolder: `Select a ref to see it's history` }).then(item => {
+            this._viewProvider.branch = item.label;
+            this.viewHistory();
         });
     }
 }
