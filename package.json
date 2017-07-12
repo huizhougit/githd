@@ -9,7 +9,7 @@
         "email": "zhou_hui@outlook.com"
     },
     "engines": {
-        "vscode": "^1.12.0"
+        "vscode": "^1.14.0"
     },
     "license": "MIT",
     "repository": {
@@ -31,6 +31,31 @@
         "test": "node ./node_modules/vscode/bin/test"
     },
     "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Git History Diff configuration",
+            "properties": {
+                "githd.useExploreView": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "List committed files in the Explore view instead of the SourceControl view."
+                },
+                "githd.exploreView.useTreeView": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "List committed files in their folders."
+                }
+            }
+        },
+        "views": {
+            "explorer": [
+                {
+                    "id": "committedFiles",
+                    "name": "GitHD: Committed Files",
+                    "when": "config.githd.useExploreView"
+                }
+            ]
+        },
         "commands": [
             {
                 "command": "githd.updateSha",
@@ -61,17 +86,27 @@
             },
             {
                 "command": "githd.viewHistory",
-                "title": "View Logs",
+                "title": "View Log",
                 "category": "GitHD"
             },
             {
                 "command": "githd.viewAllHistory",
-                "title": "View All Logs (it may take a long time if the history is long)",
+                "title": "View Entire Log (it may take a long time if the history is long)",
                 "category": "GitHD"
             },
             {
                 "command": "githd.selectBranch",
                 "title": "Select Branch",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.inputRef",
+                "title": "Input Ref",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.openCommittedFile",
+                "title": "Open the change of the committed file",
                 "category": "GitHD"
             }
         ],
@@ -88,6 +123,10 @@
                 {
                     "command": "githd.updateSha",
                     "when": "false"
+                },
+                {
+                    "command": "githd.openCommittedFile",
+                    "when": "false"
                 }
             ],
             "scm/title": [
@@ -98,7 +137,8 @@
                 },
                 {
                     "command": "githd.switch",
-                    "group": "navigation"
+                    "group": "navigation",
+                    "when": "!config.githd.useExploreView"
                 }
             ],
             "scm/resourceGroup/context": [
@@ -106,6 +146,13 @@
                     "command": "githd.clear",
                     "when": "scmProvider == githd",
                     "group": "inline"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "githd.clear",
+                    "when": "view == committedFiles",
+                    "group": "navigation"
                 }
             ]
         }

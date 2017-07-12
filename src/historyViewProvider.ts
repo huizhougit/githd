@@ -5,9 +5,9 @@ import {
     DocumentLinkProvider, DocumentLink, ProviderResult, languages, EventEmitter, Event,
     TextEditorDecorationType, StatusBarItem, StatusBarAlignment
 } from 'vscode';
-import { Model, LogEntry, getIconUri } from './model';
+import { FileProvider } from './model';
 import { git } from './git';
-import path = require('path');
+import { getIconUri } from './icons'
 
 const titleDecorationType = window.createTextEditorDecorationType({
     // class color
@@ -130,7 +130,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
     private _statusBarItem: StatusBarItem = window.createStatusBarItem();
 
-    constructor(private _model: Model) {
+    set fileProvider(provider: FileProvider) { this._fileProvider = provider; }
+
+    constructor(private _fileProvider: FileProvider) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
         this._disposables.push(disposable);
 
@@ -175,9 +177,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             // A new temp file is opened with the clicking information and closed immediately
             commands.executeCommand('workbench.action.closeActiveEditor');
             let hash: string = uri.query;
-            this._model.update(hash);
-            scm.inputBox.value = hash;
-            commands.executeCommand('workbench.view.scm');
+            this._fileProvider.update(hash);
             return "";
         }
         if (uri.fragment) {
@@ -212,7 +212,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
         const logCount = this._loadAll ? commitsCount : 200;
-        const entries: LogEntry[] = await this._model.getLogEntries(logStart, logCount, this._branch);
+        const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, this._branch);
         if (!loadingMore) {
 
             this._reset();

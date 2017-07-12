@@ -1,7 +1,7 @@
 'use strict'
 
-import { Uri, commands, scm, Disposable, workspace, window } from 'vscode';
-import { Resource, Model } from './model';
+import { Uri, commands, Disposable, workspace, window , scm} from 'vscode';
+import { FileProvider } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
 import { git } from './git';
 
@@ -38,7 +38,10 @@ function command(id: string) {
 
 export class CommandCenter {
     private _disposables: Disposable[];
-    constructor(private _model: Model, private _viewProvider: HistoryViewProvider) {
+
+    set fileProvider(provider: FileProvider) { this._fileProvider = provider; }
+
+    constructor(private _fileProvider: FileProvider, private _viewProvider: HistoryViewProvider) {
         this._disposables = Commands.map(({ id, method }) => {
             return commands.registerCommand(id, (...args: any[]) => {
                 Promise.resolve(method.apply(this, args));
@@ -49,23 +52,14 @@ export class CommandCenter {
         this._disposables.forEach(d => d.dispose());
     }
 
-    @command('githd.openResource')
-    async openResource(resource: Resource): Promise<void> {
-        let sha = this._model.sha;
-        let left = toGitUri(resource.resourceUri, sha + '~');
-        let right = toGitUri(resource.resourceUri, sha);
-        return await commands.executeCommand<void>('vscode.diff', left, right, sha + ' ' + resource.file, { preview: true });
-    }
-
     @command('githd.updateSha')
     async updateSha(): Promise<void> {
-        await this._model.update(scm.inputBox.value);
+        await this._fileProvider.update(scm.inputBox.value);
     }
 
     @command('githd.clear')
-    async clean(): Promise<void> {
-        scm.inputBox.value = null;
-        await this._model.update(null);
+    async clear(): Promise<void> {
+        this._fileProvider.clear();
     }
 
     @command('githd.switch')
@@ -113,5 +107,20 @@ export class CommandCenter {
             this._viewProvider.branch = item.label;
             this.viewHistory();
         });
+    }
+
+    @command('githd.inputRef')
+    async inputRef(): Promise<void> {
+        window.showInputBox( { placeHolder: `Input a ref (sha1) to see it's committed files` }).then(ref => {
+            this._fileProvider.update(ref);
+        });
+    }
+
+    @command('githd.openCommittedFile')
+    async openCommittedFile(file: git.CommittedFile): Promise<void> {
+        let ref = this._fileProvider.ref;
+        let left = toGitUri(file.uri, ref + '~');
+        let right = toGitUri(file.uri, ref);
+        return await commands.executeCommand<void>('vscode.diff', left, right, ref + ' ' + file.relativePath, { preview: true });
     }
 }
