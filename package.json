@@ -43,7 +43,15 @@
                 "githd.exploreView.useTreeView": {
                     "type": "boolean",
                     "default": false,
-                    "description": "List committed files in their folders."
+                    "description": "List committed files with the folders."
+                },
+                "githd.logView.commitsCount": {
+                    "type": "number",
+                    "default": 200,
+                    "description": "The commits count listed in history view. You can load more with clicking ... or load entire log with command.",
+                    "enum": [
+                        50, 100, 200, 300, 400, 500
+                    ]
                 }
             }
         },

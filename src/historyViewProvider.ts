@@ -130,9 +130,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
     private _statusBarItem: StatusBarItem = window.createStatusBarItem();
 
-    set fileProvider(provider: FileProvider) { this._fileProvider = provider; }
-
-    constructor(private _fileProvider: FileProvider) {
+    constructor(private _fileProvider: FileProvider, private _commitsCount: number = 200) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
         this._disposables.push(disposable);
 
@@ -164,6 +162,12 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     get loadingMore(): boolean { return this._loadingMore; }
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
 
+    set fileProvider(provider: FileProvider) { this._fileProvider = provider; }
+    set commitsCount(count: number) {
+        if ([50, 100, 200, 300, 400, 500].findIndex(a => { return a === count; }) >= 0) {
+            this._commitsCount = count;
+        }
+    }
     set branch(value: string) {
         if (value !== this._branch) {
             this._branch = value;
@@ -211,7 +215,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         if (this._loadAll && commitsCount > 1000) {
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
-        const logCount = this._loadAll ? commitsCount : 200;
+        const logCount = this._loadAll ? commitsCount : this._commitsCount;
         const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, this._branch);
         if (!loadingMore) {
 
