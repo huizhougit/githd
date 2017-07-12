@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View the git log. View the change details of a specified commit",
-    "version": "0.2.2",
+    "version": "0.2.9",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
@@ -35,12 +35,12 @@
             "type": "object",
             "title": "Git History Diff configuration",
             "properties": {
-                "githd.useExploreView": {
+                "githd.committedFilesView.useExplorer": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "List committed files in the Explore view instead of the SourceControl view."
+                    "default": false,
+                    "description": "List committed files in the Explorer instead of SCM."
                 },
-                "githd.exploreView.useTreeView": {
+                "githd.explorerView.withFolder": {
                     "type": "boolean",
                     "default": false,
                     "description": "List committed files with the folders."
@@ -60,7 +60,7 @@
                 {
                     "id": "committedFiles",
                     "name": "GitHD: Committed Files",
-                    "when": "config.githd.useExploreView"
+                    "when": "config.githd.committedFilesView.useExplorer"
                 }
             ]
         },
@@ -116,6 +116,11 @@
                 "command": "githd.openCommittedFile",
                 "title": "Open the change of the committed file",
                 "category": "GitHD"
+            },
+            {
+                "command": "githd.selectCommittedFilesView",
+                "title": "Select Committed Files View",
+                "category": "GitHD"
             }
         ],
         "menus": {
@@ -146,7 +151,7 @@
                 {
                     "command": "githd.switch",
                     "group": "navigation",
-                    "when": "!config.githd.useExploreView"
+                    "when": "!config.githd.committedFilesView.useExplorer"
                 }
             ],
             "scm/resourceGroup/context": [

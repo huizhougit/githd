@@ -1,6 +1,7 @@
 'use strict'
 
 import { Uri, commands, Disposable, workspace, window , scm} from 'vscode';
+import { selectCommittedFilesView } from './extension';
 import { FileProvider } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
 import { git } from './git';
@@ -122,5 +123,13 @@ export class CommandCenter {
         let left = toGitUri(file.uri, ref + '~');
         let right = toGitUri(file.uri, ref);
         return await commands.executeCommand<void>('vscode.diff', left, right, ref + ' ' + file.relativePath, { preview: true });
+    }
+
+    @command('githd.selectCommittedFilesView')
+    async selectCommittedFilesView(file: git.CommittedFile): Promise<void> {
+        const picks = ['Explorer', 'SCM'];
+        window.showQuickPick(picks, { placeHolder: `Select the committed files view` }).then(item => {
+            selectCommittedFilesView(item);
+        });
     }
 }

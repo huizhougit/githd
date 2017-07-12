@@ -3,6 +3,8 @@
 import { GithdProvider } from './scmProvider';
 import { CommittedFilesProvider } from './committedFilesProvider';
 
+export const explorerViewName = 'Explorer';
+
 export interface FileProvider {
     ref: string;
     update(ref: string): void;
@@ -10,9 +12,9 @@ export interface FileProvider {
     dispose(): void;
 }
 
-export function createFileProvider(exploreView?: boolean, treeView?: boolean): FileProvider {
-    if (exploreView) {
-        return new CommittedFilesProvider(treeView);
+export function createFileProvider(useExplorer?: boolean, withFolder?: boolean): FileProvider {
+    if (useExplorer) {
+        return new CommittedFilesProvider(withFolder);
     }
     return new GithdProvider();
 }

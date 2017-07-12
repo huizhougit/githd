@@ -112,7 +112,6 @@ export class CommittedFilesProvider implements TreeDataProvider<CommittedTreeIte
             this._fileRoot = null;
         }
         this._onDidChange.fire();
-        commands.executeCommand('workbench.view.explorer');
     }
 
     _buildFileTree(file: git.CommittedFile): void {
