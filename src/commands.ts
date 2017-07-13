@@ -1,7 +1,7 @@
 'use strict'
 
 import { Uri, commands, Disposable, workspace, window , scm} from 'vscode';
-import { selectCommittedFilesView } from './extension';
+import { selectCommittedFilesView, setExplorerViewWithFolder } from './extension';
 import { FileProvider } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
 import { git } from './git';
@@ -126,10 +126,18 @@ export class CommandCenter {
     }
 
     @command('githd.selectCommittedFilesView')
-    async selectCommittedFilesView(file: git.CommittedFile): Promise<void> {
+    async selectCommittedFilesView(): Promise<void> {
         const picks = ['Explorer', 'SCM'];
         window.showQuickPick(picks, { placeHolder: `Select the committed files view` }).then(item => {
             selectCommittedFilesView(item);
+        });
+    }
+
+    @command('githd.setExplorerViewWithFolder')
+    async setExplorerViewWithFolder(): Promise<void> {
+        const picks = ['Yes', 'No'];
+        window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` }).then(item => {
+            setExplorerViewWithFolder(item);
         });
     }
 }

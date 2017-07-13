@@ -30,7 +30,7 @@ export function activate(context: ExtensionContext) {
             context.subscriptions.push(fileProvider);
             fileProvider.update(ref);
         } else if (config.userExplorer && newConfig.withFolder !== config.withFolder) {
-            (fileProvider as CommittedFilesProvider).useTreeView = newConfig.withFolder;
+            (fileProvider as CommittedFilesProvider).withFolder = newConfig.withFolder;
         }
         historyViewProvider.commitsCount = newConfig.commitsCount;
         config = newConfig;
@@ -42,6 +42,10 @@ export function activate(context: ExtensionContext) {
 export function deactivate() {
 }
 
-export function selectCommittedFilesView(viewName: string): void{
+export function selectCommittedFilesView(viewName: string): void {
     workspace.getConfiguration('githd').update('committedFilesView.useExplorer', viewName === 'Explorer', false);
+}
+
+export function setExplorerViewWithFolder(withFolder: string): void {
+    workspace.getConfiguration('githd').update('explorerView.withFolder', withFolder.toLowerCase() === 'yes', false);
 }

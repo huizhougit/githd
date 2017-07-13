@@ -128,7 +128,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private _more: Clickable;
     private _refresh: Clickable;
 
-    private _statusBarItem: StatusBarItem = window.createStatusBarItem();
+    private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 2);
 
     constructor(private _fileProvider: FileProvider, private _commitsCount: number = 200) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);

@@ -1,7 +1,7 @@
 'use strict'
 
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Event, EventEmitter,
-    Disposable, commands } from 'vscode';
+    Disposable, commands, StatusBarItem } from 'vscode';
 import { git } from './git';
 import { FileProvider } from './model'
 import { Icons } from './icons';
@@ -50,25 +50,33 @@ class FolderItem extends TreeItem {
 type CommittedTreeItem = CommittedFile | FolderItem;
 
 export class CommittedFilesProvider implements TreeDataProvider<CommittedTreeItem>, FileProvider {
-    private _disposable: Disposable[] = [];
+    private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
-    private _ref: string;
+    private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 1);
 
+    private _ref: string;
     private _files: CommittedFile[];
     private _fileRoot: FolderItem; // Not in use.
 
     readonly onDidChangeTreeData: Event<CommittedTreeItem> = this._onDidChange.event;
     get ref(): string { return this._ref; }
-    set useTreeView(value: boolean) {
-        if (this._treeView !== value) {
-            this._treeView = value;
+    set withFolder(value: boolean) {
+        if (this._withFolder !== value) {
+            this._withFolder = value;
+            this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'nofolder');
             this.update(this._ref);
         }
     }
 
-    constructor(private _treeView: boolean = false) {
-        this._disposable.push(window.registerTreeDataProvider('committedFiles', this));
-        this._disposable.push(this._onDidChange);
+    constructor(private _withFolder: boolean = false) {
+        this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
+        this._disposables.push(this._onDidChange);
+
+        this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'no folder');
+        this._statusBarItem.command = 'githd.setExplorerViewWithFolder';
+        this._statusBarItem.tooltip = 'Set if the committed files show with folder or not';
+        this._statusBarItem.show();
+        this._disposables.push(this._statusBarItem);
     }
 
     clear(): void {
@@ -76,7 +84,7 @@ export class CommittedFilesProvider implements TreeDataProvider<CommittedTreeIte
     }
 
     dispose(): void {
-        this._disposable.forEach(d => d.dispose());
+        this._disposables.forEach(d => d.dispose());
     }
 
     getTreeItem(element: CommittedTreeItem): CommittedTreeItem {
@@ -84,7 +92,7 @@ export class CommittedFilesProvider implements TreeDataProvider<CommittedTreeIte
     }
 
     getChildren(element?: CommittedTreeItem): CommittedTreeItem[] {
-        if (!this._treeView) {
+        if (!this._withFolder) {
             return this._files;
         }
 
