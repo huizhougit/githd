@@ -33,7 +33,7 @@ export namespace git {
         status: string;
     }
 
-    export async function exec(args: string[]): Promise<string> {
+    async function exec(args: string[]): Promise<string> {
         let content: string = '';
         let gitShow = spawn('git', args, { cwd: workspace.rootPath });
         let out = gitShow.stdout;
@@ -43,6 +43,10 @@ export namespace git {
             out.on('end', () => resolve(content));
             out.on('error', err => reject(err));
         });
+    }
+
+    async function getGitRoot(): Promise<string> {
+        return (await exec(['rev-parse', '--show-toplevel'])).trim();
     }
 
     export async function getCurrentBranch(): Promise<string> {
@@ -77,7 +81,8 @@ export namespace git {
     }
 
     export async function getCommittedFiles(ref: string): Promise<CommittedFile[]> {
-        const result = await git.exec(['show', '--format=%h', '--name-status', ref]);
+        const gitRootPath = await getGitRoot();
+        const result = await exec(['show', '--format=%h', '--name-status', ref]);
         let files: CommittedFile[] = [];
         result.split(/\r?\n/g).forEach((value, index) => {
             if (index > 1 && value) {
@@ -105,7 +110,7 @@ export namespace git {
                     default:
                         throw new Error('Cannot parse ' + info);
                 }
-                files.push({ relativePath, status, uri: Uri.file(path.join(workspace.rootPath, relativePath)) });
+                files.push({ relativePath, status, uri: Uri.file(path.join(gitRootPath, relativePath)) });
             }
         });
         return files;
@@ -115,7 +120,7 @@ export namespace git {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%cr${itemSeparator}`;
-        const result = await git.exec(['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch]);
+        const result = await exec(['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch]);
         let entries: LogEntry[] = [];
 
         result.split(entrySeparator).forEach(entry => {

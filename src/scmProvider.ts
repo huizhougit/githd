@@ -8,11 +8,6 @@ import { git } from './git';
 import { Icons } from './icons';
 import path = require('path');
 
-function createUri(relativePath: string): Uri {
-    const absPath = path.join(workspace.rootPath, relativePath);
-    return Uri.file(absPath);
-}
-
 export class Resource implements SourceControlResourceState, git.CommittedFile {
     readonly uri: Uri = this._uri;
     readonly relativePath: string = this._relativePath;
