@@ -49,7 +49,7 @@ class FolderItem extends TreeItem {
 
 type CommittedTreeItem = CommittedFile | FolderItem;
 
-export class CommittedFilesProvider implements TreeDataProvider<CommittedTreeItem>, FileProvider {
+export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>, FileProvider {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
     private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 1);

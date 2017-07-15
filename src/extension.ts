@@ -4,7 +4,7 @@ import { ExtensionContext, workspace } from 'vscode'
 import { createFileProvider, FileProvider, explorerViewName } from './model';
 import { CommandCenter } from './commands';
 import { HistoryViewProvider } from './historyViewProvider';
-import { CommittedFilesProvider } from './committedFilesProvider';
+import { ExplorerViewProvider } from './explorerViewProvider';
 
 export function activate(context: ExtensionContext) {
     let getConfigFn = () => {
@@ -30,7 +30,7 @@ export function activate(context: ExtensionContext) {
             context.subscriptions.push(fileProvider);
             fileProvider.update(ref);
         } else if (config.userExplorer && newConfig.withFolder !== config.withFolder) {
-            (fileProvider as CommittedFilesProvider).withFolder = newConfig.withFolder;
+            (fileProvider as ExplorerViewProvider).withFolder = newConfig.withFolder;
         }
         historyViewProvider.commitsCount = newConfig.commitsCount;
         config = newConfig;

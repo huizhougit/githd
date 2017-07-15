@@ -1,9 +1,7 @@
 'use strict'
 
-import { GithdProvider } from './scmProvider';
-import { CommittedFilesProvider } from './committedFilesProvider';
-
-export const explorerViewName = 'Explorer';
+import { ScmViewProvider } from './scmViewProvider';
+import { ExplorerViewProvider } from './explorerViewProvider';
 
 export interface FileProvider {
     ref: string;
@@ -14,7 +12,7 @@ export interface FileProvider {
 
 export function createFileProvider(inExplorer?: boolean, withFolder?: boolean): FileProvider {
     if (inExplorer) {
-        return new CommittedFilesProvider(withFolder);
+        return new ExplorerViewProvider(withFolder);
     }
-    return new GithdProvider();
+    return new ScmViewProvider();
 }

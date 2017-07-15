@@ -39,7 +39,7 @@ export class Resource implements SourceControlResourceState, git.CommittedFile {
     }
 }
 
-export class GithdProvider implements Disposable {
+export class ScmViewProvider implements Disposable {
     private _disposables: Disposable[] = [];
     private _resourceGroup: SourceControlResourceGroup;
     private _ref: string;
