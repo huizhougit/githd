@@ -12,8 +12,8 @@ export interface FileProvider {
     dispose(): void;
 }
 
-export function createFileProvider(useExplorer?: boolean, withFolder?: boolean): FileProvider {
-    if (useExplorer) {
+export function createFileProvider(inExplorer?: boolean, withFolder?: boolean): FileProvider {
+    if (inExplorer) {
         return new CommittedFilesProvider(withFolder);
     }
     return new GithdProvider();

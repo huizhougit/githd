@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View the git log. View the change details of a specified commit",
-    "version": "0.2.9",
+    "version": "0.3.0",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
@@ -35,10 +35,10 @@
             "type": "object",
             "title": "Git History Diff configuration",
             "properties": {
-                "githd.committedFilesView.useExplorer": {
+                "githd.committedFiles.inExplorerView": {
                     "type": "boolean",
                     "default": false,
-                    "description": "List committed files in the Explorer instead of SCM."
+                    "description": "List committed files in the Explorer View instead of SCM."
                 },
                 "githd.explorerView.withFolder": {
                     "type": "boolean",
@@ -48,7 +48,7 @@
                 "githd.logView.commitsCount": {
                     "type": "number",
                     "default": 200,
-                    "description": "The commits count listed in history view. You can load more with clicking ... or load entire log with command.",
+                    "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking ... or load the entire log with command.",
                     "enum": [
                         50, 100, 200, 300, 400, 500
                     ]
@@ -60,7 +60,7 @@
                 {
                     "id": "committedFiles",
                     "name": "GitHD: Committed Files",
-                    "when": "config.githd.committedFilesView.useExplorer"
+                    "when": "config.githd.committedFiles.inExplorerView"
                 }
             ]
         },
@@ -148,7 +148,7 @@
                 },
                 {
                     "command": "githd.setExplorerViewWithFolder",
-                    "when": "config.githd.committedFilesView.useExplorer"
+                    "when": "config.githd.committedFiles.inExplorerView"
                 },
                 {
                     "command": "githd.selectCommittedFilesView",
@@ -164,7 +164,7 @@
                 {
                     "command": "githd.switch",
                     "group": "navigation",
-                    "when": "!config.githd.committedFilesView.useExplorer"
+                    "when": "!config.githd.committedFiles.inExplorerView"
                 }
             ],
             "scm/resourceGroup/context": [

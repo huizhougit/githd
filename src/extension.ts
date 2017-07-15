@@ -9,7 +9,7 @@ import { CommittedFilesProvider } from './committedFilesProvider';
 export function activate(context: ExtensionContext) {
     let getConfigFn = () => {
         return {
-            userExplorer: <boolean>workspace.getConfiguration('githd.committedFilesView').get('useExplorer'),
+            userExplorer: <boolean>workspace.getConfiguration('githd.committedFiles').get('inExplorerView'),
             withFolder: <boolean>workspace.getConfiguration('githd.explorerView').get('withFolder'),
             commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount')
         };
@@ -43,7 +43,7 @@ export function deactivate() {
 }
 
 export function selectCommittedFilesView(viewName: string): void {
-    workspace.getConfiguration('githd').update('committedFilesView.useExplorer', viewName === 'Explorer', false);
+    workspace.getConfiguration('githd').update('committedFiles.inExplorerView', viewName === 'Explorer', false);
 }
 
 export function setExplorerViewWithFolder(withFolder: string): void {

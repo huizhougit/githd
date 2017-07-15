@@ -13,7 +13,7 @@ class CommittedFile extends TreeItem implements git.CommittedFile {
     readonly status: string = this._status;
 
     constructor(private _uri: Uri, private _relativePath: string, private _status: string, label?: string) {
-        super(label ? label : `${path.basename(_relativePath)} @${path.dirname(_relativePath)}`);
+        super(label ? label : `${path.basename(_relativePath)} \u00a0\u2022\u00a0 ${path.dirname(_relativePath)}`);
         this.command = {
             title: '',
             command: 'githd.openCommittedFile',
@@ -72,7 +72,7 @@ export class CommittedFilesProvider implements TreeDataProvider<CommittedTreeIte
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
         this._disposables.push(this._onDidChange);
 
-        this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'no folder');
+        this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'nofolder');
         this._statusBarItem.command = 'githd.setExplorerViewWithFolder';
         this._statusBarItem.tooltip = 'Set if the committed files show with folder or not';
         this._statusBarItem.show();

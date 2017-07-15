@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.3.0
+- Config to list the committed files in Explorer View or SCM View
+
 ## 0.2.2
 - View the entire git history.
 - Select branch to view it's history.
