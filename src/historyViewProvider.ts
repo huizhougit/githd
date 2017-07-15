@@ -193,6 +193,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             }
             if (uri.fragment === HistoryViewProvider._refreshLabel) {
                 commands.executeCommand('workbench.action.closeActiveEditor');
+                this._branch = undefined;
                 this.update();
                 return "";
             }
