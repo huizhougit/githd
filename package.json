@@ -148,7 +148,7 @@
                 },
                 {
                     "command": "githd.setExplorerViewWithFolder",
-                    "when": "config.githd.committedFiles.inExplorerView"
+                    "when": "false"
                 },
                 {
                     "command": "githd.selectCommittedFilesView",
