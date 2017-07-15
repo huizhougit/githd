@@ -108,6 +108,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private static _separatorLabel = '--------------------------------------------------------------';
 
     private _branch: string;
+    private _specifiedFile: string;
     private _content: string;
     private _logCount: number = 0;
     private _currentLine: number = 0;
@@ -174,11 +175,13 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             this._statusBarItem.text = 'githd: ' + value;
         }
     }
+    set specifiedFile(value: string) { this._specifiedFile = value; }
 
     async provideTextDocumentContent(uri: Uri): Promise<string> {
-        if (uri.query) {
-            // There is no mouse click event to listen. So it is a little hacky here.
-            // A new temp file is opened with the clicking information and closed immediately
+        // There is no mouse click event to listen. So it is a little hacky here.
+        // A new temp file is opened with the clicking information and closed immediately
+
+        if (uri.query) { // ref link clicked
             commands.executeCommand('workbench.action.closeActiveEditor');
             let hash: string = uri.query;
             this._fileProvider.update(hash);
@@ -212,18 +215,22 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             this._content += HistoryViewProvider._separatorLabel + '\n\n';
             this._currentLine += 2;
         }
-        const commitsCount: number = await git.getCommitsCount();
+        const commitsCount: number = await git.getCommitsCount(this._specifiedFile);
         if (this._loadAll && commitsCount > 1000) {
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
         const logCount = this._loadAll ? commitsCount : this._commitsCount;
-        const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, this._branch);
+        const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, this._branch, this._specifiedFile);
         if (!loadingMore) {
 
             this._reset();
 
             this._content = HistoryViewProvider._titleLabel;
             decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
+
+            if (this._specifiedFile) {
+                this._content += ' of ' + this._specifiedFile;
+            }
             this._content += ' on ';
 
             this._refresh = new Clickable(

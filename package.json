@@ -98,6 +98,11 @@
                 "category": "GitHD"
             },
             {
+                "command": "githd.viewFileHistory",
+                "title": "View Log of Current File",
+                "category": "GitHD"
+            },
+            {
                 "command": "githd.viewAllHistory",
                 "title": "View Entire Log (it may take a long time if the history is long)",
                 "category": "GitHD"

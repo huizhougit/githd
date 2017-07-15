@@ -1,7 +1,7 @@
 'use strict';
 
 import { ExtensionContext, workspace } from 'vscode'
-import { createFileProvider, FileProvider, explorerViewName } from './model';
+import { createFileProvider, FileProvider } from './model';
 import { CommandCenter } from './commands';
 import { HistoryViewProvider } from './historyViewProvider';
 import { ExplorerViewProvider } from './explorerViewProvider';

@@ -1,6 +1,9 @@
 'use strict'
 
+import path = require('path');
+
 import { Uri, commands, Disposable, workspace, window , scm} from 'vscode';
+
 import { selectCommittedFilesView, setExplorerViewWithFolder } from './extension';
 import { FileProvider } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
@@ -70,24 +73,20 @@ export class CommandCenter {
 
     @command('githd.viewHistory')
     async viewHistory(): Promise<void> {
-        this._viewProvider.update();
-        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
-            window.showTextDocument(doc);
-            if (!this._viewProvider.loadingMore) {
-                commands.executeCommand('cursorTop');
-            }
-        });
+        this._viewProvider.specifiedFile = undefined;
+        return this._viewHistory(false);
+    }
+
+    @command('githd.viewFileHistory')
+    async viewFileHistory(): Promise<void> {
+        this._viewProvider.specifiedFile = path.relative(workspace.rootPath, window.activeTextEditor.document.uri.fsPath);
+        return this._viewHistory(false);
     }
 
     @command('githd.viewAllHistory')
     async viewAllHistory(): Promise<void> {
-        this._viewProvider.update(true);
-        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
-            window.showTextDocument(doc);
-            if (!this._viewProvider.loadingMore) {
-                commands.executeCommand('cursorTop');
-            }
-        });
+        this._viewProvider.specifiedFile = undefined;
+        return this._viewHistory(true);
     }
 
     @command('githd.selectBranch')
@@ -106,7 +105,7 @@ export class CommandCenter {
         });
         window.showQuickPick(picks, { placeHolder: `Select a ref to see it's history` }).then(item => {
             this._viewProvider.branch = item.label;
-            this.viewHistory();
+            this._viewHistory(false);
         });
     }
 
@@ -138,6 +137,16 @@ export class CommandCenter {
         const picks = ['Yes', 'No'];
         window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` }).then(item => {
             setExplorerViewWithFolder(item);
+        });
+    }
+
+    private async _viewHistory(all: boolean): Promise<void> {
+        this._viewProvider.update(all);
+        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
+            window.showTextDocument(doc);
+            if (!this._viewProvider.loadingMore) {
+                commands.executeCommand('cursorTop');
+            }
         });
     }
 }

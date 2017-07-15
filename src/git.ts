@@ -53,8 +53,12 @@ export namespace git {
         return (await exec(['rev-parse', '--abbrev-ref', 'HEAD'])).trim();
     }
 
-    export async function getCommitsCount(): Promise<number> {
-        return parseInt(await exec(['rev-list', '--count', 'HEAD']));
+    export async function getCommitsCount(file?: string): Promise<number> {
+        let args: string[] = ['rev-list', '--count', 'HEAD'];
+        if (file) {
+            args.push(file);
+        }
+        return parseInt(await exec(args));
     }
 
     export async function getRefs(): Promise<Ref[]> {
@@ -116,11 +120,15 @@ export namespace git {
         return files;
     }
 
-    export async function getLogEntries(start: number, count: number, branch: string): Promise<LogEntry[]> {
+    export async function getLogEntries(start: number, count: number, branch: string, file?: string): Promise<LogEntry[]> {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%cr${itemSeparator}`;
-        const result = await exec(['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch]);
+        let args: string[] = ['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch];
+        if (file) {
+            args.push(file);
+        }
+        const result = await exec(args);
         let entries: LogEntry[] = [];
 
         result.split(entrySeparator).forEach(entry => {
