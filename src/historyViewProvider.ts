@@ -15,6 +15,12 @@ const titleDecorationType = window.createTextEditorDecorationType({
     dark: { color: '#4EC9B0' }
 });
 
+const fileDecorationType = window.createTextEditorDecorationType({
+    // regexp color
+    light: { color: '#811f3f' },
+    dark: { color: '#d16969' }
+});
+
 const subjectDecorationType = window.createTextEditorDecorationType({
     // keyword color
     light: { color: '#0000ff' },
@@ -118,6 +124,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private _disposables: Disposable[] = [];
 
     private _titleDecorationOptions: Range[] = [];
+    private _fileDecorationOptions: Range[] = [];
     private _subjectDecorationOptions: Range[] = [];
     private _hashDecorationOptions: Range[] = [];
     private _refDecorationOptions: Range[] = [];
@@ -221,15 +228,21 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         }
         const logCount = this._loadAll ? commitsCount : this._commitsCount;
         const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, this._branch, this._specifiedFile);
-        if (!loadingMore) {
-
+        if (entries.length === 0) {
             this._reset();
+            return 'No History';
+        }
 
+        if (!loadingMore) {
+            this._reset();
             this._content = HistoryViewProvider._titleLabel;
             decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
 
             if (this._specifiedFile) {
-                this._content += ' of ' + this._specifiedFile;
+                this._content += ' of ';
+                let start: number = this._content.length;
+                this._content += this._specifiedFile;
+                this._fileDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, this._content.length));
             }
             this._content += ' on ';
 
@@ -284,7 +297,11 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                 ++this._currentLine;
 
                 if (entry.stat) {
-                    this._content += entry.stat + '\n';
+                    let stat: string = entry.stat;
+                    if (this._specifiedFile) {
+                        stat = entry.stat.replace('1 file changed, ', '');
+                    }
+                    this._content += stat + '\n';
                     ++this._currentLine;
                 }
 
@@ -324,6 +341,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
     private _setDecorations(editor: TextEditor): void {
         editor.setDecorations(titleDecorationType, this._titleDecorationOptions);
+        editor.setDecorations(fileDecorationType, this._fileDecorationOptions);
 
         this._decorate(editor, subjectDecorationType, this._subjectDecorationOptions);
         this._decorate(editor, hashDecorationType, this._hashDecorationOptions);
@@ -363,6 +381,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._links = [];
 
         this._titleDecorationOptions = [];
+        this._fileDecorationOptions = [];
         this._subjectDecorationOptions = [];
         this._hashDecorationOptions = [];
         this._refDecorationOptions = [];

@@ -20,6 +20,12 @@
     "categories": [
         "Other"
     ],
+    "keywords": [
+        "git",
+        "diff",
+        "git log",
+        "git history"
+    ],
     "activationEvents": [
         "*"
     ],
@@ -183,6 +189,12 @@
                 {
                     "command": "githd.clear",
                     "when": "view == committedFiles",
+                    "group": "navigation"
+                }
+            ],
+            "editor/context": [
+                {
+                    "command": "githd.viewFileHistory",
                     "group": "navigation"
                 }
             ]

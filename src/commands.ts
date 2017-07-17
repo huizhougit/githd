@@ -73,20 +73,18 @@ export class CommandCenter {
 
     @command('githd.viewHistory')
     async viewHistory(): Promise<void> {
-        this._viewProvider.specifiedFile = undefined;
-        return this._viewHistory(false);
+        return this._viewHistory({});
     }
 
     @command('githd.viewFileHistory')
     async viewFileHistory(): Promise<void> {
-        this._viewProvider.specifiedFile = path.relative(workspace.rootPath, window.activeTextEditor.document.uri.fsPath);
-        return this._viewHistory(false);
+        let file: string = path.relative(workspace.rootPath, window.activeTextEditor.document.uri.fsPath);
+        return this._viewHistory({ file });
     }
 
     @command('githd.viewAllHistory')
     async viewAllHistory(): Promise<void> {
-        this._viewProvider.specifiedFile = undefined;
-        return this._viewHistory(true);
+        return this._viewHistory({ all: true });
     }
 
     @command('githd.selectBranch')
@@ -104,8 +102,7 @@ export class CommandCenter {
             return { label: ref.name || ref.commit, description: description };
         });
         window.showQuickPick(picks, { placeHolder: `Select a ref to see it's history` }).then(item => {
-            this._viewProvider.branch = item.label;
-            this._viewHistory(false);
+            this._viewHistory({ branch: item.label, file: null });
         });
     }
 
@@ -140,8 +137,12 @@ export class CommandCenter {
         });
     }
 
-    private async _viewHistory(all: boolean): Promise<void> {
-        this._viewProvider.update(all);
+    private async _viewHistory(context: { branch?: string, file?: string, all?: boolean }): Promise<void> {
+        this._viewProvider.branch = context.branch;
+        if (context.file !== null) { // null means we don't change current file
+            this._viewProvider.specifiedFile = context.file;
+        }
+        this._viewProvider.update(context.all);
         workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
             window.showTextDocument(doc);
             if (!this._viewProvider.loadingMore) {
