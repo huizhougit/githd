@@ -12,8 +12,8 @@ class CommittedFile extends TreeItem implements git.CommittedFile {
     readonly relativePath: string = this._relativePath;
     readonly status: string = this._status;
 
-    constructor(private _uri: Uri, private _relativePath: string, private _status: string, label?: string) {
-        super(label ? label : `${path.basename(_relativePath)} \u00a0\u2022\u00a0 ${path.dirname(_relativePath)}`);
+    constructor(private _uri: Uri, private _relativePath: string, private _status: string, label: string) {
+        super(label);
         this.command = {
             title: '',
             command: 'githd.openCommittedFile',
@@ -55,8 +55,8 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 1);
 
     private _ref: string;
-    private _files: CommittedFile[];
-    private _fileRoot: FolderItem; // Not in use.
+    private _files: CommittedFile[]; // for no folder view
+    private _fileRoot: FolderItem; // for folder view
 
     readonly onDidChangeTreeData: Event<CommittedTreeItem> = this._onDidChange.event;
     get ref(): string { return this._ref; }
@@ -111,7 +111,13 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             this._ref = ref;
             const files: git.CommittedFile[] = await git.getCommittedFiles(ref);
             this._files = files.map(file => {
-                return new CommittedFile(file.uri, file.relativePath, file.status);
+                const name: string = path.basename(file.relativePath);
+                let dir: string = path.dirname(file.relativePath);
+                if (dir === '.') {
+                    dir = '';
+                }
+                const label: string = name + ' \u00a0\u2022\u00a0 ' + dir;
+                return new CommittedFile(file.uri, file.relativePath, file.status, label);
             });
             this._fileRoot = new FolderItem('');
             files.forEach(file => this._buildFileTree(file));
