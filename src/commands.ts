@@ -9,14 +9,10 @@ import { FileProvider } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
 import { git } from './git';
 
-function fromGitUri(uri: Uri): { path: string, ref: string; } {
-    return JSON.parse(uri.query);
-}
-
-function toGitUri(uri: Uri, ref: string, replaceFileExtension = false): Uri {
+function toGitUri(uri: Uri, ref: string): Uri {
     return uri.with({
         scheme: 'git',
-        path: replaceFileExtension ? `${uri.path}.git` : uri.path,
+        path: uri.path,
         query: JSON.stringify({
             path: uri.fsPath,
             ref
@@ -78,8 +74,11 @@ export class CommandCenter {
 
     @command('githd.viewFileHistory')
     async viewFileHistory(): Promise<void> {
-        let file: string = path.relative(workspace.rootPath, window.activeTextEditor.document.uri.fsPath);
-        return this._viewHistory({ file });
+        if (!window.activeTextEditor) {
+            window.showInformationMessage('There is no open file');
+            return;
+        }
+        return this._viewHistory({ file: window.activeTextEditor.document.uri });
     }
 
     @command('githd.viewAllHistory')
@@ -118,26 +117,31 @@ export class CommandCenter {
         let ref = this._fileProvider.ref;
         let left = toGitUri(file.uri, ref + '~');
         let right = toGitUri(file.uri, ref);
-        return await commands.executeCommand<void>('vscode.diff', left, right, ref + ' ' + file.relativePath, { preview: true });
+        return await commands.executeCommand<void>('vscode.diff', left, right,
+            ref + ' ' + file.gitRelativePath, { preview: true });
     }
 
     @command('githd.selectCommittedFilesView')
     async selectCommittedFilesView(): Promise<void> {
         const picks = ['Explorer', 'SCM'];
         window.showQuickPick(picks, { placeHolder: `Select the committed files view` }).then(item => {
-            selectCommittedFilesView(item);
+            if (item) {
+                selectCommittedFilesView(item);
+            }
         });
     }
 
     @command('githd.setExplorerViewWithFolder')
     async setExplorerViewWithFolder(): Promise<void> {
-        const picks = ['Yes', 'No'];
+        const picks = ['With Folder', 'Without Folder'];
         window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` }).then(item => {
-            setExplorerViewWithFolder(item);
+            if (item) {
+                setExplorerViewWithFolder(item);
+            }
         });
     }
 
-    private async _viewHistory(context: { branch?: string, file?: string, all?: boolean }): Promise<void> {
+    private async _viewHistory(context: { branch?: string, file?: Uri, all?: boolean }): Promise<void> {
         this._viewProvider.branch = context.branch;
         if (context.file !== null) { // null means we don't change current file
             this._viewProvider.specifiedFile = context.file;

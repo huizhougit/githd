@@ -29,13 +29,24 @@ export namespace git {
 
     export interface CommittedFile {
         uri: Uri;
-        relativePath: string;
+        gitRelativePath: string;
         status: string;
     }
 
-    async function exec(args: string[]): Promise<string> {
+    let _gitRootPath: string;
+    async function getGitRoot(): Promise<string> {
+        if (!_gitRootPath) {
+            _gitRootPath = (await exec(['rev-parse', '--show-toplevel'], workspace.rootPath)).trim();
+        }
+        return _gitRootPath;
+    }
+
+    async function exec(args: string[], cwd?: string): Promise<string> {
+        if (!cwd) {
+            cwd = await getGitRoot();
+        }
         let content: string = '';
-        let gitShow = spawn('git', args, { cwd: workspace.rootPath });
+        let gitShow = spawn('git', args, { cwd });
         let out = gitShow.stdout;
         out.setEncoding('utf8');
         return new Promise<string>((resolve, reject) => {
@@ -45,18 +56,19 @@ export namespace git {
         });
     }
 
-    async function getGitRoot(): Promise<string> {
-        return (await exec(['rev-parse', '--show-toplevel'])).trim();
+    export async function getGitRelativePath(file: Uri) {
+        let gitRoot: string = await getGitRoot();
+        return path.relative(gitRoot, file.fsPath);
     }
 
     export async function getCurrentBranch(): Promise<string> {
         return (await exec(['rev-parse', '--abbrev-ref', 'HEAD'])).trim();
     }
 
-    export async function getCommitsCount(file?: string): Promise<number> {
+    export async function getCommitsCount(file?: Uri): Promise<number> {
         let args: string[] = ['rev-list', '--count', 'HEAD'];
         if (file) {
-            args.push(file);
+            args.push(await getGitRelativePath(file));
         }
         return parseInt(await exec(args));
     }
@@ -94,7 +106,7 @@ export namespace git {
                 if (info.length < 2) {
                     return;
                 }
-                let relativePath: string;
+                let gitRelativePath: string;
                 const status: string = info[0][0].toLocaleUpperCase();
                 // A    filename
                 // M    filename
@@ -105,28 +117,28 @@ export namespace git {
                     case 'M':
                     case 'A':
                     case 'D':
-                        relativePath = info[1];
+                        gitRelativePath = info[1];
                         break;
                     case 'R':
                     case 'C':
-                        relativePath = info[2];
+                        gitRelativePath = info[2];
                         break;
                     default:
                         throw new Error('Cannot parse ' + info);
                 }
-                files.push({ relativePath, status, uri: Uri.file(path.join(gitRootPath, relativePath)) });
+                files.push({ gitRelativePath, status, uri: Uri.file(path.join(gitRootPath, gitRelativePath)) });
             }
         });
         return files;
     }
 
-    export async function getLogEntries(start: number, count: number, branch: string, file?: string): Promise<LogEntry[]> {
+    export async function getLogEntries(start: number, count: number, branch: string, file?: Uri): Promise<LogEntry[]> {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%cr${itemSeparator}`;
         let args: string[] = ['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch];
         if (file) {
-            args.push(file);
+            args.push(await getGitRelativePath(file));
         }
         const result = await exec(args);
         let entries: LogEntry[] = [];
@@ -143,11 +155,6 @@ export namespace git {
             let date: string;
             let stat: string;
             entry.split(itemSeparator).forEach((value, index) => {
-                // if (index == 0) {
-                //     // whitespace
-                //     return;
-                // }
-                // --index;
                 switch (index % 7) {
                     case 0:
                         subject = value;

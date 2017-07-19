@@ -114,7 +114,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private static _separatorLabel = '--------------------------------------------------------------';
 
     private _branch: string;
-    private _specifiedFile: string;
+    private _specifiedFile: Uri;
     private _content: string;
     private _logCount: number = 0;
     private _currentLine: number = 0;
@@ -182,7 +182,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             this._statusBarItem.text = 'githd: ' + value;
         }
     }
-    set specifiedFile(value: string) { this._specifiedFile = value; }
+    set specifiedFile(value: Uri) { this._specifiedFile = value; }
 
     async provideTextDocumentContent(uri: Uri): Promise<string> {
         // There is no mouse click event to listen. So it is a little hacky here.
@@ -191,7 +191,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         if (uri.query) { // ref link clicked
             commands.executeCommand('workbench.action.closeActiveEditor');
             let hash: string = uri.query;
-            this._fileProvider.update(hash);
+            this._fileProvider.update(hash, this._specifiedFile);
             return "";
         }
         if (uri.fragment) {
@@ -241,7 +241,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             if (this._specifiedFile) {
                 this._content += ' of ';
                 let start: number = this._content.length;
-                this._content += this._specifiedFile;
+                this._content += await git.getGitRelativePath(this._specifiedFile);
                 this._fileDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, this._content.length));
             }
             this._content += ' on ';

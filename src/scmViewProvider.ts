@@ -10,12 +10,12 @@ import path = require('path');
 
 export class Resource implements SourceControlResourceState, git.CommittedFile {
     readonly uri: Uri = this._uri;
-    readonly relativePath: string = this._relativePath;
+    readonly gitRelativePath: string = this._gitRelativePath;
     readonly status: string = this._status;
     readonly resourceUri: Uri = this._uri;
     readonly command: Command = { title: '', command: 'githd.openCommittedFile', arguments: [this] };
 
-    constructor(private _uri: Uri, private _relativePath: string, private _status: string) {};
+    constructor(private _uri: Uri, private _gitRelativePath: string, private _status: string) {};
 
     get decorations(): SourceControlResourceDecorations {
         const light = { iconPath: this._getIconPath('light') };
@@ -54,7 +54,6 @@ export class ScmViewProvider implements Disposable {
     }
 
     clear(): void {
-        scm.inputBox.value = null;
         this.update(null);
     }
 
@@ -63,20 +62,20 @@ export class ScmViewProvider implements Disposable {
     }
 
     async update(ref: string): Promise<void> {
+        this._ref = ref;
+        scm.inputBox.value = ref;
         if (!ref) {
             this._resourceGroup.resourceStates = [];
             return;
         }
         this._resourceGroup.resourceStates = await this._updateResources(ref);
-        this._ref = ref;
-        scm.inputBox.value = ref;
         commands.executeCommand('workbench.view.scm');
     }
 
     private async _updateResources(ref: string): Promise<Resource[]> {
         const files: git.CommittedFile[] = await git.getCommittedFiles(ref);
         return files.map(file => {
-            return new Resource(file.uri, file.relativePath, file.status);
+            return new Resource(file.uri, file.gitRelativePath, file.status);
         });
     }
 }

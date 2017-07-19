@@ -4,15 +4,20 @@ import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Even
     Disposable, commands, StatusBarItem } from 'vscode';
 import { git } from './git';
 import { FileProvider } from './model'
-import { Icons } from './icons';
+import { Icons, getIconUri } from './icons';
 import path = require('path');
+
+const rootFolderIcon = {
+    dark: getIconUri('structure', 'dark'),
+    light: getIconUri('structure', 'light')
+};
 
 class CommittedFile extends TreeItem implements git.CommittedFile {
     readonly uri: Uri = this._uri;
-    readonly relativePath: string = this._relativePath;
+    readonly gitRelativePath: string = this._gitRelativePath;
     readonly status: string = this._status;
 
-    constructor(private _uri: Uri, private _relativePath: string, private _status: string, label: string) {
+    constructor(private _uri: Uri, private _gitRelativePath: string, private _status: string, label: string) {
         super(label);
         this.command = {
             title: '',
@@ -55,16 +60,17 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 1);
 
     private _ref: string;
-    private _files: CommittedFile[]; // for no folder view
+    private _files: CommittedFile[] = []; // for no folder view
     private _fileRoot: FolderItem; // for folder view
+    private _specifiedFile: CommittedFile;
 
     readonly onDidChangeTreeData: Event<CommittedTreeItem> = this._onDidChange.event;
     get ref(): string { return this._ref; }
     set withFolder(value: boolean) {
         if (this._withFolder !== value) {
             this._withFolder = value;
-            this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'nofolder');
-            this.update(this._ref);
+            this._statusBarItem.text = this._getStatusBarItemText();
+            this.update(this._ref, this._specifiedFile ? this._specifiedFile.uri : undefined);
         }
     }
 
@@ -72,7 +78,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
         this._disposables.push(this._onDidChange);
 
-        this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'nofolder');
+        this._statusBarItem.text = this._getStatusBarItemText();
         this._statusBarItem.command = 'githd.setExplorerViewWithFolder';
         this._statusBarItem.tooltip = 'Set if the committed files show with folder or not';
         this._statusBarItem.show();
@@ -92,13 +98,30 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     getChildren(element?: CommittedTreeItem): CommittedTreeItem[] {
-        if (!this._withFolder) {
-            return this._files;
+        if (!this._ref) {
+            return [];
         }
 
         if (!element) {
-            element = this._fileRoot;
+            element = new FolderItem('');
+
+            if (this._specifiedFile) {
+                let focus = new FolderItem('Focus');
+                focus.iconPath = rootFolderIcon;
+                focus.files.push(this._specifiedFile);
+                element.subFolders.push(focus);
+            }
+            let commit = new FolderItem('Changes of Commit ' + this._ref);
+            commit.iconPath = rootFolderIcon;
+            if (!this._withFolder) {
+                commit.files.push(...this._files);
+            } else {
+                commit.subFolders.push(...this._fileRoot.subFolders);
+                commit.files.push(...this._fileRoot.files);
+            }
+            element.subFolders.push(commit);
         }
+
         let folder = element as FolderItem;
         if (folder) {
             return [].concat(folder.subFolders, folder.files);
@@ -106,18 +129,17 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         return [];
     }
 
-    async update(ref: string): Promise<void> {
+    async update(ref: string, specifiedFile?: Uri): Promise<void> {
+        this._specifiedFile = undefined;
+        this._ref = ref;
         if (ref) {
-            this._ref = ref;
             const files: git.CommittedFile[] = await git.getCommittedFiles(ref);
             this._files = files.map(file => {
-                const name: string = path.basename(file.relativePath);
-                let dir: string = path.dirname(file.relativePath);
-                if (dir === '.') {
-                    dir = '';
+                const label: string = this._getFormatedLabel(file.gitRelativePath);
+                if (specifiedFile && specifiedFile.path === file.uri.path) {
+                    this._specifiedFile = new CommittedFile(file.uri, file.gitRelativePath, file.status, label);
                 }
-                const label: string = name + ' \u00a0\u2022\u00a0 ' + dir;
-                return new CommittedFile(file.uri, file.relativePath, file.status, label);
+                return new CommittedFile(file.uri, file.gitRelativePath, file.status, label);
             });
             this._fileRoot = new FolderItem('');
             files.forEach(file => this._buildFileTree(file));
@@ -128,8 +150,17 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._onDidChange.fire();
     }
 
-    _buildFileTree(file: git.CommittedFile): void {
-        let segments: string[] = file.relativePath.split('/');
+    private _getFormatedLabel(relativePath: string): string {
+        const name: string = path.basename(relativePath);
+        let dir: string = path.dirname(relativePath);
+        if (dir === '.') {
+            dir = '';
+        }
+        return name + ' \u00a0\u2022\u00a0 ' + dir;
+    }
+
+    private _buildFileTree(file: git.CommittedFile): void {
+        let segments: string[] = file.gitRelativePath.split('/');
         let parent: FolderItem = this._fileRoot;
         let i = 0;
         for (; i < segments.length - 1; ++i) {
@@ -140,6 +171,10 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             }
             parent = folder;
         }
-        parent.files.push(new CommittedFile(file.uri, file.relativePath, file.status, segments[i]));
+        parent.files.push(new CommittedFile(file.uri, file.gitRelativePath, file.status, segments[i]));
+    }
+
+    private _getStatusBarItemText(): string {
+        return this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'witout folder');
     }
 }

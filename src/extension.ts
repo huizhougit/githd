@@ -47,5 +47,5 @@ export function selectCommittedFilesView(viewName: string): void {
 }
 
 export function setExplorerViewWithFolder(withFolder: string): void {
-    workspace.getConfiguration('githd').update('explorerView.withFolder', withFolder.toLowerCase() === 'yes', false);
+    workspace.getConfiguration('githd').update('explorerView.withFolder', withFolder === 'With Folder', false);
 }
