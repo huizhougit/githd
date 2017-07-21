@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.4.0
+- View the git history of the current file.
+- Set the default committed files view to Explorer instead of SCM.
+
 ## 0.3.0
 - Config to list the committed files in Explorer View or SCM View
 

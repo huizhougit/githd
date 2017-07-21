@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View the git log. View the change details of a specified commit",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
@@ -43,12 +43,12 @@
             "properties": {
                 "githd.committedFiles.inExplorerView": {
                     "type": "boolean",
-                    "default": false,
+                    "default": true,
                     "description": "List committed files in the Explorer View instead of SCM."
                 },
                 "githd.explorerView.withFolder": {
                     "type": "boolean",
-                    "default": false,
+                    "default": true,
                     "description": "List committed files with the folders."
                 },
                 "githd.logView.commitsCount": {
@@ -105,7 +105,7 @@
             },
             {
                 "command": "githd.viewFileHistory",
-                "title": "View Log of Current File",
+                "title": "View Current File Log",
                 "category": "GitHD"
             },
             {
