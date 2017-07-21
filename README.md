@@ -33,6 +33,7 @@ See the [change log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.m
 ![Image of log view](https://raw.githubusercontent.com/huizhougit/githd/master/resources/log_view.gif)
 
 ### <a id="config"></a>Configuration
+_Press F1_ and type or select `Preferences: Open Workspace Settings` or  `Preferences: Open User Settings` and set the configurations.
 
 ![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/configurations.png)
 
