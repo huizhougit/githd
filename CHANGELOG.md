@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.4.1
+- Use icons on the status bar instead of text.
+
 ## 0.4.0
 - View the git history of the current file.
 - Set the default committed files view to Explorer instead of SCM.
