@@ -175,6 +175,6 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     private _getStatusBarItemText(): string {
-        return this._statusBarItem.text = 'githd: ' + (this._withFolder ? 'folder' : 'witout folder');
+        return this._statusBarItem.text = 'githd:  ' + (this._withFolder ? `$(file-directory)` : `$(list-unordered)`);
     }
 }
