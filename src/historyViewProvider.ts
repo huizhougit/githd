@@ -349,7 +349,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._decorate(editor, authorDecorationType, this._authorDecorationOptions);
         this._decorate(editor, emailDecorationType, this._emailDecorationOptions);
 
-        editor.setDecorations(refreshDecorationType, [{ range: this._refresh.range, hoverMessage: 'Refresh the history' }]);
+        if (this._refresh) {
+            editor.setDecorations(refreshDecorationType, [{ range: this._refresh.range, hoverMessage: 'Refresh the history' }]);
+        }
         if (this._more) {
             editor.setDecorations(moreDecorationType, [this._more.range]);
         }
