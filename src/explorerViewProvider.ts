@@ -59,20 +59,11 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
     private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 1);
 
-    private _ref: string;
+    private _leftRef: string;
+    private _rightRef: string;
     private _files: CommittedFile[] = []; // for no folder view
     private _fileRoot: FolderItem; // for folder view
     private _specifiedFile: CommittedFile;
-
-    readonly onDidChangeTreeData: Event<CommittedTreeItem> = this._onDidChange.event;
-    get ref(): string { return this._ref; }
-    set withFolder(value: boolean) {
-        if (this._withFolder !== value) {
-            this._withFolder = value;
-            this._statusBarItem.text = this._getStatusBarItemText();
-            this.update(this._ref, this._specifiedFile ? this._specifiedFile.uri : undefined);
-        }
-    }
 
     constructor(private _withFolder: boolean = false) {
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
@@ -85,8 +76,19 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._disposables.push(this._statusBarItem);
     }
 
+    readonly onDidChangeTreeData: Event<CommittedTreeItem> = this._onDidChange.event;
+    set withFolder(value: boolean) {
+        if (this._withFolder !== value) {
+            this._withFolder = value;
+            this._statusBarItem.text = this._getStatusBarItemText();
+            this.update(this._leftRef, this._rightRef, this._specifiedFile ? this._specifiedFile.uri : undefined);
+        }
+    }
+    get leftRef(): string { return this._leftRef; }
+    get rightRef(): string { return this._rightRef; }
+
     clear(): void {
-        this.update(null);
+        this.update(null, null);
     }
 
     dispose(): void {
@@ -98,7 +100,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     getChildren(element?: CommittedTreeItem): CommittedTreeItem[] {
-        if (!this._ref) {
+        if (!this._rightRef) {
             return [];
         }
 
@@ -111,7 +113,11 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
                 focus.files.push(this._specifiedFile);
                 element.subFolders.push(focus);
             }
-            let commit = new FolderItem('Changes of Commit ' + this._ref);
+            let label: string = 'Changes of Commit ' + this._rightRef;
+            if (this._leftRef) {
+                label = `Diffs Between ${this._leftRef} and ${this._rightRef}`
+            }
+            let commit = new FolderItem(label);
             commit.iconPath = rootFolderIcon;
             if (!this._withFolder) {
                 commit.files.push(...this._files);
@@ -129,11 +135,12 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         return [];
     }
 
-    async update(ref: string, specifiedFile?: Uri): Promise<void> {
+    async update(leftRef: string, rightRef: string, specifiedFile?: Uri): Promise<void> {
         this._specifiedFile = undefined;
-        this._ref = ref;
-        if (ref) {
-            const files: git.CommittedFile[] = await git.getCommittedFiles(ref);
+        this._leftRef = leftRef;
+        this._rightRef = rightRef;
+        if (rightRef) {
+            const files: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
             this._files = files.map(file => {
                 const label: string = this._getFormatedLabel(file.gitRelativePath);
                 if (specifiedFile && specifiedFile.path === file.uri.path) {

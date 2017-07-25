@@ -96,12 +96,16 @@ export namespace git {
             .filter(ref => !!ref) as Ref[];
     }
 
-    export async function getCommittedFiles(ref: string): Promise<CommittedFile[]> {
+    export async function getCommittedFiles(leftRef: string, rightRef: string): Promise<CommittedFile[]> {
         const gitRootPath = await getGitRoot();
-        const result = await exec(['show', '--format=%h', '--name-status', ref]);
+        let args = ['show', '--format=%h', '--name-status', rightRef];
+        if (leftRef) {
+            args = ['diff', '--name-status', `${leftRef}..${rightRef}`];
+        }
+        const result = await exec(args);
         let files: CommittedFile[] = [];
         result.split(/\r?\n/g).forEach((value, index) => {
-            if (index > 1 && value) {
+            if (value) {
                 let info = value.split(/\t/g);
                 if (info.length < 2) {
                     return;

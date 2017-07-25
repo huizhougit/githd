@@ -2,7 +2,7 @@
 
 import path = require('path');
 
-import { Uri, commands, Disposable, workspace, window , scm} from 'vscode';
+import { Uri, commands, Disposable, workspace, window , scm, QuickPickItem} from 'vscode';
 
 import { selectCommittedFilesView, setExplorerViewWithFolder } from './extension';
 import { FileProvider } from './model';
@@ -17,6 +17,21 @@ function toGitUri(uri: Uri, ref: string): Uri {
             path: uri.fsPath,
             ref
         })
+    });
+}
+
+async function selectBranch(): Promise<QuickPickItem[]> {
+    const refs = await git.getRefs();
+    return refs.map(ref => {
+        let description: string;
+        if (ref.type === git.RefType.Head) {
+            description = ref.commit;
+        } else if (ref.type === git.RefType.Tag) {
+            description = `Tag at ${ref.commit}`;
+        } else if (ref.type === git.RefType.RemoteHead) {
+            description = `Remote branch at ${ref.commit}`;
+        }
+        return { label: ref.name || ref.commit, description: description };
     });
 }
 
@@ -54,7 +69,7 @@ export class CommandCenter {
 
     @command('githd.updateSha')
     async updateSha(): Promise<void> {
-        await this._fileProvider.update(scm.inputBox.value);
+        await this._fileProvider.update(null, scm.inputBox.value);
     }
 
     @command('githd.clear')
@@ -89,39 +104,39 @@ export class CommandCenter {
         return this._viewHistory({ all: true });
     }
 
-    @command('githd.selectBranch')
-    async selectBranch(): Promise<void> {
-        const refs = await git.getRefs();
-        const picks = refs.map(ref => {
-            let description: string;
-            if (ref.type === git.RefType.Head) {
-                description = ref.commit;
-            } else if (ref.type === git.RefType.Tag) {
-                description = `Tag at ${ref.commit}`;
-            } else if (ref.type === git.RefType.RemoteHead) {
-                description = `Remote branch at ${ref.commit}`;
-            }
-            return { label: ref.name || ref.commit, description: description };
-        });
-        window.showQuickPick(picks, { placeHolder: `Select a ref to see it's history` }).then(item => {
-            this._viewHistory({ branch: item.label, file: null });
+    @command('githd.viewBranchHistory')
+    async viewBranchHistory(): Promise<void> {
+        window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's history` }
+        ).then(item => this._viewHistory({ branch: item.label, file: null }));
+    }
+
+    @command('githd.diffBranch')
+    async diffBranch(): Promise<void> {
+        window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's diff with current one` }
+        ).then(async item => {
+            let currentRef = await git.getCurrentBranch();
+            this._fileProvider.update(item.label, currentRef);
         });
     }
 
     @command('githd.inputRef')
     async inputRef(): Promise<void> {
         window.showInputBox( { placeHolder: `Input a ref (sha1) to see it's committed files` }).then(ref => {
-            this._fileProvider.update(ref);
+            this._fileProvider.update(null, ref);
         });
     }
 
     @command('githd.openCommittedFile')
     async openCommittedFile(file: git.CommittedFile): Promise<void> {
-        let ref = this._fileProvider.ref;
-        let left = toGitUri(file.uri, ref + '~');
-        let right = toGitUri(file.uri, ref);
-        return await commands.executeCommand<void>('vscode.diff', left, right,
-            ref + ' ' + file.gitRelativePath, { preview: true });
+        let rightRef: string = this._fileProvider.rightRef;
+        let leftRef: string = this._fileProvider.rightRef + '~';
+        let title = rightRef;
+        if (this._fileProvider.leftRef) {
+            leftRef = this._fileProvider.leftRef;
+            title = `${leftRef} .. ${rightRef}`;
+        }
+        return await commands.executeCommand<void>('vscode.diff', toGitUri(file.uri, leftRef), toGitUri(file.uri, rightRef),
+            title + ' | ' + file.gitRelativePath, { preview: true });
     }
 
     @command('githd.selectCommittedFilesView')

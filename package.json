@@ -113,13 +113,18 @@
                 "category": "GitHD"
             },
             {
-                "command": "githd.selectBranch",
-                "title": "Select Branch",
+                "command": "githd.viewBranchHistory",
+                "title": "Select Branch and See its Log",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.diffBranch",
+                "title": "Select Branch and See its Diff with Current One",
                 "category": "GitHD"
             },
             {
                 "command": "githd.inputRef",
-                "title": "Input Ref",
+                "title": "Input Ref and See its Change",
                 "category": "GitHD"
             },
             {

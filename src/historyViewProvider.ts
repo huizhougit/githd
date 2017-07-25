@@ -145,7 +145,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         disposable = languages.registerDocumentLinkProvider({ scheme: HistoryViewProvider.scheme }, this);
         this._disposables.push(disposable);
 
-        this._statusBarItem.command = 'githd.selectBranch';
+        this._statusBarItem.command = 'githd.viewBranchHistory';
         this._statusBarItem.tooltip = 'Select the branch to see its history';
         this._disposables.push(this._statusBarItem);
         this._disposables.push(this._onDidChange);
@@ -191,7 +191,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         if (uri.query) { // ref link clicked
             commands.executeCommand('workbench.action.closeActiveEditor');
             let hash: string = uri.query;
-            this._fileProvider.update(hash, this._specifiedFile);
+            this._fileProvider.update(null, hash, this._specifiedFile);
             return "";
         }
         if (uri.fragment) {

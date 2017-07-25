@@ -22,13 +22,14 @@ export function activate(context: ExtensionContext) {
     workspace.onDidChangeConfiguration(() => {
         let newConfig = getConfigFn();
         if (newConfig.userExplorer !== config.userExplorer) {
-            let ref = fileProvider.ref;
+            let leftRef = fileProvider.leftRef;
+            let rightRef = fileProvider.rightRef;
             fileProvider.dispose();
             fileProvider = createFileProvider(newConfig.userExplorer, newConfig.withFolder);
             historyViewProvider.fileProvider = fileProvider;
             commandCenter.fileProvider = fileProvider;
             context.subscriptions.push(fileProvider);
-            fileProvider.update(ref);
+            fileProvider.update(leftRef, rightRef);
         } else if (config.userExplorer && newConfig.withFolder !== config.withFolder) {
             (fileProvider as ExplorerViewProvider).withFolder = newConfig.withFolder;
         }

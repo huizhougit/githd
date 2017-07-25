@@ -42,9 +42,8 @@ export class Resource implements SourceControlResourceState, git.CommittedFile {
 export class ScmViewProvider implements Disposable {
     private _disposables: Disposable[] = [];
     private _resourceGroup: SourceControlResourceGroup;
-    private _ref: string;
-
-    get ref(): string { return this._ref; }
+    private _leftRef: string;
+    private _rightRef: string;
 
     constructor() {
         let sc = scm.createSourceControl('githd', 'GitHistoryDiff');
@@ -52,28 +51,34 @@ export class ScmViewProvider implements Disposable {
         this._resourceGroup = sc.createResourceGroup('committed', 'Committed Files');
         this._disposables.push(sc, this._resourceGroup);
     }
+    get leftRef(): string { return this._leftRef; }
+    get rightRef(): string { return this._rightRef; }
 
     clear(): void {
-        this.update(null);
+        this.update(null, null);
     }
 
     dispose(): void {
         this._disposables.forEach(d => d.dispose());
     }
 
-    async update(ref: string): Promise<void> {
-        this._ref = ref;
-        scm.inputBox.value = ref;
-        if (!ref) {
+    async update(leftRef: string, rightRef: string, specifiedFile?: Uri): Promise<void> {
+        this._leftRef = leftRef;
+        this._rightRef = rightRef;
+        scm.inputBox.value = rightRef;
+        if (!rightRef) {
             this._resourceGroup.resourceStates = [];
             return;
         }
-        this._resourceGroup.resourceStates = await this._updateResources(ref);
+        if (leftRef) {
+            scm.inputBox.value = `${leftRef} .. ${rightRef}`;
+        }
+        this._resourceGroup.resourceStates = await this._updateResources(leftRef, rightRef);
         commands.executeCommand('workbench.view.scm');
     }
 
-    private async _updateResources(ref: string): Promise<Resource[]> {
-        const files: git.CommittedFile[] = await git.getCommittedFiles(ref);
+    private async _updateResources(leftRef: string, rightRef: string): Promise<Resource[]> {
+        const files: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
         return files.map(file => {
             return new Resource(file.uri, file.gitRelativePath, file.status);
         });

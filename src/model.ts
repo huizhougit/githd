@@ -6,8 +6,9 @@ import { ScmViewProvider } from './scmViewProvider';
 import { ExplorerViewProvider } from './explorerViewProvider';
 
 export interface FileProvider {
-    ref: string;
-    update(ref: string, relativePath?: Uri): void;
+    leftRef: string;
+    rightRef: string;
+    update(leftRef: string, rightRef: string, specifiedFile?: Uri): void;
     clear(): void;
     dispose(): void;
 }
