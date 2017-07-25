@@ -105,8 +105,7 @@
             },
             {
                 "command": "githd.viewFileHistory",
-                "title": "View Current File Log",
-                "category": "GitHD"
+                "title": "GitHD: View File or Folder Log"
             },
             {
                 "command": "githd.viewAllHistory",
@@ -166,6 +165,12 @@
                     "when": "false"
                 }
             ],
+            "explorer/context": [
+                {
+                    "command": "githd.viewFileHistory",
+                    "group": "githd"
+                }
+            ],
             "scm/title": [
                 {
                     "command": "githd.updateSha",
@@ -195,7 +200,7 @@
             "editor/context": [
                 {
                     "command": "githd.viewFileHistory",
-                    "group": "navigation"
+                    "group": "githd"
                 }
             ]
         }

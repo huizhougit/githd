@@ -73,7 +73,10 @@ export class CommandCenter {
     }
 
     @command('githd.viewFileHistory')
-    async viewFileHistory(): Promise<void> {
+    async viewFileHistory(file: Uri): Promise<void> {
+        if (file) {
+            return this._viewHistory({ file });
+        }
         if (!window.activeTextEditor) {
             window.showInformationMessage('There is no open file');
             return;
