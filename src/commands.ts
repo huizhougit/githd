@@ -4,7 +4,7 @@ import path = require('path');
 
 import { Uri, commands, Disposable, workspace, window , scm, QuickPickItem} from 'vscode';
 
-import { selectCommittedFilesView, setExplorerViewWithFolder } from './extension';
+import { setExplorerViewWithFolder } from './extension';
 import { FileProvider } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
 import { git } from './git';
@@ -137,16 +137,6 @@ export class CommandCenter {
         }
         return await commands.executeCommand<void>('vscode.diff', toGitUri(file.uri, leftRef), toGitUri(file.uri, rightRef),
             title + ' | ' + file.gitRelativePath, { preview: true });
-    }
-
-    @command('githd.selectCommittedFilesView')
-    async selectCommittedFilesView(): Promise<void> {
-        const picks = ['Explorer', 'SCM'];
-        window.showQuickPick(picks, { placeHolder: `Select the committed files view` }).then(item => {
-            if (item) {
-                selectCommittedFilesView(item);
-            }
-        });
     }
 
     @command('githd.setExplorerViewWithFolder')

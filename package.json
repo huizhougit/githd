@@ -133,11 +133,6 @@
                 "category": "GitHD"
             },
             {
-                "command": "githd.selectCommittedFilesView",
-                "title": "Select Committed Files View",
-                "category": "GitHD"
-            },
-            {
                 "command": "githd.setExplorerViewWithFolder",
                 "title": "Set the Files Show With Folder",
                 "category": "GitHD"
@@ -163,10 +158,6 @@
                 },
                 {
                     "command": "githd.setExplorerViewWithFolder",
-                    "when": "false"
-                },
-                {
-                    "command": "githd.selectCommittedFilesView",
                     "when": "false"
                 }
             ],

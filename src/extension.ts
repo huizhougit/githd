@@ -43,10 +43,6 @@ export function activate(context: ExtensionContext) {
 export function deactivate() {
 }
 
-export function selectCommittedFilesView(viewName: string): void {
-    workspace.getConfiguration('githd').update('committedFiles.inExplorerView', viewName === 'Explorer', false);
-}
-
 export function setExplorerViewWithFolder(withFolder: string): void {
     workspace.getConfiguration('githd').update('explorerView.withFolder', withFolder === 'With Folder', false);
 }
