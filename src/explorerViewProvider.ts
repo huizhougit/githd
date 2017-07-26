@@ -1,11 +1,13 @@
 'use strict'
 
+import * as path from 'path';
+import * as fs from 'fs';
+
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Event, EventEmitter,
     Disposable, commands, StatusBarItem } from 'vscode';
 import { git } from './git';
 import { FileProvider } from './model'
 import { Icons, getIconUri } from './icons';
-import path = require('path');
 
 const rootFolderIcon = {
     dark: getIconUri('structure', 'dark'),
@@ -57,6 +59,66 @@ class FolderItem extends TreeItem {
 
 type CommittedTreeItem = CommittedFile | FolderItem;
 
+function getFormatedLabel(relativePath: string): string {
+    const name: string = path.basename(relativePath);
+    let dir: string = path.dirname(relativePath);
+    if (dir === '.') {
+        dir = '';
+    }
+    return name + ' \u00a0\u2022\u00a0 ' + dir;
+}
+
+function createCommittedFile(file: git.CommittedFile): CommittedFile {
+    return new CommittedFile(file.uri, file.gitRelativePath, file.status, getFormatedLabel(file.gitRelativePath));
+}
+
+function buildFileTree(rootFolder: FolderItem, files: git.CommittedFile[], withFolder: boolean): void {
+    if (withFolder) {
+        files.forEach(file => {
+            let segments: string[] = file.gitRelativePath.split('/');
+            let parent: FolderItem = rootFolder;
+            let i = 0;
+            for (; i < segments.length - 1; ++i) {
+                let folder: FolderItem = parent.subFolders.find(item => { return item.label === segments[i]; });
+                if (!folder) {
+                    folder = new FolderItem(segments[i]);
+                    parent.subFolders.push(folder);
+                }
+                parent = folder;
+            }
+            parent.files.push(new CommittedFile(file.uri, file.gitRelativePath, file.status, segments[i]));
+        });
+    } else {
+        rootFolder.files.push(...(files.map(file => { return createCommittedFile(file); })));
+    }
+}
+
+function buildCommitFolder(label: string, committedFiles: git.CommittedFile[], withFolder: boolean): FolderItem {
+    let folder = new FolderItem(label, rootFolderIcon);
+    buildFileTree(folder, committedFiles, withFolder);
+    return folder;
+}
+
+async function buildFocusFolder(label: string, specifiedPath: Uri, committedFiles: git.CommittedFile[], withFolder: boolean): Promise<FolderItem> {
+    let folder = new FolderItem(label, rootFolderIcon);
+    const relativePath = await git.getGitRelativePath(specifiedPath);
+    if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
+        let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });
+        let focus = new CommittedFile(specifiedPath, relativePath, file ? file.status : null,
+            getFormatedLabel(relativePath));
+        folder.files.push(focus);
+    } else {
+        let focus: git.CommittedFile[] = [];
+        committedFiles.forEach(file => {
+            if (file.gitRelativePath.search(relativePath) === 0) {
+                focus.push(createCommittedFile(file));
+            }
+        });
+        buildFileTree(folder, focus, withFolder);
+    }
+    return folder;
+}
+
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>, FileProvider {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
@@ -64,9 +126,8 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
     private _leftRef: string;
     private _rightRef: string;
-    private _files: CommittedFile[] = []; // for no folder view
-    private _fileRoot: FolderItem; // for folder view
-    private _specifiedFile: CommittedFile;
+    private _rootFolder: CommittedTreeItem[] = [];
+    private _specifiedPath: Uri;
 
     constructor(private _withFolder: boolean = false) {
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
@@ -84,7 +145,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         if (this._withFolder !== value) {
             this._withFolder = value;
             this._statusBarItem.text = this._getStatusBarItemText();
-            this.update(this._leftRef, this._rightRef, this._specifiedFile ? this._specifiedFile.uri : undefined);
+            this.update(this._leftRef, this._rightRef, this._specifiedPath);
         }
     }
     get leftRef(): string { return this._leftRef; }
@@ -103,39 +164,9 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     getChildren(element?: CommittedTreeItem): CommittedTreeItem[] {
-        if (!this._rightRef) {
-            return [];
-        }
-
         if (!element) {
-            if (this._leftRef && this._specifiedFile) {
-                let folder = new FolderItem(`${this._leftRef} .. ${this._rightRef}`, rootFolderIcon);
-                folder.files.push(this._specifiedFile);
-                return [folder];
-            }
-
-            element = new FolderItem('');
-            if (this._specifiedFile) {
-                let focus = new FolderItem('Focus', rootFolderIcon);
-                focus.files.push(this._specifiedFile);
-                element.subFolders.push(focus);
-            }
-
-            let label: string = 'Changes of Commit ' + this._rightRef;
-            let commit = new FolderItem(label, rootFolderIcon);
-            if (this._leftRef) {
-                label = `Diffs Between ${this._leftRef} and ${this._rightRef}`;
-            }
-
-            if (!this._withFolder) {
-                commit.files.push(...this._files);
-            } else {
-                commit.subFolders.push(...this._fileRoot.subFolders);
-                commit.files.push(...this._fileRoot.files);
-            }
-            element.subFolders.push(commit);
+            return this._rootFolder;
         }
-
         let folder = element as FolderItem;
         if (folder) {
             return [].concat(folder.subFolders, folder.files);
@@ -143,61 +174,45 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         return [];
     }
 
-    async update(leftRef: string, rightRef: string, specifiedFile?: Uri): Promise<void> {
-        this._specifiedFile = undefined;
-        this._files = [];
-        this._fileRoot = null;
-
+    async update(leftRef: string, rightRef: string, specifiedPath?: Uri): Promise<void> {
+        this._specifiedPath = specifiedPath;
+        this._rootFolder = [];
         this._leftRef = leftRef;
         this._rightRef = rightRef;
 
-        if (leftRef && rightRef && specifiedFile) {
-            // only care about the diff of the specified file on specified ref
-            const relativePath = await git.getGitRelativePath(specifiedFile);
-            this._specifiedFile = new CommittedFile(specifiedFile, relativePath, null,
-                this._getFormatedLabel(relativePath));
+        if (!rightRef) {
             this._onDidChange.fire();
             return;
         }
 
-        if (rightRef) {
-            const files: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
-            this._files = files.map(file => {
-                const label: string = this._getFormatedLabel(file.gitRelativePath);
-                if (specifiedFile && specifiedFile.path === file.uri.path) {
-                    this._specifiedFile = new CommittedFile(file.uri, file.gitRelativePath,
-                        file.status, label);
-                }
-                return new CommittedFile(file.uri, file.gitRelativePath, file.status, label);
-            });
-            this._fileRoot = new FolderItem('');
-            files.forEach(file => this._buildFileTree(file));
+        const committedFiles: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
+        if (!leftRef && !specifiedPath) {
+            this._buildCommitTree(committedFiles);
+        } else if (leftRef && !specifiedPath) {
+            this._buildDiffBranchTree(committedFiles);
+        } else if (!leftRef && specifiedPath) {
+            this._buildPathSpecifiedCommitTree(specifiedPath, committedFiles);
+        } else {
+            this._buildPathSpecifiedDiffBranchTree(specifiedPath, committedFiles);
         }
         this._onDidChange.fire();
     }
 
-    private _getFormatedLabel(relativePath: string): string {
-        const name: string = path.basename(relativePath);
-        let dir: string = path.dirname(relativePath);
-        if (dir === '.') {
-            dir = '';
-        }
-        return name + ' \u00a0\u2022\u00a0 ' + dir;
+    private _buildCommitTree(committedFiles: git.CommittedFile[]): void {
+        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${this._rightRef}`, committedFiles, this._withFolder));
     }
 
-    private _buildFileTree(file: git.CommittedFile): void {
-        let segments: string[] = file.gitRelativePath.split('/');
-        let parent: FolderItem = this._fileRoot;
-        let i = 0;
-        for (; i < segments.length - 1; ++i) {
-            let folder: FolderItem = parent.subFolders.find(item => { return item.label === segments[i]; });
-            if (!folder) {
-                folder = new FolderItem(segments[i]);
-                parent.subFolders.push(folder);
-            }
-            parent = folder;
-        }
-        parent.files.push(new CommittedFile(file.uri, file.gitRelativePath, file.status, segments[i]));
+    private _buildDiffBranchTree(committedFiles: git.CommittedFile[]): void {
+        this._rootFolder.push(buildCommitFolder(`Diffs between ${this._leftRef} and ${this._rightRef}`, committedFiles, this._withFolder));
+    }
+
+    private async _buildPathSpecifiedCommitTree(specifiedPath: Uri, committedFiles: git.CommittedFile[]): Promise<void> {
+        this._rootFolder.push(await buildFocusFolder('Focus', specifiedPath, committedFiles, this._withFolder));
+        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${this._rightRef}`, committedFiles, this._withFolder));
+    }
+
+    private async _buildPathSpecifiedDiffBranchTree(specifiedPath: Uri, committedFiles: git.CommittedFile[]): Promise<void> {
+        this._rootFolder.push(await buildFocusFolder(`${this._leftRef} .. ${this._rightRef}`, specifiedPath, committedFiles, this._withFolder));
     }
 
     private _getStatusBarItemText(): string {

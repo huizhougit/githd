@@ -58,7 +58,7 @@ export namespace git {
 
     export async function getGitRelativePath(file: Uri) {
         let gitRoot: string = await getGitRoot();
-        return path.relative(gitRoot, file.fsPath);
+        return path.relative(gitRoot, file.fsPath).replace(/\\/g, '/');
     }
 
     export async function getCurrentBranch(): Promise<string> {

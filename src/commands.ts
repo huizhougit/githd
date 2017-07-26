@@ -128,7 +128,7 @@ export class CommandCenter {
     @command('githd.diffFile')
     async diffFile(file: Uri): Promise<void> {
         if (file) {
-            window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see the diff on ${file.path}` }
+            window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see the diff of ${path.basename(file.path)}` }
             ).then(async item => {
                 if (item) {
                     let currentRef = await git.getCurrentBranch();
