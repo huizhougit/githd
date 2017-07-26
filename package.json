@@ -114,17 +114,21 @@
             },
             {
                 "command": "githd.viewBranchHistory",
-                "title": "Select Branch and See its Log",
+                "title": "Select Branch/Ref to See Log",
                 "category": "GitHD"
             },
             {
                 "command": "githd.diffBranch",
-                "title": "Select Branch and See its Diff with Current One",
+                "title": "Select Branch/Ref to See Diff with Current One",
                 "category": "GitHD"
             },
             {
+                "command": "githd.diffFile",
+                "title": "GitHD: Select Branch/Ref to See Diff of this File/Folder"
+            },
+            {
                 "command": "githd.inputRef",
-                "title": "Input Ref and See its Change",
+                "title": "Input Ref to See Change",
                 "category": "GitHD"
             },
             {
@@ -159,12 +163,25 @@
                 {
                     "command": "githd.setExplorerViewWithFolder",
                     "when": "false"
+                },
+                {
+                    "command": "githd.viewFileHistory",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.diffFile",
+                    "when": "false"
                 }
             ],
             "explorer/context": [
                 {
                     "command": "githd.viewFileHistory",
                     "group": "githd"
+                },
+                {
+                    "command": "githd.diffFile",
+                    "group": "githd",
+                    "when": "config.githd.committedFiles.inExplorerView"
                 }
             ],
             "scm/title": [
@@ -197,6 +214,11 @@
                 {
                     "command": "githd.viewFileHistory",
                     "group": "githd"
+                },
+                {
+                    "command": "githd.diffFile",
+                    "group": "githd",
+                    "when": "config.githd.committedFiles.inExplorerView"
                 }
             ]
         }

@@ -24,7 +24,9 @@ class CommittedFile extends TreeItem implements git.CommittedFile {
             command: 'githd.openCommittedFile',
             arguments: [this]
         };
-        this.iconPath = { light: this._getIconPath('light'), dark: this._getIconPath('dark') };
+        if (this._status) {
+            this.iconPath = { light: this._getIconPath('light'), dark: this._getIconPath('dark') };
+        }
     };
 
     private _getIconPath(theme: string): Uri | undefined {
@@ -46,8 +48,9 @@ class FolderItem extends TreeItem {
     get subFolders(): FolderItem[] { return this._subFolders; }
     get files(): CommittedFile[] { return this._files; }
 
-    constructor(label: string) {
+    constructor(label: string, iconPath?: { light: string | Uri; dark: string | Uri }) {
         super(label);
+        this.iconPath = iconPath;
         this.collapsibleState = TreeItemCollapsibleState.Expanded;
     }
 }
@@ -105,20 +108,25 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         }
 
         if (!element) {
-            element = new FolderItem('');
+            if (this._leftRef && this._specifiedFile) {
+                let folder = new FolderItem(`${this._leftRef} .. ${this._rightRef}`, rootFolderIcon);
+                folder.files.push(this._specifiedFile);
+                return [folder];
+            }
 
+            element = new FolderItem('');
             if (this._specifiedFile) {
-                let focus = new FolderItem('Focus');
-                focus.iconPath = rootFolderIcon;
+                let focus = new FolderItem('Focus', rootFolderIcon);
                 focus.files.push(this._specifiedFile);
                 element.subFolders.push(focus);
             }
+
             let label: string = 'Changes of Commit ' + this._rightRef;
+            let commit = new FolderItem(label, rootFolderIcon);
             if (this._leftRef) {
-                label = `Diffs Between ${this._leftRef} and ${this._rightRef}`
+                label = `Diffs Between ${this._leftRef} and ${this._rightRef}`;
             }
-            let commit = new FolderItem(label);
-            commit.iconPath = rootFolderIcon;
+
             if (!this._withFolder) {
                 commit.files.push(...this._files);
             } else {
@@ -137,22 +145,33 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
     async update(leftRef: string, rightRef: string, specifiedFile?: Uri): Promise<void> {
         this._specifiedFile = undefined;
+        this._files = [];
+        this._fileRoot = null;
+
         this._leftRef = leftRef;
         this._rightRef = rightRef;
+
+        if (leftRef && rightRef && specifiedFile) {
+            // only care about the diff of the specified file on specified ref
+            const relativePath = await git.getGitRelativePath(specifiedFile);
+            this._specifiedFile = new CommittedFile(specifiedFile, relativePath, null,
+                this._getFormatedLabel(relativePath));
+            this._onDidChange.fire();
+            return;
+        }
+
         if (rightRef) {
             const files: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
             this._files = files.map(file => {
                 const label: string = this._getFormatedLabel(file.gitRelativePath);
                 if (specifiedFile && specifiedFile.path === file.uri.path) {
-                    this._specifiedFile = new CommittedFile(file.uri, file.gitRelativePath, file.status, label);
+                    this._specifiedFile = new CommittedFile(file.uri, file.gitRelativePath,
+                        file.status, label);
                 }
                 return new CommittedFile(file.uri, file.gitRelativePath, file.status, label);
             });
             this._fileRoot = new FolderItem('');
             files.forEach(file => this._buildFileTree(file));
-        } else {
-            this._files = [];
-            this._fileRoot = null;
         }
         this._onDidChange.fire();
     }

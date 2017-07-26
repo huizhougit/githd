@@ -107,23 +107,41 @@ export class CommandCenter {
     @command('githd.viewBranchHistory')
     async viewBranchHistory(): Promise<void> {
         window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's history` }
-        ).then(item => this._viewHistory({ branch: item.label, file: null }));
+        ).then(item => {
+            if (item) {
+                this._viewHistory({ branch: item.label, file: null });
+            }
+        });
     }
 
     @command('githd.diffBranch')
     async diffBranch(): Promise<void> {
         window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's diff with current one` }
         ).then(async item => {
-            let currentRef = await git.getCurrentBranch();
-            this._fileProvider.update(item.label, currentRef);
+            if (item) {
+                let currentRef = await git.getCurrentBranch();
+                this._fileProvider.update(item.label, currentRef);
+            }
         });
+    }
+
+    @command('githd.diffFile')
+    async diffFile(file: Uri): Promise<void> {
+        if (file) {
+            window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see the diff on ${file.path}` }
+            ).then(async item => {
+                if (item) {
+                    let currentRef = await git.getCurrentBranch();
+                    this._fileProvider.update(item.label, currentRef, file);
+                }
+            });
+        }
     }
 
     @command('githd.inputRef')
     async inputRef(): Promise<void> {
-        window.showInputBox( { placeHolder: `Input a ref (sha1) to see it's committed files` }).then(ref => {
-            this._fileProvider.update(null, ref);
-        });
+        window.showInputBox({ placeHolder: `Input a ref (sha1) to see it's committed files` }
+        ).then(ref => this._fileProvider.update(null, ref));
     }
 
     @command('githd.openCommittedFile')
@@ -142,7 +160,8 @@ export class CommandCenter {
     @command('githd.setExplorerViewWithFolder')
     async setExplorerViewWithFolder(): Promise<void> {
         const picks = ['With Folder', 'Without Folder'];
-        window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` }).then(item => {
+        window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` }
+        ).then(item => {
             if (item) {
                 setExplorerViewWithFolder(item);
             }
