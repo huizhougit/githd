@@ -66,13 +66,13 @@
                 {
                     "id": "committedFiles",
                     "name": "GitHD: Committed Files",
-                    "when": "config.githd.committedFiles.inExplorerView"
+                    "when": "config.githd.committedFiles.inExplorerView && isGitRepo"
                 }
             ]
         },
         "commands": [
             {
-                "command": "githd.updateSha",
+                "command": "githd.updateRef",
                 "title": "Check",
                 "category": "GitHD",
                 "icon": {
@@ -100,8 +100,11 @@
             },
             {
                 "command": "githd.viewHistory",
-                "title": "View Log",
-                "category": "GitHD"
+                "title": "GitHD: View Log",
+                "icon": {
+                    "light": "resources/icons/light/git-compare.svg",
+                    "dark": "resources/icons/dark/git-compare.svg"
+                }
             },
             {
                 "command": "githd.viewFileHistory",
@@ -114,17 +117,17 @@
             },
             {
                 "command": "githd.viewBranchHistory",
-                "title": "Select Branch/Ref to See Log",
+                "title": "Select Branch to See Log",
                 "category": "GitHD"
             },
             {
                 "command": "githd.diffBranch",
-                "title": "Select Branch/Ref to See Diff with Current One",
+                "title": "Select Branch to See Diff with Current Branch",
                 "category": "GitHD"
             },
             {
                 "command": "githd.diffFile",
-                "title": "GitHD: Select Branch/Ref to See Diff of this File/Folder"
+                "title": "GitHD: Select Branch to See Diff of this File or Folder"
             },
             {
                 "command": "githd.inputRef",
@@ -145,6 +148,26 @@
         "menus": {
             "commandPalette": [
                 {
+                    "command": "githd.viewHistory",
+                    "when": "isGitRepo"
+                },
+                {
+                    "command": "githd.viewAllHistory",
+                    "when": "isGitRepo"
+                },
+                {
+                    "command": "githd.viewBranchHistory",
+                    "when": "isGitRepo"
+                },
+                {
+                    "command": "githd.diffBranch",
+                    "when": "isGitRepo"
+                },
+                {
+                    "command": "githd.inputRef",
+                    "when": "isGitRepo"
+                },
+                {
                     "command": "githd.clear",
                     "when": "false"
                 },
@@ -153,7 +176,7 @@
                     "when": "false"
                 },
                 {
-                    "command": "githd.updateSha",
+                    "command": "githd.updateRef",
                     "when": "false"
                 },
                 {
@@ -176,49 +199,58 @@
             "explorer/context": [
                 {
                     "command": "githd.viewFileHistory",
+                    "when": "isGitRepo",
                     "group": "githd"
                 },
                 {
                     "command": "githd.diffFile",
                     "group": "githd",
-                    "when": "config.githd.committedFiles.inExplorerView"
+                    "when": "config.githd.committedFiles.inExplorerView && isGitRepo"
                 }
             ],
             "scm/title": [
                 {
-                    "command": "githd.updateSha",
+                    "command": "githd.updateRef",
                     "group": "navigation",
-                    "when": "scmProvider == githd"
+                    "when": "scmProvider == githd && isGitRepo"
                 },
                 {
                     "command": "githd.switch",
                     "group": "navigation",
-                    "when": "!config.githd.committedFiles.inExplorerView"
+                    "when": "!config.githd.committedFiles.inExplorerView && isGitRepo"
                 }
             ],
             "scm/resourceGroup/context": [
                 {
                     "command": "githd.clear",
-                    "when": "scmProvider == githd",
+                    "when": "scmProvider == githd && isGitRepo",
                     "group": "inline"
                 }
             ],
             "view/title": [
                 {
                     "command": "githd.clear",
-                    "when": "view == committedFiles",
+                    "when": "view == committedFiles && isGitRepo",
                     "group": "navigation"
                 }
             ],
             "editor/context": [
                 {
                     "command": "githd.viewFileHistory",
+                    "when": "isGitRepo",
                     "group": "githd"
                 },
                 {
                     "command": "githd.diffFile",
                     "group": "githd",
-                    "when": "config.githd.committedFiles.inExplorerView"
+                    "when": "config.githd.committedFiles.inExplorerView && isGitRepo"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "githd.viewHistory",
+                    "when": "isGitRepo",
+                    "group": "navigation"
                 }
             ]
         }

@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Event, EventEmitter,
     Disposable, commands, StatusBarItem } from 'vscode';
 import { git } from './git';
-import { FileProvider } from './model'
+import { Model, FilesViewContext } from './model'
 import { Icons, getIconUri } from './icons';
 
 const rootFolderIcon = {
@@ -119,40 +119,42 @@ async function buildFocusFolder(label: string, specifiedPath: Uri, committedFile
     return folder;
 }
 
-export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>, FileProvider {
+export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
     private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 1);
+    private _withFolder: boolean;
 
     private _leftRef: string;
     private _rightRef: string;
-    private _rootFolder: CommittedTreeItem[] = [];
     private _specifiedPath: Uri;
+    private _rootFolder: CommittedTreeItem[] = [];
 
-    constructor(private _withFolder: boolean = false) {
+    constructor(model: Model) {
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
         this._disposables.push(this._onDidChange);
+
+        model.onDidChangeFilesViewContext(context => this._update(context), null, this._disposables);
+        model.onDidChangeConfiguration(config => {
+            if (config.withFolder !== this._withFolder) {
+                this.withFolder = config.withFolder;
+                this._update(model.filesViewContext);
+            }
+        }, null, this._disposables);
+        this._withFolder = model.configuration.withFolder;
+        this._update(model.filesViewContext);
 
         this._statusBarItem.text = this._getStatusBarItemText();
         this._statusBarItem.command = 'githd.setExplorerViewWithFolder';
         this._statusBarItem.tooltip = 'Set if the committed files show with folder or not';
-        this._statusBarItem.show();
+        this._statusBarItem.hide();
         this._disposables.push(this._statusBarItem);
     }
 
     readonly onDidChangeTreeData: Event<CommittedTreeItem> = this._onDidChange.event;
-    set withFolder(value: boolean) {
-        if (this._withFolder !== value) {
-            this._withFolder = value;
-            this._statusBarItem.text = this._getStatusBarItemText();
-            this.update(this._leftRef, this._rightRef, this._specifiedPath);
-        }
-    }
-    get leftRef(): string { return this._leftRef; }
-    get rightRef(): string { return this._rightRef; }
-
-    clear(): void {
-        this.update(null, null);
+    private set withFolder(value: boolean) {
+        this._withFolder = value;
+        this._statusBarItem.text = this._getStatusBarItemText();
     }
 
     dispose(): void {
@@ -174,45 +176,46 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         return [];
     }
 
-    async update(leftRef: string, rightRef: string, specifiedPath?: Uri): Promise<void> {
-        this._specifiedPath = specifiedPath;
+    private async _update(context: FilesViewContext): Promise<void> {
         this._rootFolder = [];
-        this._leftRef = leftRef;
-        this._rightRef = rightRef;
-
-        if (!rightRef) {
+        if (!context.rightRef) {
+            this._statusBarItem.hide();
             this._onDidChange.fire();
             return;
         }
 
+        let leftRef: string = context.leftRef;
+        let rightRef: string = context.rightRef;
+        let specifiedPath: Uri = context.specifiedPath;
         const committedFiles: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
         if (!leftRef && !specifiedPath) {
-            this._buildCommitTree(committedFiles);
+            this._buildCommitTree(committedFiles, rightRef, this._withFolder);
         } else if (leftRef && !specifiedPath) {
-            this._buildDiffBranchTree(committedFiles);
+            this._buildDiffBranchTree(committedFiles, leftRef, rightRef, this._withFolder);
         } else if (!leftRef && specifiedPath) {
-            this._buildPathSpecifiedCommitTree(specifiedPath, committedFiles);
+            this._buildPathSpecifiedCommitTree(committedFiles, specifiedPath, rightRef, this._withFolder);
         } else {
-            this._buildPathSpecifiedDiffBranchTree(specifiedPath, committedFiles);
+            this._buildPathSpecifiedDiffBranchTree(committedFiles, context, this._withFolder);
         }
+        this._statusBarItem.show();
         this._onDidChange.fire();
     }
 
-    private _buildCommitTree(committedFiles: git.CommittedFile[]): void {
-        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${this._rightRef}`, committedFiles, this._withFolder));
+    private _buildCommitTree(files: git.CommittedFile[], ref: string, withFolder: boolean): void {
+        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${ref}`, files, withFolder));
     }
 
-    private _buildDiffBranchTree(committedFiles: git.CommittedFile[]): void {
-        this._rootFolder.push(buildCommitFolder(`Diffs between ${this._leftRef} and ${this._rightRef}`, committedFiles, this._withFolder));
+    private _buildDiffBranchTree(files: git.CommittedFile[], leftRef: string, rightRef: string, withFolder: boolean): void {
+        this._rootFolder.push(buildCommitFolder(`Diffs between ${leftRef} and ${rightRef}`, files, withFolder));
     }
 
-    private async _buildPathSpecifiedCommitTree(specifiedPath: Uri, committedFiles: git.CommittedFile[]): Promise<void> {
-        this._rootFolder.push(await buildFocusFolder('Focus', specifiedPath, committedFiles, this._withFolder));
-        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${this._rightRef}`, committedFiles, this._withFolder));
+    private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, ref: string, withFolder: boolean): Promise<void> {
+        this._rootFolder.push(await buildFocusFolder('Focus', specifiedPath, files, withFolder));
+        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${ref}`, files, withFolder));
     }
 
-    private async _buildPathSpecifiedDiffBranchTree(specifiedPath: Uri, committedFiles: git.CommittedFile[]): Promise<void> {
-        this._rootFolder.push(await buildFocusFolder(`${this._leftRef} .. ${this._rightRef}`, specifiedPath, committedFiles, this._withFolder));
+    private async _buildPathSpecifiedDiffBranchTree(files: git.CommittedFile[], context: FilesViewContext, withFolder: boolean): Promise<void> {
+        this._rootFolder.push(await buildFocusFolder(`${context.leftRef} .. ${context.rightRef}`, context.specifiedPath, files, withFolder));
     }
 
     private _getStatusBarItemText(): string {

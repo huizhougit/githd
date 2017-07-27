@@ -1,11 +1,10 @@
 'use strict'
 
-import path = require('path');
+import * as path from 'path';
 
 import { Uri, commands, Disposable, workspace, window , scm, QuickPickItem} from 'vscode';
 
-import { setExplorerViewWithFolder } from './extension';
-import { FileProvider } from './model';
+import { Model, HistoryViewContext } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
 import { git } from './git';
 
@@ -54,9 +53,7 @@ function command(id: string) {
 export class CommandCenter {
     private _disposables: Disposable[];
 
-    set fileProvider(provider: FileProvider) { this._fileProvider = provider; }
-
-    constructor(private _fileProvider: FileProvider, private _viewProvider: HistoryViewProvider) {
+    constructor(private _model: Model, private _viewProvider: HistoryViewProvider) {
         this._disposables = Commands.map(({ id, method }) => {
             return commands.registerCommand(id, (...args: any[]) => {
                 Promise.resolve(method.apply(this, args));
@@ -67,14 +64,14 @@ export class CommandCenter {
         this._disposables.forEach(d => d.dispose());
     }
 
-    @command('githd.updateSha')
-    async updateSha(): Promise<void> {
-        await this._fileProvider.update(null, scm.inputBox.value);
+    @command('githd.updateRef')
+    async updateRef(): Promise<void> {
+        this._model.filesViewContext = { leftRef: null, rightRef: scm.inputBox.value };
     }
 
     @command('githd.clear')
     async clear(): Promise<void> {
-        this._fileProvider.clear();
+        this._model.filesViewContext = { leftRef: null, rightRef: null, specifiedPath: null};
     }
 
     @command('githd.switch')
@@ -84,32 +81,37 @@ export class CommandCenter {
 
     @command('githd.viewHistory')
     async viewHistory(): Promise<void> {
-        return this._viewHistory({});
+        return this._viewHistory({ branch: null, specifiedPath: null });
     }
 
     @command('githd.viewFileHistory')
-    async viewFileHistory(file: Uri): Promise<void> {
-        if (file) {
-            return this._viewHistory({ file });
+    async viewFileHistory(specifiedPath: Uri): Promise<void> {
+        if (specifiedPath) {
+            return this._viewHistory({ branch: null, specifiedPath });
         }
         if (!window.activeTextEditor) {
             window.showInformationMessage('There is no open file');
             return;
         }
-        return this._viewHistory({ file: window.activeTextEditor.document.uri });
+        return this._viewHistory({ specifiedPath: window.activeTextEditor.document.uri });
     }
 
     @command('githd.viewAllHistory')
     async viewAllHistory(): Promise<void> {
-        return this._viewHistory({ all: true });
+        return this._viewHistory({}, true);
     }
 
     @command('githd.viewBranchHistory')
     async viewBranchHistory(): Promise<void> {
-        window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's history` }
+        let placeHolder: string = 'Select a ref to see the history';
+        const specifiedPath = this._model.historyViewContext.specifiedPath;
+        if (specifiedPath) {
+            placeHolder += ` of ${path.basename(specifiedPath.fsPath)}`;
+        }
+        window.showQuickPick(selectBranch(), { placeHolder }
         ).then(item => {
             if (item) {
-                this._viewHistory({ branch: item.label, file: null });
+                this._viewHistory({ branch: item.label });
             }
         });
     }
@@ -120,7 +122,11 @@ export class CommandCenter {
         ).then(async item => {
             if (item) {
                 let currentRef = await git.getCurrentBranch();
-                this._fileProvider.update(item.label, currentRef);
+                this._model.filesViewContext = {
+                    leftRef: item.label,
+                    rightRef: currentRef,
+                    specifiedPath: null
+                };
             }
         });
     }
@@ -132,7 +138,11 @@ export class CommandCenter {
             ).then(async item => {
                 if (item) {
                     let currentRef = await git.getCurrentBranch();
-                    this._fileProvider.update(item.label, currentRef, file);
+                    this._model.filesViewContext = {
+                        leftRef: item.label,
+                        rightRef: currentRef,
+                        specifiedPath: file
+                    };
                 }
             });
         }
@@ -141,16 +151,16 @@ export class CommandCenter {
     @command('githd.inputRef')
     async inputRef(): Promise<void> {
         window.showInputBox({ placeHolder: `Input a ref (sha1) to see it's committed files` }
-        ).then(ref => this._fileProvider.update(null, ref));
+        ).then(ref => this._model.filesViewContext = { leftRef: null, rightRef: ref, specifiedPath: null });
     }
 
     @command('githd.openCommittedFile')
     async openCommittedFile(file: git.CommittedFile): Promise<void> {
-        let rightRef: string = this._fileProvider.rightRef;
-        let leftRef: string = this._fileProvider.rightRef + '~';
+        let rightRef: string = this._model.filesViewContext.rightRef;
+        let leftRef: string = rightRef + '~';
         let title = rightRef;
-        if (this._fileProvider.leftRef) {
-            leftRef = this._fileProvider.leftRef;
+        if (this._model.filesViewContext.leftRef) {
+            leftRef = this._model.filesViewContext.leftRef;
             title = `${leftRef} .. ${rightRef}`;
         }
         return await commands.executeCommand<void>('vscode.diff', toGitUri(file.uri, leftRef), toGitUri(file.uri, rightRef),
@@ -162,18 +172,18 @@ export class CommandCenter {
         const picks = ['With Folder', 'Without Folder'];
         window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` }
         ).then(item => {
-            if (item) {
-                setExplorerViewWithFolder(item);
+            if (item === picks[0] || item === picks[1]) {
+                this._model.configuration = { withFolder: item === picks[0] };
             }
         });
     }
 
-    private async _viewHistory(context: { branch?: string, file?: Uri, all?: boolean }): Promise<void> {
-        this._viewProvider.branch = context.branch;
-        if (context.file !== null) { // null means we don't change current file
-            this._viewProvider.specifiedFile = context.file;
+    private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
+        this._viewProvider.loadAll = all;
+        if (context.branch === null) {
+            context.branch = await git.getCurrentBranch();
         }
-        this._viewProvider.update(context.all);
+        await this._model.setHistoryViewContext(context);
         workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
             window.showTextDocument(doc);
             if (!this._viewProvider.loadingMore) {

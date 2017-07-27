@@ -1,7 +1,8 @@
 'use strict'
 
+import * as path from 'path';
+
 import { Uri } from 'vscode';
-import path = require('path');
 
 const iconsRootPath = path.join(path.dirname(__dirname), '..', 'resources', 'icons');
 export function getIconUri(iconName: string, theme: string): Uri {

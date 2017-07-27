@@ -5,7 +5,7 @@ import {
     DocumentLinkProvider, DocumentLink, ProviderResult, languages, EventEmitter, Event,
     TextEditorDecorationType, StatusBarItem, StatusBarAlignment
 } from 'vscode';
-import { FileProvider } from './model';
+import { Model, HistoryViewContext } from './model';
 import { git } from './git';
 import { getIconUri } from './icons'
 
@@ -113,8 +113,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private static _refreshLabel = 'refresh';
     private static _separatorLabel = '--------------------------------------------------------------';
 
-    private _branch: string;
-    private _specifiedFile: Uri;
+    private _commitsCount: number = 200;
     private _content: string;
     private _logCount: number = 0;
     private _currentLine: number = 0;
@@ -138,7 +137,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
     private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 2);
 
-    constructor(private _fileProvider: FileProvider, private _commitsCount: number = 200) {
+    constructor(private _model: Model) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
         this._disposables.push(disposable);
 
@@ -149,6 +148,13 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._statusBarItem.tooltip = 'Select the branch to see its history';
         this._disposables.push(this._statusBarItem);
         this._disposables.push(this._onDidChange);
+
+        this.commitsCount = this._model.configuration.commitsCount;
+        this._model.onDidChangeConfiguration(config => this.commitsCount = config.commitsCount, null, this._disposables);
+        this._model.onDidChangeHistoryViewContext(context => {
+            this.branch = context.branch;
+            this.update();
+        });
 
         window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
@@ -167,22 +173,20 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         }, null, this._disposables);
     }
 
-    get loadingMore(): boolean { return this._loadingMore; }
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
 
-    set fileProvider(provider: FileProvider) { this._fileProvider = provider; }
-    set commitsCount(count: number) {
+    get loadingMore(): boolean { return this._loadingMore; }
+
+    set loadAll(value: boolean) { this._loadAll = value; }
+
+    private set commitsCount(count: number) {
         if ([50, 100, 200, 300, 400, 500].findIndex(a => { return a === count; }) >= 0) {
             this._commitsCount = count;
         }
     }
-    set branch(value: string) {
-        if (value !== this._branch) {
-            this._branch = value;
-            this._statusBarItem.text = 'githd: ' + value;
-        }
+    private set branch(value: string) {
+        this._statusBarItem.text = 'githd: ' + value;
     }
-    set specifiedFile(value: Uri) { this._specifiedFile = value; }
 
     async provideTextDocumentContent(uri: Uri): Promise<string> {
         // There is no mouse click event to listen. So it is a little hacky here.
@@ -191,7 +195,15 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         if (uri.query) { // ref link clicked
             commands.executeCommand('workbench.action.closeActiveEditor');
             let hash: string = uri.query;
-            this._fileProvider.update(null, hash, this._specifiedFile);
+            this._model.filesViewContext = {
+                leftRef: null,
+                rightRef: hash
+            };
+            if (this._model.configuration.useExplorer) {
+                commands.executeCommand('workbench.view.explorer');
+                // vscode bug could make the active doc change to another one
+                workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => window.showTextDocument(doc));
+            }
             return "";
         }
         if (uri.fragment) {
@@ -203,16 +215,12 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             }
             if (uri.fragment === HistoryViewProvider._refreshLabel) {
                 commands.executeCommand('workbench.action.closeActiveEditor');
-                this._branch = undefined;
                 this.update();
                 return "";
             }
         }
 
-        if (!this._branch) {
-            this.branch = await git.getCurrentBranch();
-        }
-
+        const context = this._model.historyViewContext;
         const loadingMore: boolean = this._loadingMore;
         const loadAll: boolean = this._loadAll;
         let logStart = 0;
@@ -222,12 +230,12 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             this._content += HistoryViewProvider._separatorLabel + '\n\n';
             this._currentLine += 2;
         }
-        const commitsCount: number = await git.getCommitsCount(this._specifiedFile);
+        const commitsCount: number = await git.getCommitsCount(context.specifiedPath);
         if (this._loadAll && commitsCount > 1000) {
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
         const logCount = this._loadAll ? commitsCount : this._commitsCount;
-        const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, this._branch, this._specifiedFile);
+        const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, context.branch, context.specifiedPath);
         if (entries.length === 0) {
             this._reset();
             return 'No History';
@@ -238,19 +246,19 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             this._content = HistoryViewProvider._titleLabel;
             decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
 
-            if (this._specifiedFile) {
+            if (context.specifiedPath) {
                 this._content += ' of ';
                 let start: number = this._content.length;
-                this._content += await git.getGitRelativePath(this._specifiedFile);
+                this._content += await git.getGitRelativePath(context.specifiedPath);
                 this._fileDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, this._content.length));
             }
             this._content += ' on ';
 
             this._refresh = new Clickable(
                 HistoryViewProvider.defaultUri.with({ path: null, fragment: HistoryViewProvider._refreshLabel }),
-                new Range(0, this._content.length, 0, this._content.length + this._branch.length)
+                new Range(0, this._content.length, 0, this._content.length + context.branch.length)
             );
-            this._content += this._branch;
+            this._content += context.branch;
             this._content += '\n\n';
             this._currentLine += 2;
         }
@@ -298,7 +306,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
                 if (entry.stat) {
                     let stat: string = entry.stat;
-                    if (this._specifiedFile) {
+                    if (context.specifiedPath) {
                         stat = entry.stat.replace('1 file changed, ', '');
                     }
                     this._content += stat + '\n';
@@ -323,8 +331,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         });
     }
 
-    update(loadAll: boolean = false, uri: Uri = HistoryViewProvider.defaultUri): void {
-        this._loadAll = loadAll;
+    update(uri: Uri = HistoryViewProvider.defaultUri): void {
         this._onDidChange.fire(uri);
     }
 

@@ -1,12 +1,15 @@
 'use strict'
 
+import * as path from 'path';
+
 import {
     SourceControlResourceState, SourceControlResourceGroup, scm, SourceControlResourceDecorations,
     Uri, workspace, Disposable, Command, commands
 } from 'vscode';
+
 import { git } from './git';
 import { Icons } from './icons';
-import path = require('path');
+import { Model, FilesViewContext } from './model'
 
 export class Resource implements SourceControlResourceState, git.CommittedFile {
     readonly uri: Uri = this._uri;
@@ -39,32 +42,27 @@ export class Resource implements SourceControlResourceState, git.CommittedFile {
     }
 }
 
-export class ScmViewProvider implements Disposable {
+export class ScmViewProvider {
     private _disposables: Disposable[] = [];
     private _resourceGroup: SourceControlResourceGroup;
-    private _leftRef: string;
-    private _rightRef: string;
 
-    constructor() {
+    constructor(model: Model) {
         let sc = scm.createSourceControl('githd', 'GitHistoryDiff');
-        sc.acceptInputCommand = { command: 'githd.updateSha', title: 'Input the SHA1 code' };
+        sc.acceptInputCommand = { command: 'githd.updateRef', title: 'Input the SHA1 code' };
         this._resourceGroup = sc.createResourceGroup('committed', 'Committed Files');
         this._disposables.push(sc, this._resourceGroup);
-    }
-    get leftRef(): string { return this._leftRef; }
-    get rightRef(): string { return this._rightRef; }
-
-    clear(): void {
-        this.update(null, null);
+        model.onDidChangeFilesViewContext(context => this._update(context), null, this._disposables);
+        this._update(model.filesViewContext);
     }
 
     dispose(): void {
+        scm.inputBox.value = '';
         this._disposables.forEach(d => d.dispose());
     }
 
-    async update(leftRef: string, rightRef: string, specifiedFile?: Uri): Promise<void> {
-        this._leftRef = leftRef;
-        this._rightRef = rightRef;
+    private async _update(context: FilesViewContext): Promise<void> {
+        const leftRef = context.leftRef;
+        const rightRef = context.rightRef;
         scm.inputBox.value = rightRef;
         if (!rightRef) {
             this._resourceGroup.resourceStates = [];
@@ -73,7 +71,7 @@ export class ScmViewProvider implements Disposable {
         if (leftRef) {
             scm.inputBox.value = `${leftRef} .. ${rightRef}`;
         }
-        this._resourceGroup.resourceStates = await this._updateResources(leftRef, rightRef);
+        this._resourceGroup.resourceStates = await this._updateResources(context.leftRef, context.rightRef);
         commands.executeCommand('workbench.view.scm');
     }
 

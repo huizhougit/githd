@@ -1,8 +1,9 @@
 'use strict'
 
-import { workspace, Uri } from 'vscode';
+import * as path from 'path';
+
+import { workspace, Uri, commands } from 'vscode';
 import { spawn } from 'child_process';
-import path = require('path');
 
 export namespace git {
 
@@ -40,6 +41,13 @@ export namespace git {
         }
         return _gitRootPath;
     }
+
+    (async function checkGitRepository(): Promise<void> {
+        const gitRootPath = await getGitRoot();
+        if (gitRootPath && gitRootPath.trim()) {
+            commands.executeCommand('setContext', 'isGitRepo', true);
+        }
+    })();
 
     async function exec(args: string[], cwd?: string): Promise<string> {
         if (!cwd) {
