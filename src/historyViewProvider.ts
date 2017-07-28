@@ -145,7 +145,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._disposables.push(disposable);
 
         this._statusBarItem.command = 'githd.viewBranchHistory';
-        this._statusBarItem.tooltip = 'Select the branch to see its history';
+        this._statusBarItem.tooltip = 'Select a branch to see its history';
         this._disposables.push(this._statusBarItem);
         this._disposables.push(this._onDidChange);
 

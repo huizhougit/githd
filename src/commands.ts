@@ -96,6 +96,11 @@ export class CommandCenter {
         return this._viewHistory({ specifiedPath: window.activeTextEditor.document.uri });
     }
 
+    @command('githd.viewFolderHistory')
+    async viewFolderHistory(specifiedPath: Uri): Promise<void> {
+        return this.viewFileHistory(specifiedPath);
+    }
+
     @command('githd.viewAllHistory')
     async viewAllHistory(): Promise<void> {
         return this._viewHistory({}, true);
@@ -108,50 +113,55 @@ export class CommandCenter {
         if (specifiedPath) {
             placeHolder += ` of ${path.basename(specifiedPath.fsPath)}`;
         }
-        window.showQuickPick(selectBranch(), { placeHolder }
-        ).then(item => {
-            if (item) {
-                this._viewHistory({ branch: item.label });
-            }
-        });
+        window.showQuickPick(selectBranch(), { placeHolder })
+            .then(item => {
+                if (item) {
+                    this._viewHistory({ branch: item.label });
+                }
+            });
     }
 
     @command('githd.diffBranch')
     async diffBranch(): Promise<void> {
-        window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's diff with current one` }
-        ).then(async item => {
-            if (item) {
-                let currentRef = await git.getCurrentBranch();
-                this._model.filesViewContext = {
-                    leftRef: item.label,
-                    rightRef: currentRef,
-                    specifiedPath: null
-                };
-            }
-        });
-    }
-
-    @command('githd.diffFile')
-    async diffFile(file: Uri): Promise<void> {
-        if (file) {
-            window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see the diff of ${path.basename(file.path)}` }
-            ).then(async item => {
+        window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's diff with current one` })
+            .then(async item => {
                 if (item) {
                     let currentRef = await git.getCurrentBranch();
                     this._model.filesViewContext = {
                         leftRef: item.label,
                         rightRef: currentRef,
-                        specifiedPath: file
+                        specifiedPath: null
                     };
                 }
             });
+    }
+
+    @command('githd.diffFile')
+    async diffFile(specifiedPath: Uri): Promise<void> {
+        if (specifiedPath) {
+            window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see the diff of ${path.basename(specifiedPath.path)}` })
+                .then(async item => {
+                    if (item) {
+                        let currentRef = await git.getCurrentBranch();
+                        this._model.filesViewContext = {
+                            leftRef: item.label,
+                            rightRef: currentRef,
+                            specifiedPath
+                        };
+                    }
+                });
         }
+    }
+
+    @command('githd.diffFolder')
+    async diffFolder(specifiedPath: Uri): Promise<void> {
+        return this.diffFile(specifiedPath);
     }
 
     @command('githd.inputRef')
     async inputRef(): Promise<void> {
-        window.showInputBox({ placeHolder: `Input a ref (sha1) to see it's committed files` }
-        ).then(ref => this._model.filesViewContext = { leftRef: null, rightRef: ref, specifiedPath: null });
+        window.showInputBox({ placeHolder: `Input a ref (sha1) to see it's committed files` })
+            .then(ref => this._model.filesViewContext = { leftRef: null, rightRef: ref, specifiedPath: null });
     }
 
     @command('githd.openCommittedFile')
@@ -170,12 +180,12 @@ export class CommandCenter {
     @command('githd.setExplorerViewWithFolder')
     async setExplorerViewWithFolder(): Promise<void> {
         const picks = ['With Folder', 'Without Folder'];
-        window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` }
-        ).then(item => {
-            if (item === picks[0] || item === picks[1]) {
-                this._model.configuration = { withFolder: item === picks[0] };
-            }
-        });
+        window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` })
+            .then(item => {
+                if (item === picks[0] || item === picks[1]) {
+                    this._model.configuration = { withFolder: item === picks[0] };
+                }
+            });
     }
 
     private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
@@ -184,11 +194,12 @@ export class CommandCenter {
             context.branch = await git.getCurrentBranch();
         }
         await this._model.setHistoryViewContext(context);
-        workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => {
-            window.showTextDocument(doc);
-            if (!this._viewProvider.loadingMore) {
-                commands.executeCommand('cursorTop');
-            }
-        });
+        workspace.openTextDocument(HistoryViewProvider.defaultUri)
+            .then(doc => {
+                window.showTextDocument(doc);
+                if (!this._viewProvider.loadingMore) {
+                    commands.executeCommand('cursorTop');
+                }
+            });
     }
 }
