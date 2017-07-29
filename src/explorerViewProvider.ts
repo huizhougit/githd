@@ -148,12 +148,9 @@ function buildFilesWithFolder(rootFolder: FolderItem): void {
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
-    private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 1);
     private _withFolder: boolean;
 
-    private _leftRef: string;
-    private _rightRef: string;
-    private _specifiedPath: Uri;
+    private _context: FilesViewContext;
     private _rootFolder: CommittedTreeItem[] = [];
 
     constructor(model: Model) {
@@ -164,28 +161,17 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             (folder: FolderItem) => this._showFilesWithoutFolder(folder)));
         this._disposables.push(this._onDidChange);
 
-        model.onDidChangeFilesViewContext(context => this._update(context), null, this._disposables);
-        model.onDidChangeConfiguration(config => {
-            if (config.withFolder !== this._withFolder) {
-                this.withFolder = config.withFolder;
-                this._update(model.filesViewContext);
-            }
-        }, null, this._disposables);
-        this._withFolder = model.configuration.withFolder;
-        this._update(model.filesViewContext);
+        model.onDidChangeFilesViewContext(context => {
+            this._context = context;
+            this._update();
+         }, null, this._disposables);
 
-        this._statusBarItem.text = this._getStatusBarItemText();
-        this._statusBarItem.command = 'githd.setExplorerViewWithFolder';
-        this._statusBarItem.tooltip = 'Set if the committed files show with folder or not';
-        this._statusBarItem.hide();
-        this._disposables.push(this._statusBarItem);
+        this._context = model.filesViewContext;
+        this._withFolder = model.configuration.withFolder;
+        this._update();
     }
 
     readonly onDidChangeTreeData: Event<CommittedTreeItem> = this._onDidChange.event;
-    private set withFolder(value: boolean) {
-        this._withFolder = value;
-        this._statusBarItem.text = this._getStatusBarItemText();
-    }
 
     dispose(): void {
         this._disposables.forEach(d => d.dispose());
@@ -206,17 +192,17 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         return [];
     }
 
-    private async _update(context: FilesViewContext): Promise<void> {
+    private async _update(): Promise<void> {
         this._rootFolder = [];
-        if (!context.rightRef) {
-            this._statusBarItem.hide();
+        const leftRef: string = this._context.leftRef;
+        const rightRef: string = this._context.rightRef;
+        const specifiedPath: Uri = this._context.specifiedPath;
+
+        if (!rightRef) {
             this._onDidChange.fire();
             return;
         }
 
-        let leftRef: string = context.leftRef;
-        let rightRef: string = context.rightRef;
-        let specifiedPath: Uri = context.specifiedPath;
         const committedFiles: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
         if (!leftRef && !specifiedPath) {
             this._buildCommitTree(committedFiles, rightRef, this._withFolder);
@@ -225,9 +211,8 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         } else if (!leftRef && specifiedPath) {
             this._buildPathSpecifiedCommitTree(committedFiles, specifiedPath, rightRef, this._withFolder);
         } else {
-            this._buildPathSpecifiedDiffBranchTree(committedFiles, context, this._withFolder);
+            this._buildPathSpecifiedDiffBranchTree(committedFiles, this._context, this._withFolder);
         }
-        this._statusBarItem.show();
         this._onDidChange.fire();
     }
 
@@ -248,18 +233,24 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._rootFolder.push(await buildFocusFolder(`${context.leftRef} .. ${context.rightRef}`, context.specifiedPath, files, withFolder));
     }
 
-    private _getStatusBarItemText(): string {
-        return this._statusBarItem.text = 'githd:  ' + (this._withFolder ? `$(file-directory)` : `$(list-unordered)`);
-    }
-
     private _showFilesWithFolder(parent: FolderItem): void {
-        buildFilesWithFolder(parent);
-        this._onDidChange.fire(parent);
+        if (!parent) {
+            this._withFolder = true;
+            this._update();
+        } else {
+            buildFilesWithFolder(parent);
+            this._onDidChange.fire(parent);
+        }
     }
 
     private _showFilesWithoutFolder(parent: FolderItem): void {
-        parent.subFolders.forEach(folder => buildFilesWithoutFolder(parent, folder));
-        parent.subFolders = [];
-        this._onDidChange.fire(parent);
+        if (!parent) {
+            this._withFolder = false;
+            this._update();
+        } else {
+            parent.subFolders.forEach(folder => buildFilesWithoutFolder(parent, folder));
+            parent.subFolders = [];
+            this._onDidChange.fire(parent);
+        }
     }
 }

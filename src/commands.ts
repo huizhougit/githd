@@ -108,7 +108,7 @@ export class CommandCenter {
 
     @command('githd.viewBranchHistory')
     async viewBranchHistory(): Promise<void> {
-        let placeHolder: string = 'Select a ref to see the history';
+        let placeHolder: string = `Select a ref to see it's history`;
         const specifiedPath = this._model.historyViewContext.specifiedPath;
         if (specifiedPath) {
             placeHolder += ` of ${path.basename(specifiedPath.fsPath)}`;
@@ -123,10 +123,10 @@ export class CommandCenter {
 
     @command('githd.diffBranch')
     async diffBranch(): Promise<void> {
-        window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's diff with current one` })
+        let currentRef = await git.getCurrentBranch();
+        window.showQuickPick(selectBranch(), { placeHolder: `Select a ref to see it's diff with ${currentRef}` })
             .then(async item => {
                 if (item) {
-                    let currentRef = await git.getCurrentBranch();
                     this._model.filesViewContext = {
                         leftRef: item.label,
                         rightRef: currentRef,
@@ -160,7 +160,7 @@ export class CommandCenter {
 
     @command('githd.inputRef')
     async inputRef(): Promise<void> {
-        window.showInputBox({ placeHolder: `Input a ref (sha1) to see it's committed files` })
+        window.showInputBox({ placeHolder: `Input a ref(sha1) to see it's committed files` })
             .then(ref => this._model.filesViewContext = { leftRef: null, rightRef: ref, specifiedPath: null });
     }
 
@@ -175,17 +175,6 @@ export class CommandCenter {
         }
         return await commands.executeCommand<void>('vscode.diff', toGitUri(file.uri, leftRef), toGitUri(file.uri, rightRef),
             title + ' | ' + file.gitRelativePath, { preview: true });
-    }
-
-    @command('githd.setExplorerViewWithFolder')
-    async setExplorerViewWithFolder(): Promise<void> {
-        const picks = ['With Folder', 'Without Folder'];
-        window.showQuickPick(picks, { placeHolder: `Set if the committed files show with folder or not` })
-            .then(item => {
-                if (item === picks[0] || item === picks[1]) {
-                    this._model.configuration = { withFolder: item === picks[0] };
-                }
-            });
     }
 
     private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {

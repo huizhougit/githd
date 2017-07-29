@@ -99,12 +99,32 @@
                 }
             },
             {
+                "command": "githd.inputRef",
+                "title": "Input Ref",
+                "category": "GitHD"
+            },
+            {
                 "command": "githd.viewHistory",
                 "title": "GitHD: View History",
                 "icon": {
                     "light": "resources/icons/light/git-compare.svg",
                     "dark": "resources/icons/dark/git-compare.svg"
                 }
+            },
+            {
+                "command": "githd.viewBranchHistory",
+                "title": "View Branch History",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.viewAllHistory",
+                "title": "View Entire History (it may take a long time if the history is long)",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.diffBranch",
+                "title": "View Branch Diff",
+                "category": "GitHD"
             },
             {
                 "command": "githd.viewFileHistory",
@@ -115,32 +135,12 @@
                 "title": "GitHD: View Folder History"
             },
             {
-                "command": "githd.viewAllHistory",
-                "title": "View Entire History (it may take a long time if the history is long)",
-                "category": "GitHD"
-            },
-            {
-                "command": "githd.viewBranchHistory",
-                "title": "Select a Branch to See the History",
-                "category": "GitHD"
-            },
-            {
-                "command": "githd.diffBranch",
-                "title": "Select a Branch to See the Diff with the Current Branch",
-                "category": "GitHD"
-            },
-            {
                 "command": "githd.diffFile",
-                "title": "GitHD: Select a Branch to See the Diff of this File"
+                "title": "GitHD: View File Diff"
             },
             {
                 "command": "githd.diffFolder",
-                "title": "GitHD: Select a Branch to See the Diff of this Folder"
-            },
-            {
-                "command": "githd.inputRef",
-                "title": "Input a Ref to See the Changes",
-                "category": "GitHD"
+                "title": "GitHD: View Folder Diff"
             },
             {
                 "command": "githd.openCommittedFile",
@@ -148,19 +148,22 @@
                 "category": "GitHD"
             },
             {
-                "command": "githd.setExplorerViewWithFolder",
-                "title": "Set the Files Show With Folder",
-                "category": "GitHD"
-            },
-            {
                 "command": "githd.showFilesWithFolder",
-                "title": "Show the Files With Folder",
-                "category": "GitHD"
+                "title": "Folder View",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/folder.svg",
+                    "dark": "resources/icons/dark/folder.svg"
+                }
             },
             {
                 "command": "githd.showFilesWithoutFolder",
-                "title": "Show the Files Without Folder",
-                "category": "GitHD"
+                "title": "List View",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/list-unordered.svg",
+                    "dark": "resources/icons/dark/list-unordered.svg"
+                }
             }
         ],
         "menus": {
@@ -199,10 +202,6 @@
                 },
                 {
                     "command": "githd.openCommittedFile",
-                    "when": "false"
-                },
-                {
-                    "command": "githd.setExplorerViewWithFolder",
                     "when": "false"
                 },
                 {
@@ -251,9 +250,19 @@
             ],
             "view/title": [
                 {
+                    "command": "githd.showFilesWithFolder",
+                    "when": "view == committedFiles && isGitRepo",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "githd.showFilesWithoutFolder",
+                    "when": "view == committedFiles && isGitRepo",
+                    "group": "navigation@2"
+                },
+                {
                     "command": "githd.clear",
                     "when": "view == committedFiles && isGitRepo",
-                    "group": "navigation"
+                    "group": "navigation@3"
                 }
             ],
             "view/item/context": [

@@ -91,12 +91,6 @@ export class Model {
     }
 
     get configuration(): Configuration { return this._config; }
-    set configuration(config: Configuration) {
-        if (config.useExplorer !== undefined || config.commitsCount !== undefined) {
-            throw new Error('not supported');
-        }
-        workspace.getConfiguration('githd').update('explorerView.withFolder', config.withFolder);
-    }
 
     get filesViewContext(): FilesViewContext {
         return {
