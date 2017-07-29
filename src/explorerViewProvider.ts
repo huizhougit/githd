@@ -47,13 +47,14 @@ class FolderItem extends TreeItem {
     private _subFolders: FolderItem[] = [];
     private _files: CommittedFile[] = [];
 
+    get parent(): FolderItem { return this._parent; }
     get subFolders(): FolderItem[] { return this._subFolders; }
     set subFolders(value: FolderItem[]) { this._subFolders = value; }
     get files(): CommittedFile[] { return this._files; }
     set files(value: CommittedFile[]) { this._files = value; }
     get gitRelativePath(): string { return this._gitRelativePath; }
 
-    constructor(private _gitRelativePath: string, label: string, iconPath?: { light: string | Uri; dark: string | Uri }) {
+    constructor(private _parent: FolderItem, private _gitRelativePath: string, label: string, iconPath?: { light: Uri; dark: Uri }) {
         super(label);
         this.contextValue = 'folder';
         this.iconPath = iconPath;
@@ -86,7 +87,7 @@ function buildOneFileWithFolder(rootFolder: FolderItem, file: git.CommittedFile,
         gitRelativePath += segments[i] + '/';
         let folder: FolderItem = parent.subFolders.find(item => { return item.label === segments[i]; });
         if (!folder) {
-            folder = new FolderItem(gitRelativePath, segments[i]);
+            folder = new FolderItem(parent, gitRelativePath, segments[i]);
             parent.subFolders.push(folder);
         }
         parent = folder;
@@ -100,32 +101,6 @@ function buildFileTree(rootFolder: FolderItem, files: git.CommittedFile[], withF
     } else {
         rootFolder.files.push(...(files.map(file => { return createCommittedFile(file); })));
     }
-}
-
-function buildCommitFolder(label: string, committedFiles: git.CommittedFile[], withFolder: boolean): FolderItem {
-    let folder = new FolderItem("", label, rootFolderIcon);
-    buildFileTree(folder, committedFiles, withFolder);
-    return folder;
-}
-
-async function buildFocusFolder(label: string, specifiedPath: Uri, committedFiles: git.CommittedFile[], withFolder: boolean): Promise<FolderItem> {
-    let folder = new FolderItem("", label, rootFolderIcon);
-    const relativePath = await git.getGitRelativePath(specifiedPath);
-    if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
-        let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });
-        let focus = new CommittedFile(specifiedPath, relativePath, file ? file.status : null,
-            getFormatedLabel(relativePath));
-        folder.files.push(focus);
-    } else {
-        let focus: git.CommittedFile[] = [];
-        committedFiles.forEach(file => {
-            if (file.gitRelativePath.search(relativePath) === 0) {
-                focus.push(createCommittedFile(file));
-            }
-        });
-        buildFileTree(folder, focus, withFolder);
-    }
-    return folder;
 }
 
 function buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem): void {
@@ -145,13 +120,28 @@ function buildFilesWithFolder(rootFolder: FolderItem): void {
     files.forEach(file => buildOneFileWithFolder(rootFolder, file, rootFolder.gitRelativePath));
 }
 
+function setCollapsibleStateOnAll(rootFolder: FolderItem, state: TreeItemCollapsibleState): void {
+    rootFolder.collapsibleState = state;
+    rootFolder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
+}
+
+// function collapseFolder(folder: FolderItem): void {
+//     folder.collapsibleState = TreeItemCollapsibleState.Collapsed;
+//     folder.subFolders.forEach(sub => collapseFolder(sub));
+// }
+
+// function expandFolder(folder: FolderItem): void {
+//     folder.collapsibleState = TreeItemCollapsibleState.Expanded;
+//     folder.subFolders.forEach(sub => collapseFolder(sub));
+// }
+
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
     private _withFolder: boolean;
 
     private _context: FilesViewContext;
-    private _rootFolder: CommittedTreeItem[] = [];
+    private _rootFolder: FolderItem[] = [];
 
     constructor(model: Model) {
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
@@ -159,6 +149,11 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             (folder: FolderItem) => this._showFilesWithFolder(folder)));
         this._disposables.push(commands.registerCommand('githd.showFilesWithoutFolder',
             (folder: FolderItem) => this._showFilesWithoutFolder(folder)));
+        this._disposables.push(commands.registerCommand('githd.collapseFolder',
+            (folder: FolderItem) => this._setCollapsibleStateOnAll(folder, TreeItemCollapsibleState.Collapsed)));
+        this._disposables.push(commands.registerCommand('githd.expandFolder',
+            (folder: FolderItem) => this._setCollapsibleStateOnAll(folder, TreeItemCollapsibleState.Expanded)));
+
         this._disposables.push(this._onDidChange);
 
         model.onDidChangeFilesViewContext(context => {
@@ -205,32 +200,58 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
         const committedFiles: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
         if (!leftRef && !specifiedPath) {
-            this._buildCommitTree(committedFiles, rightRef, this._withFolder);
+            this._buildCommitTree(committedFiles, rightRef);
         } else if (leftRef && !specifiedPath) {
-            this._buildDiffBranchTree(committedFiles, leftRef, rightRef, this._withFolder);
+            this._buildDiffBranchTree(committedFiles, leftRef, rightRef);
         } else if (!leftRef && specifiedPath) {
-            this._buildPathSpecifiedCommitTree(committedFiles, specifiedPath, rightRef, this._withFolder);
+            await this._buildPathSpecifiedCommitTree(committedFiles, specifiedPath, rightRef);
         } else {
-            this._buildPathSpecifiedDiffBranchTree(committedFiles, this._context, this._withFolder);
+            await this._buildPathSpecifiedDiffBranchTree(committedFiles, this._context);
         }
         this._onDidChange.fire();
     }
 
-    private _buildCommitTree(files: git.CommittedFile[], ref: string, withFolder: boolean): void {
-        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${ref}`, files, withFolder));
+    private _buildCommitTree(files: git.CommittedFile[], ref: string): void {
+        this._buildCommitFolder(`Changes of Commit ${ref} \u00a0 (${files.length} files)`, files);
     }
 
-    private _buildDiffBranchTree(files: git.CommittedFile[], leftRef: string, rightRef: string, withFolder: boolean): void {
-        this._rootFolder.push(buildCommitFolder(`Diffs between ${leftRef} and ${rightRef}`, files, withFolder));
+    private _buildDiffBranchTree(files: git.CommittedFile[], leftRef: string, rightRef): void {
+        this._buildCommitFolder(`Diffs between ${leftRef} and ${rightRef} \u00a0 (${files.length} files)`, files);
     }
 
-    private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, ref: string, withFolder: boolean): Promise<void> {
-        this._rootFolder.push(await buildFocusFolder('Focus', specifiedPath, files, withFolder));
-        this._rootFolder.push(buildCommitFolder(`Changes of Commit ${ref}`, files, withFolder));
+    private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, ref: string): Promise<void> {
+        await this._buildFocusFolder('Focus', files, specifiedPath);
+        this._buildCommitTree(files, ref);
     }
 
-    private async _buildPathSpecifiedDiffBranchTree(files: git.CommittedFile[], context: FilesViewContext, withFolder: boolean): Promise<void> {
-        this._rootFolder.push(await buildFocusFolder(`${context.leftRef} .. ${context.rightRef}`, context.specifiedPath, files, withFolder));
+    private async _buildPathSpecifiedDiffBranchTree(files: git.CommittedFile[], context: FilesViewContext): Promise<void> {
+        await this._buildFocusFolder(`${context.leftRef} .. ${context.rightRef}`, files, context.specifiedPath);
+    }
+
+    private _buildCommitFolder(label: string, committedFiles: git.CommittedFile[]): void {
+        let folder = new FolderItem(null, "", label, rootFolderIcon);
+        buildFileTree(folder, committedFiles, this._withFolder);
+        this._rootFolder.push(folder);
+    }
+
+    private async _buildFocusFolder(label: string, committedFiles: git.CommittedFile[], specifiedPath: Uri): Promise<void> {
+        let folder = new FolderItem(null, "", label, rootFolderIcon);
+        const relativePath = await git.getGitRelativePath(specifiedPath);
+        if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
+            let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });
+            let focus = new CommittedFile(specifiedPath, relativePath, file ? file.status : null,
+                getFormatedLabel(relativePath));
+            folder.files.push(focus);
+        } else {
+            let focus: git.CommittedFile[] = [];
+            committedFiles.forEach(file => {
+                if (file.gitRelativePath.search(relativePath) === 0) {
+                    focus.push(createCommittedFile(file));
+                }
+            });
+            buildFileTree(folder, focus, this._withFolder);
+        }
+        this._rootFolder.push(folder);
     }
 
     private _showFilesWithFolder(parent: FolderItem): void {
@@ -252,5 +273,19 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             parent.subFolders = [];
             this._onDidChange.fire(parent);
         }
+    }
+
+    private _setCollapsibleStateOnAll(folder: FolderItem, state: TreeItemCollapsibleState): void {
+        let parent: FolderItem;
+        if (!folder) {
+            this._rootFolder.forEach(sub => {
+                setCollapsibleStateOnAll(sub, state);
+            });
+        } else {
+            parent = folder.parent;
+            folder.collapsibleState = state;
+            folder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
+        }
+        this._onDidChange.fire(parent);
     }
 }
