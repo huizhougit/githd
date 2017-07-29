@@ -48,10 +48,14 @@ class FolderItem extends TreeItem {
     private _files: CommittedFile[] = [];
 
     get subFolders(): FolderItem[] { return this._subFolders; }
+    set subFolders(value: FolderItem[]) { this._subFolders = value; }
     get files(): CommittedFile[] { return this._files; }
+    set files(value: CommittedFile[]) { this._files = value; }
+    get gitRelativePath(): string { return this._gitRelativePath; }
 
-    constructor(label: string, iconPath?: { light: string | Uri; dark: string | Uri }) {
+    constructor(private _gitRelativePath: string, label: string, iconPath?: { light: string | Uri; dark: string | Uri }) {
         super(label);
+        this.contextValue = 'folder';
         this.iconPath = iconPath;
         this.collapsibleState = TreeItemCollapsibleState.Expanded;
     }
@@ -72,35 +76,40 @@ function createCommittedFile(file: git.CommittedFile): CommittedFile {
     return new CommittedFile(file.uri, file.gitRelativePath, file.status, getFormatedLabel(file.gitRelativePath));
 }
 
+function buildOneFileWithFolder(rootFolder: FolderItem, file: git.CommittedFile, relateivePath: string = ''): void {
+    const segments: string[] = relateivePath ? path.relative(relateivePath, file.gitRelativePath).split(/\\|\//) :
+        file.gitRelativePath.split('/');
+    let gitRelativePath: string = relateivePath;
+    let parent: FolderItem = rootFolder;
+    let i = 0;
+    for (; i < segments.length - 1; ++i) {
+        gitRelativePath += segments[i] + '/';
+        let folder: FolderItem = parent.subFolders.find(item => { return item.label === segments[i]; });
+        if (!folder) {
+            folder = new FolderItem(gitRelativePath, segments[i]);
+            parent.subFolders.push(folder);
+        }
+        parent = folder;
+    }
+    parent.files.push(new CommittedFile(file.uri, file.gitRelativePath, file.status, segments[i]));
+}
+
 function buildFileTree(rootFolder: FolderItem, files: git.CommittedFile[], withFolder: boolean): void {
     if (withFolder) {
-        files.forEach(file => {
-            let segments: string[] = file.gitRelativePath.split('/');
-            let parent: FolderItem = rootFolder;
-            let i = 0;
-            for (; i < segments.length - 1; ++i) {
-                let folder: FolderItem = parent.subFolders.find(item => { return item.label === segments[i]; });
-                if (!folder) {
-                    folder = new FolderItem(segments[i]);
-                    parent.subFolders.push(folder);
-                }
-                parent = folder;
-            }
-            parent.files.push(new CommittedFile(file.uri, file.gitRelativePath, file.status, segments[i]));
-        });
+        files.forEach(file => buildOneFileWithFolder(rootFolder, file));
     } else {
         rootFolder.files.push(...(files.map(file => { return createCommittedFile(file); })));
     }
 }
 
 function buildCommitFolder(label: string, committedFiles: git.CommittedFile[], withFolder: boolean): FolderItem {
-    let folder = new FolderItem(label, rootFolderIcon);
+    let folder = new FolderItem("", label, rootFolderIcon);
     buildFileTree(folder, committedFiles, withFolder);
     return folder;
 }
 
 async function buildFocusFolder(label: string, specifiedPath: Uri, committedFiles: git.CommittedFile[], withFolder: boolean): Promise<FolderItem> {
-    let folder = new FolderItem(label, rootFolderIcon);
+    let folder = new FolderItem("", label, rootFolderIcon);
     const relativePath = await git.getGitRelativePath(specifiedPath);
     if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
         let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });
@@ -119,6 +128,23 @@ async function buildFocusFolder(label: string, specifiedPath: Uri, committedFile
     return folder;
 }
 
+function buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem): void {
+    rootFolder.files.push(...(folder.files.map(file => {
+        file.label = getFormatedLabel(path.relative(rootFolder.gitRelativePath, file.gitRelativePath).replace(/\\/g, '/'));
+        return file;
+    })));
+    folder.subFolders.forEach(f => buildFilesWithoutFolder(rootFolder, f));
+    folder.files = [];
+    folder.subFolders = [];
+}
+
+function buildFilesWithFolder(rootFolder: FolderItem): void {
+    rootFolder.subFolders.forEach(folder => buildFilesWithFolder(folder));
+    const files: CommittedFile[] = rootFolder.files;
+    rootFolder.files = [];
+    files.forEach(file => buildOneFileWithFolder(rootFolder, file, rootFolder.gitRelativePath));
+}
+
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
@@ -132,6 +158,10 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
     constructor(model: Model) {
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
+        this._disposables.push(commands.registerCommand('githd.showFilesWithFolder',
+            (folder: FolderItem) => this._showFilesWithFolder(folder)));
+        this._disposables.push(commands.registerCommand('githd.showFilesWithoutFolder',
+            (folder: FolderItem) => this._showFilesWithoutFolder(folder)));
         this._disposables.push(this._onDidChange);
 
         model.onDidChangeFilesViewContext(context => this._update(context), null, this._disposables);
@@ -220,5 +250,16 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
     private _getStatusBarItemText(): string {
         return this._statusBarItem.text = 'githd:  ' + (this._withFolder ? `$(file-directory)` : `$(list-unordered)`);
+    }
+
+    private _showFilesWithFolder(parent: FolderItem): void {
+        buildFilesWithFolder(parent);
+        this._onDidChange.fire(parent);
+    }
+
+    private _showFilesWithoutFolder(parent: FolderItem): void {
+        parent.subFolders.forEach(folder => buildFilesWithoutFolder(parent, folder));
+        parent.subFolders = [];
+        this._onDidChange.fire(parent);
     }
 }

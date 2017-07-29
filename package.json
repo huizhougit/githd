@@ -151,6 +151,16 @@
                 "command": "githd.setExplorerViewWithFolder",
                 "title": "Set the Files Show With Folder",
                 "category": "GitHD"
+            },
+            {
+                "command": "githd.showFilesWithFolder",
+                "title": "Show the Files With Folder",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.showFilesWithoutFolder",
+                "title": "Show the Files Without Folder",
+                "category": "GitHD"
             }
         ],
         "menus": {
@@ -210,6 +220,14 @@
                 {
                     "command": "githd.diffFolder",
                     "when": "false"
+                },
+                {
+                    "command": "githd.showFilesWithFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.showFilesWithoutFolder",
+                    "when": "false"
                 }
             ],
             "scm/title": [
@@ -236,6 +254,16 @@
                     "command": "githd.clear",
                     "when": "view == committedFiles && isGitRepo",
                     "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "githd.showFilesWithFolder",
+                    "when": "view == committedFiles && viewItem == folder && isGitRepo"
+                },
+                {
+                    "command": "githd.showFilesWithoutFolder",
+                    "when": "view == committedFiles && viewItem == folder && isGitRepo"
                 }
             ],
             "explorer/context": [
