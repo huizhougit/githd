@@ -1,0 +1,69 @@
+div {
+    font-size: 110%;
+    line-height: 150%
+}
+
+.title {
+    font-size: 120%
+}
+.vscode-light .title {
+    color: #267f99
+}
+.vscode-dark .title {
+    color: #4ec980
+}
+
+.branch {
+    font-size: 120%
+}
+.vscode-light .branch {
+    color: #a31515
+}
+.vscode-dark .branch {
+    color: #ce9178
+}
+
+.vscode-light .specified-path {
+    color: #811f3f
+}
+.vscode-dark .specified-path {
+    color: #d16969
+}
+
+.subject {
+    font-size: 120%
+}
+.vscode-light .subject {
+    color: #0000ff
+}
+.vscode-dark .subject {
+    color: #569cd6
+}
+
+.vscode-light .hash {
+    color: #a31515
+}
+.vscode-dark .hash {
+    color: #ce9178
+}
+
+.vscode-light .ref {
+    color: #008000
+}
+.vscode-dark .ref {
+    color: #608b4e
+}
+
+.vscode-light .author {
+    color: #001080
+}
+.vscode-dark .author {
+    color: #9CDCFE
+}
+
+.vscode-light .email {
+    color: #795E26
+}
+.vscode-dark .email {
+    color: #DCDCAA
+}

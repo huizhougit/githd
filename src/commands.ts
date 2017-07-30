@@ -2,10 +2,11 @@
 
 import * as path from 'path';
 
-import { Uri, commands, Disposable, workspace, window , scm, QuickPickItem} from 'vscode';
+import { Uri, commands, Disposable, workspace, window , scm, QuickPickItem, ViewColumn } from 'vscode';
 
 import { Model, HistoryViewContext } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
+import { HistoryHtmlViewProvider } from './historyHtmlViewProvider';
 import { git } from './git';
 
 function toGitUri(uri: Uri, ref: string): Uri {
@@ -53,7 +54,7 @@ function command(id: string) {
 export class CommandCenter {
     private _disposables: Disposable[];
 
-    constructor(private _model: Model, private _viewProvider: HistoryViewProvider) {
+    constructor(private _model: Model, private _viewProvider: HistoryHtmlViewProvider) {
         this._disposables = Commands.map(({ id, method }) => {
             return commands.registerCommand(id, (...args: any[]) => {
                 Promise.resolve(method.apply(this, args));
@@ -183,12 +184,13 @@ export class CommandCenter {
             context.branch = await git.getCurrentBranch();
         }
         await this._model.setHistoryViewContext(context);
-        workspace.openTextDocument(HistoryViewProvider.defaultUri)
-            .then(doc => {
-                window.showTextDocument(doc);
-                if (!this._viewProvider.loadingMore) {
-                    commands.executeCommand('cursorTop');
-                }
-            });
+        //workspace.openTextDocument(HistoryViewProvider.defaultUri)
+            // .then(doc => {
+            //     window.showTextDocument(doc);
+            //     if (!this._viewProvider.loadingMore) {
+            //         commands.executeCommand('cursorTop');
+            //     }
+            // });
+        commands.executeCommand('vscode.previewHtml', HistoryHtmlViewProvider.defaultUri, ViewColumn.One, 'Git History');
     }
 }
