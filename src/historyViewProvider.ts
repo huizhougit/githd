@@ -1,11 +1,11 @@
 'use strict'
 
 import {
-    TextDocumentContentProvider, Uri, Disposable, workspace, window, commands, scm, Range, TextEditor,
+    TextDocumentContentProvider, Uri, Disposable, workspace, window, commands, Range, TextEditor,
     DocumentLinkProvider, DocumentLink, ProviderResult, languages, EventEmitter, Event,
-    TextEditorDecorationType, StatusBarItem, StatusBarAlignment
+    TextEditorDecorationType, StatusBarItem
 } from 'vscode';
-import { Model, HistoryViewContext } from './model';
+import { Model } from './model';
 import { git } from './git';
 import { getIconUri } from './icons'
 
@@ -220,52 +220,52 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             }
         }
 
-        const context = this._model.historyViewContext;
-        const loadingMore: boolean = this._loadingMore;
-        const loadAll: boolean = this._loadAll;
-        let logStart = 0;
-        if (loadingMore) {
-            this._loadingMore = false;
-            logStart = this._logCount;
-            this._content += HistoryViewProvider._separatorLabel + '\n\n';
-            this._currentLine += 2;
-        }
-        const commitsCount: number = await git.getCommitsCount(context.specifiedPath);
-        if (this._loadAll && commitsCount > 1000) {
-            window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
-        }
-        const logCount = this._loadAll ? commitsCount : this._commitsCount;
-        const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, context.branch, context.specifiedPath);
-        if (entries.length === 0) {
-            this._reset();
-            return 'No History';
-        }
-
-        if (!loadingMore) {
-            this._reset();
-            this._content = HistoryViewProvider._titleLabel;
-            decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
-
-            if (context.specifiedPath) {
-                this._content += ' of ';
-                let start: number = this._content.length;
-                this._content += await git.getGitRelativePath(context.specifiedPath);
-                this._fileDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, this._content.length));
+        return new Promise<string>(async (resolve) => {
+            const context = this._model.historyViewContext;
+            const loadingMore: boolean = this._loadingMore;
+            const loadAll: boolean = this._loadAll;
+            let logStart = 0;
+            if (loadingMore) {
+                this._loadingMore = false;
+                logStart = this._logCount;
+                this._content += HistoryViewProvider._separatorLabel + '\n\n';
+                this._currentLine += 2;
             }
-            this._content += ' on ';
+            const commitsCount: number = await git.getCommitsCount(context.specifiedPath);
+            if (this._loadAll && commitsCount > 1000) {
+                window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
+            }
+            const logCount = this._loadAll ? commitsCount : this._commitsCount;
+            const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, context.branch, context.specifiedPath);
+            if (entries.length === 0) {
+                this._reset();
+                resolve('No History');
+                return;
+            }
 
-            this._refresh = new Clickable(
-                HistoryViewProvider.defaultUri.with({ path: null, fragment: HistoryViewProvider._refreshLabel }),
-                new Range(0, this._content.length, 0, this._content.length + context.branch.length)
-            );
-            this._content += context.branch;
-            this._content += '\n\n';
-            this._currentLine += 2;
-        }
+            if (!loadingMore) {
+                this._reset();
+                this._content = HistoryViewProvider._titleLabel;
+                decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
 
-        return new Promise<string>(resolve => {
+                if (context.specifiedPath) {
+                    this._content += ' of ';
+                    let start: number = this._content.length;
+                    this._content += await git.getGitRelativePath(context.specifiedPath);
+                    this._fileDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, this._content.length));
+                }
+                this._content += ' on ';
+
+                this._refresh = new Clickable(
+                    HistoryViewProvider.defaultUri.with({ path: null, fragment: HistoryViewProvider._refreshLabel }),
+                    new Range(0, this._content.length, 0, this._content.length + context.branch.length)
+                );
+                this._content += context.branch;
+                this._content += '\n\n';
+                this._currentLine += 2;
+            }
+
             const hasMore: boolean = commitsCount > logCount + this._logCount;
-
             entries.forEach(entry => {
                 ++this._logCount;
                 decorateWithoutWhitspace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);

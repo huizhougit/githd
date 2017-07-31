@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Event, EventEmitter,
-    Disposable, commands, StatusBarItem } from 'vscode';
+    Disposable, commands } from 'vscode';
 import { git } from './git';
 import { Model, FilesViewContext } from './model'
 import { Icons, getIconUri } from './icons';
@@ -125,16 +125,6 @@ function setCollapsibleStateOnAll(rootFolder: FolderItem, state: TreeItemCollaps
     rootFolder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
 }
 
-// function collapseFolder(folder: FolderItem): void {
-//     folder.collapsibleState = TreeItemCollapsibleState.Collapsed;
-//     folder.subFolders.forEach(sub => collapseFolder(sub));
-// }
-
-// function expandFolder(folder: FolderItem): void {
-//     folder.collapsibleState = TreeItemCollapsibleState.Expanded;
-//     folder.subFolders.forEach(sub => collapseFolder(sub));
-// }
-
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
@@ -212,7 +202,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     private _buildCommitTree(files: git.CommittedFile[], ref: string): void {
-        this._buildCommitFolder(`Changes of Commit ${ref} \u00a0 (${files.length} files)`, files);
+        this._buildCommitFolder(`Commit ${ref} \u00a0 (${files.length} files changed)`, files);
     }
 
     private _buildDiffBranchTree(files: git.CommittedFile[], leftRef: string, rightRef): void {
