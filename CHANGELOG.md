@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.5.0
+- Make all the commands names concise.
+- View the git history of a folder.
+- Diff the selected branch
+- Diff a file or folder with selected branch
+- Display the committed files with list view or folder view
+
 ## 0.4.1
 - Use icons on the status bar instead of text.
 
