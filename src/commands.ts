@@ -185,7 +185,7 @@ export class CommandCenter {
         await this._model.setHistoryViewContext(context);
         workspace.openTextDocument(HistoryViewProvider.defaultUri)
             .then(doc => {
-                window.showTextDocument(doc);
+                window.showTextDocument(doc, { preview: false });
                 if (!this._viewProvider.loadingMore) {
                     commands.executeCommand('cursorTop');
                 }
