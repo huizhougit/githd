@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.5.1
+- Open the History view with non-preview.
+
 ## 0.5.0
 - Make all the commands names concise.
 - View the git history of a folder.
