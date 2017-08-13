@@ -36,7 +36,7 @@ export namespace git {
 
     let _gitRootPath: string;
     async function getGitRoot(): Promise<string> {
-        if (!_gitRootPath) {
+        if (!_gitRootPath && workspace.rootPath) {
             _gitRootPath = (await exec(['rev-parse', '--show-toplevel'], workspace.rootPath)).trim();
         }
         return _gitRootPath;
