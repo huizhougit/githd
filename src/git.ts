@@ -75,6 +75,10 @@ export namespace git {
         });
     }
 
+    export function getGitRootPath(): string {
+        return _gitRootPath;
+    }
+
     export async function getGitRelativePath(file: Uri) {
         let gitRoot: string = await getGitRoot();
         return path.relative(gitRoot, file.fsPath).replace(/\\/g, '/');

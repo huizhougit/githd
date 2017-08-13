@@ -183,12 +183,5 @@ export class CommandCenter {
             context.branch = await git.getCurrentBranch();
         }
         await this._model.setHistoryViewContext(context);
-        workspace.openTextDocument(HistoryViewProvider.defaultUri)
-            .then(doc => {
-                window.showTextDocument(doc, { preview: false });
-                if (!this._viewProvider.loadingMore) {
-                    commands.executeCommand('cursorTop');
-                }
-            });
     }
 }

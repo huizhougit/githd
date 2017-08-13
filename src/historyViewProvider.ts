@@ -161,6 +161,13 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._model.onDidChangeHistoryViewContext(context => {
             this.branch = context.branch;
             this.update();
+            workspace.openTextDocument(HistoryViewProvider.defaultUri)
+                .then(doc => {
+                    window.showTextDocument(doc, { preview: false });
+                    if (!this._loadingMore) {
+                        commands.executeCommand('cursorTop');
+                    }
+                });
         });
 
         window.onDidChangeActiveTextEditor(editor => {
@@ -181,8 +188,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     }
 
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
-
-    get loadingMore(): boolean { return this._loadingMore; }
 
     set loadAll(value: boolean) { this._loadAll = value; }
 

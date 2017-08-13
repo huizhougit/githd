@@ -15,10 +15,6 @@ const rootFolderIcon = {
 };
 
 class CommittedFile extends TreeItem implements git.CommittedFile {
-    readonly uri: Uri = this._uri;
-    readonly gitRelativePath: string = this._gitRelativePath;
-    readonly status: string = this._status;
-
     constructor(private _uri: Uri, private _gitRelativePath: string, private _status: string, label: string) {
         super(label);
         this.command = {
@@ -30,6 +26,10 @@ class CommittedFile extends TreeItem implements git.CommittedFile {
             this.iconPath = { light: this._getIconPath('light'), dark: this._getIconPath('dark') };
         }
     };
+
+    readonly uri: Uri = this._uri;
+    readonly gitRelativePath: string = this._gitRelativePath;
+    readonly status: string = this._status;
 
     private _getIconPath(theme: string): Uri | undefined {
         switch (this._status[0].toUpperCase()) {
@@ -47,22 +47,20 @@ class FolderItem extends TreeItem {
     private _subFolders: FolderItem[] = [];
     private _files: CommittedFile[] = [];
 
-    get parent(): FolderItem { return this._parent; }
-    get subFolders(): FolderItem[] { return this._subFolders; }
-    set subFolders(value: FolderItem[]) { this._subFolders = value; }
-    get files(): CommittedFile[] { return this._files; }
-    set files(value: CommittedFile[]) { this._files = value; }
-    get gitRelativePath(): string { return this._gitRelativePath; }
-
     constructor(private _parent: FolderItem, private _gitRelativePath: string, label: string, iconPath?: { light: Uri; dark: Uri }) {
         super(label);
         this.contextValue = 'folder';
         this.iconPath = iconPath;
         this.collapsibleState = TreeItemCollapsibleState.Expanded;
     }
-}
 
-type CommittedTreeItem = CommittedFile | FolderItem;
+    readonly parent =  this._parent;
+    readonly gitRelativePath: string = this._gitRelativePath;
+    get subFolders(): FolderItem[] { return this._subFolders; }
+    set subFolders(value: FolderItem[]) { this._subFolders = value; }
+    get files(): CommittedFile[] { return this._files; }
+    set files(value: CommittedFile[]) { this._files = value; }
+}
 
 function getFormatedLabel(relativePath: string): string {
     const name: string = path.basename(relativePath);
@@ -125,6 +123,8 @@ function setCollapsibleStateOnAll(rootFolder: FolderItem, state: TreeItemCollaps
     rootFolder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
 }
 
+type CommittedTreeItem = CommittedFile | FolderItem;
+
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
     private _onDidChange: EventEmitter<CommittedTreeItem> = new EventEmitter<CommittedTreeItem>();
@@ -143,6 +143,12 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             (folder: FolderItem) => this._setCollapsibleStateOnAll(folder, TreeItemCollapsibleState.Collapsed)));
         this._disposables.push(commands.registerCommand('githd.expandFolder',
             (folder: FolderItem) => this._setCollapsibleStateOnAll(folder, TreeItemCollapsibleState.Expanded)));
+        this._disposables.push(commands.registerCommand('githd.viewFileHistoryFromTree',
+            (file: CommittedFile) => model.setHistoryViewContext({ specifiedPath: file.uri })));
+        this._disposables.push(commands.registerCommand('githd.viewFolderHistoryFromTree',
+            (folder: FolderItem) => model.setHistoryViewContext({
+                specifiedPath: Uri.file(path.join(git.getGitRootPath(), folder.gitRelativePath))
+            })));
 
         this._disposables.push(this._onDidChange);
 
@@ -219,13 +225,13 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     private _buildCommitFolder(label: string, committedFiles: git.CommittedFile[]): void {
-        let folder = new FolderItem(null, "", label, rootFolderIcon);
+        let folder = new FolderItem(null, '', label, rootFolderIcon);
         buildFileTree(folder, committedFiles, this._withFolder);
         this._rootFolder.push(folder);
     }
 
     private async _buildFocusFolder(label: string, committedFiles: git.CommittedFile[], specifiedPath: Uri): Promise<void> {
-        let folder = new FolderItem(null, "", label, rootFolderIcon);
+        let folder = new FolderItem(null, '', label, rootFolderIcon);
         const relativePath = await git.getGitRelativePath(specifiedPath);
         if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
             let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });
