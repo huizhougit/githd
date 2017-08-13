@@ -2,8 +2,19 @@
 
 import * as path from 'path';
 
-import { workspace, Uri, commands } from 'vscode';
+import { workspace, Uri, commands, env } from 'vscode';
 import { spawn } from 'child_process';
+
+function formatDate(timestamp: number): string {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString(env.language, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric'
+    });
+}
 
 export namespace git {
 
@@ -147,7 +158,7 @@ export namespace git {
     export async function getLogEntries(start: number, count: number, branch: string, file?: Uri): Promise<LogEntry[]> {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
-        const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%cr${itemSeparator}`;
+        const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
         let args: string[] = ['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch];
         if (file) {
             args.push(await getGitRelativePath(file));
@@ -167,9 +178,9 @@ export namespace git {
             let date: string;
             let stat: string;
             entry.split(itemSeparator).forEach((value, index) => {
-                switch (index % 7) {
+                switch (index % 8) {
                     case 0:
-                        subject = value;
+                        subject = value.replace(/\r?\n/g, ' ');
                         break;
                     case 1:
                         hash = value;
@@ -184,10 +195,13 @@ export namespace git {
                         email = value;
                         break;
                     case 5:
-                        date = value;
+                        date = formatDate(parseInt(value));
                         break;
                     case 6:
-                        stat = value.replace(/\r?\n*/g, '');
+                        date += ` (${value})`;
+                        break;
+                    case 7:
+                        stat = value.replace(/\r?\n/g, '');
                         entries.push({ subject, hash, ref, author, email, date, stat });
                         break;
                 }
