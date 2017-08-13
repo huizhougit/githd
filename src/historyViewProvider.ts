@@ -3,7 +3,7 @@
 import {
     TextDocumentContentProvider, Uri, Disposable, workspace, window, commands, Range, TextEditor,
     DocumentLinkProvider, DocumentLink, ProviderResult, languages, EventEmitter, Event,
-    TextEditorDecorationType, StatusBarItem
+    TextEditorDecorationType, StatusBarItem, ThemeColor
 } from 'vscode';
 import { Model } from './model';
 import { git } from './git';
@@ -31,6 +31,10 @@ const hashDecorationType = window.createTextEditorDecorationType({
     // string color
     light: { color: '#a31515' },
     dark: { color: '#ce9178' }
+});
+const selectedHashDecorationType = window.createTextEditorDecorationType({
+    backgroundColor: new ThemeColor('merge.currentContentBackground'),
+    isWholeLine: true
 });
 const refDecorationType = window.createTextEditorDecorationType({
     // comment color
@@ -71,6 +75,8 @@ const refreshDecorationType = window.createTextEditorDecorationType({
         }
     }
 });
+
+const hashSeparator: string = '|';
 
 function decorateWithoutWhitspace(options: Range[], target: string, line: number, offset: number): void {
     let start = 0;
@@ -130,7 +136,8 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private _authorDecorationOptions: Range[] = [];
     private _emailDecorationOptions: Range[] = [];
     private _dateDecorationOptions: Range[] = [];
-
+    private _selectedHashDecoration: Range;
+    
     private _links: DocumentLink[] = [];
     private _more: Clickable;
     private _refresh: Clickable;
@@ -193,17 +200,24 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         // A new temp file is opened with the clicking information and closed immediately
 
         if (uri.query) { // ref link clicked
-            commands.executeCommand('workbench.action.closeActiveEditor');
-            let hash: string = uri.query;
-            this._model.filesViewContext = {
-                leftRef: null,
-                rightRef: hash
-            };
-            if (this._model.configuration.useExplorer) {
-                commands.executeCommand('workbench.view.explorer');
-                // vscode bug could make the active doc change to another one
-                workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => window.showTextDocument(doc));
-            }
+            commands.executeCommand('workbench.action.closeActiveEditor').then(() => {
+                const hash: string = uri.query.split(hashSeparator)[0];
+                const line: number = parseInt(uri.query.split(hashSeparator)[1]);
+                this._model.filesViewContext = {
+                    leftRef: null,
+                    rightRef: hash
+                };
+                if (this._model.configuration.useExplorer) {
+                    commands.executeCommand('workbench.view.explorer');
+                    // vscode bug could make the active doc change to another one
+                    workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => window.showTextDocument(doc));
+                }
+                this._selectedHashDecoration = new Range(line, 0, line, hash.length);
+                let editor: TextEditor = window.activeTextEditor;
+                if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
+                    editor.setDecorations(selectedHashDecorationType, [this._selectedHashDecoration]);
+                }
+            });
             return "";
         }
         if (uri.fragment) {
@@ -275,7 +289,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                 let info: string = entry.hash;
                 let range = new Range(this._currentLine, 0, this._currentLine, info.length);
                 this._hashDecorationOptions.push(range);
-                this._links.push(new DocumentLink(range, uri.with({ path: null, query: entry.hash })));
+                this._links.push(new DocumentLink(range, uri.with({ path: null, query: entry.hash + hashSeparator + range.start.line })));
 
                 if (entry.ref) {
                     let start: number = info.length;
@@ -349,13 +363,16 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private _setDecorations(editor: TextEditor): void {
         editor.setDecorations(titleDecorationType, this._titleDecorationOptions);
         editor.setDecorations(fileDecorationType, this._fileDecorationOptions);
-
+        
         this._decorate(editor, subjectDecorationType, this._subjectDecorationOptions);
         this._decorate(editor, hashDecorationType, this._hashDecorationOptions);
         this._decorate(editor, refDecorationType, this._refDecorationOptions);
         this._decorate(editor, authorDecorationType, this._authorDecorationOptions);
         this._decorate(editor, emailDecorationType, this._emailDecorationOptions);
 
+        if (this._selectedHashDecoration) {
+            editor.setDecorations(selectedHashDecorationType, [this._selectedHashDecoration]);
+        }
         if (this._refresh) {
             editor.setDecorations(refreshDecorationType, [{ range: this._refresh.range, hoverMessage: 'Refresh the history' }]);
         }
@@ -397,5 +414,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._authorDecorationOptions = [];
         this._emailDecorationOptions = [];
         this._dateDecorationOptions = [];
+        this._selectedHashDecoration = null;
     }
 }
