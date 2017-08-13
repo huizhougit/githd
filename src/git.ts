@@ -180,7 +180,7 @@ export namespace git {
             entry.split(itemSeparator).forEach((value, index) => {
                 switch (index % 8) {
                     case 0:
-                        subject = value.replace(/\r?\n/g, ' ');
+                        subject = value.replace(/\r?\n|\r/g, ' ');
                         break;
                     case 1:
                         hash = value;

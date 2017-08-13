@@ -174,7 +174,7 @@ export class CommandCenter {
             title = `${leftRef} .. ${rightRef}`;
         }
         return await commands.executeCommand<void>('vscode.diff', toGitUri(file.uri, leftRef), toGitUri(file.uri, rightRef),
-            title + ' | ' + file.gitRelativePath, { preview: true });
+            title + ' | ' + path.basename(file.gitRelativePath), { preview: true });
     }
 
     private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
