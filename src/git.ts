@@ -6,14 +6,7 @@ import { workspace, Uri, commands, env } from 'vscode';
 import { spawn } from 'child_process';
 
 function formatDate(timestamp: number): string {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString(env.language, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric'
-    });
+    return (new Date(timestamp * 1000)).toDateString();
 }
 
 export namespace git {

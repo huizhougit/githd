@@ -1,7 +1,11 @@
 # Change Log
 
+## 0.6.0
+- Highlight the selected commit.
+- Display the committed date.
+
 ## 0.5.1
-- Open the History view with non-preview.
+- Explicitly set the History view with non-preview mode.
 
 ## 0.5.0
 - Make all the commands names concise.
