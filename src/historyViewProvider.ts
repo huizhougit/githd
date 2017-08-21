@@ -142,7 +142,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private _more: Clickable;
     private _refresh: Clickable;
 
-    private _statusBarItem: StatusBarItem = window.createStatusBarItem(undefined, 2);
+    private _branchStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 2);
+    private _expressStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 1);
+    private _express: boolean;
 
     constructor(private _model: Model) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
@@ -151,9 +153,15 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         disposable = languages.registerDocumentLinkProvider({ scheme: HistoryViewProvider.scheme }, this);
         this._disposables.push(disposable);
 
-        this._statusBarItem.command = 'githd.viewBranchHistory';
-        this._statusBarItem.tooltip = 'Select a branch to see its history';
-        this._disposables.push(this._statusBarItem);
+        this._branchStatusBar.command = 'githd.viewBranchHistory';
+        this._branchStatusBar.tooltip = 'Select a branch to see its history';
+        this._disposables.push(this._branchStatusBar);
+
+        this._expressStatusBar.command = 'githd.setExpressMode';
+        this._expressStatusBar.tooltip = 'Turn on or off of the history vew Express mode';
+        this.express = this._model.configuration.expressMode;
+        this._disposables.push(this._expressStatusBar);
+
         this._disposables.push(this._onDidChange);
 
         this.commitsCount = this._model.configuration.commitsCount;
@@ -173,9 +181,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
                 this._setDecorations(editor);
-                this._statusBarItem.show();
+                this._branchStatusBar.show();
             } else {
-                this._statusBarItem.hide();
+                this._branchStatusBar.hide();
             }
         }, null, this._disposables);
 
@@ -185,19 +193,30 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                 this._setDecorations(editor);
             }
         }, null, this._disposables);
+
+        (async () => {
+            if (await git.getGitRootPath()) {
+                this._expressStatusBar.show();
+            }
+        })();
     }
 
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
 
     set loadAll(value: boolean) { this._loadAll = value; }
+    get express(): boolean { return this._express; }
+    set express(value: boolean) {
+        this._express = value;
+        this._expressStatusBar.text = 'githd: Express ' + (value ? 'On' : 'Off');
+    }
 
     private set commitsCount(count: number) {
-        if ([50, 100, 200, 300, 400, 500].findIndex(a => { return a === count; }) >= 0) {
+        if ([50, 100, 200, 300, 400, 500, 1000].findIndex(a => { return a === count; }) >= 0) {
             this._commitsCount = count;
         }
     }
     private set branch(value: string) {
-        this._statusBarItem.text = 'githd: ' + value;
+        this._branchStatusBar.text = 'githd: ' + value;
     }
 
     async provideTextDocumentContent(uri: Uri): Promise<string> {
@@ -242,7 +261,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         return new Promise<string>(async (resolve) => {
             const context = this._model.historyViewContext;
             const loadingMore: boolean = this._loadingMore;
-            const loadAll: boolean = this._loadAll;
             let logStart = 0;
             if (loadingMore) {
                 this._loadingMore = false;
@@ -251,11 +269,13 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                 this._currentLine += 2;
             }
             const commitsCount: number = await git.getCommitsCount(context.specifiedPath);
-            if (this._loadAll && commitsCount > 1000) {
+            let slowLoading = false;
+            if (this._loadAll && ((!this._express && commitsCount > 1000) || (this._express && commitsCount > 10000))) {
+                slowLoading = true;
                 window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
             }
             const logCount = this._loadAll ? commitsCount : this._commitsCount;
-            const entries: git.LogEntry[] = await git.getLogEntries(logStart, logCount, context.branch, context.specifiedPath);
+            const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch, context.specifiedPath);
             if (entries.length === 0) {
                 this._reset();
                 resolve('No History');
@@ -342,11 +362,11 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
             } else {
                 this._more = null;
                 resolve(this._content);
-                if (loadAll) {
+                if (slowLoading) {
                     window.showInformationMessage(`All ${commitsCount} commits are loaded.`);
                 }
             }
-            this._statusBarItem.show();
+            this._branchStatusBar.show();
         });
     }
 

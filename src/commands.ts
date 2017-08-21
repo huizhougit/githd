@@ -177,6 +177,11 @@ export class CommandCenter {
             title + ' | ' + path.basename(file.gitRelativePath), { preview: true });
     }
 
+    @command('githd.setExpressMode')
+    async setExpressMode(): Promise<void> {
+        this._viewProvider.express = !this._viewProvider.express;
+    }
+
     private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
         this._viewProvider.loadAll = all;
         if (context.branch === null) {

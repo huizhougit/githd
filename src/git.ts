@@ -152,11 +152,14 @@ export namespace git {
         return files;
     }
 
-    export async function getLogEntries(start: number, count: number, branch: string, file?: Uri): Promise<LogEntry[]> {
+    export async function getLogEntries(express: boolean, start: number, count: number, branch: string, file?: Uri): Promise<LogEntry[]> {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
-        let args: string[] = ['log', format, '--shortstat', `--skip=${start}`, `--max-count=${count}`, branch];
+        let args: string[] = ['log', format, `--skip=${start}`, `--max-count=${count}`, branch];
+        if (!express) {
+            args.push('--shortstat');
+        }
         if (file) {
             args.push(await getGitRelativePath(file));
         }

@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.0
+- Express mode to load the history view much faster.
+
 ## 0.6.0
 - Highlight the selected commit.
 - Display the committed date.

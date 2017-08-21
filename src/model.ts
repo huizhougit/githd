@@ -9,6 +9,7 @@ import { git } from './git';
 export interface Configuration {
     readonly useExplorer?: boolean;
     readonly commitsCount?: number;
+    readonly expressMode?: boolean;
     withFolder?: boolean;
 }
 
@@ -27,7 +28,8 @@ function getConfiguration(): Configuration {
     return {
         useExplorer: <boolean>workspace.getConfiguration('githd.committedFiles').get('inExplorerView'),
         withFolder: <boolean>workspace.getConfiguration('githd.explorerView').get('withFolder'),
-        commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount')
+        commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount'),
+        expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode')
     };
 }
 
@@ -69,7 +71,8 @@ export class Model {
             let newConfig = getConfiguration();
             if (newConfig.useExplorer !== this._config.useExplorer ||
                 newConfig.withFolder !== this._config.withFolder ||
-                newConfig.commitsCount !== this._config.commitsCount) {
+                newConfig.commitsCount !== this._config.commitsCount ||
+                newConfig.expressMode !== this._config.expressMode) {
 
                 if (newConfig.useExplorer !== this._config.useExplorer) {
                     // Cannot dispose TreeDataProvider because of it's bug: onDidChangeTreeData doesn't work after re-creation!

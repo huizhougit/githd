@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View the git log. View the change details of a specified commit",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
@@ -61,8 +61,14 @@
                         200,
                         300,
                         400,
-                        500
+                        500,
+                        1000
                     ]
+                },
+                "githd.logView.expressMode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "The Express Mode will load the history view much faster. But the change stat will not be present."
                 }
             }
         },
@@ -150,6 +156,11 @@
             {
                 "command": "githd.openCommittedFile",
                 "title": "Open the change of the committed file",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.setExpressMode",
+                "title": "set Express Mode",
                 "category": "GitHD"
             },
             {
@@ -251,6 +262,10 @@
                 },
                 {
                     "command": "githd.diffFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.setExpressMode",
                     "when": "false"
                 },
                 {
