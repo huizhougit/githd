@@ -41,6 +41,9 @@ _Press F1_ and type or select `Preferences: Open Workspace Settings` or  `Prefer
 
 ![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/configurations.png)
 
+## Changes
+[Change Log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.md#070)
+
 ## Blemish
 * _Cannot focus on the explorer view automatically after selecting the commit._
 * _Cannot follow the link by single-click._
