@@ -195,7 +195,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         }, null, this._disposables);
 
         (async () => {
-            if (await git.getGitRootPath()) {
+            if (await git.isGitRepo()) {
                 this._expressStatusBar.show();
             }
         })();

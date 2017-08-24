@@ -68,6 +68,13 @@ export namespace git {
         });
     }
 
+    export async function isGitRepo(): Promise<boolean> {
+        if (await getGitRoot()) {
+            return true;
+        }
+        return false;
+    }
+
     export function getGitRootPath(): string {
         return _gitRootPath;
     }

@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.1
+- Fix issue: Express status bar may not display.
+
 ## 0.7.0
 - Express mode to load the history view much faster.
 
