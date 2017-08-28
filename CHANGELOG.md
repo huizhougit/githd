@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.7.2
+- Continue listing the history of a file beyond renames (works only for a single file).
+
 ## 0.7.1
 - Fix issue: Express status bar may not display.
 

@@ -274,7 +274,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                 slowLoading = true;
                 window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
             }
-            const logCount = this._loadAll ? commitsCount : this._commitsCount;
+            const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
             const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch, context.specifiedPath);
             if (entries.length === 0) {
                 this._reset();

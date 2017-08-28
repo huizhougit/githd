@@ -168,6 +168,7 @@ export namespace git {
             args.push('--shortstat');
         }
         if (file) {
+            args.push('--follow');
             args.push(await getGitRelativePath(file));
         }
         const result = await exec(args);

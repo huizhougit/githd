@@ -216,7 +216,9 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, ref: string): Promise<void> {
-        await this._buildFocusFolder('Focus', files, specifiedPath);
+        if (files.findIndex(file => { return file.uri.fsPath === specifiedPath.fsPath; }) >= 0) {
+            await this._buildFocusFolder('Focus', files, specifiedPath);
+        }
         this._buildCommitTree(files, ref);
     }
 
