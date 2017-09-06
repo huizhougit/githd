@@ -1,8 +1,9 @@
 'use strict'
 
-import { Range, languages, HoverProvider, Hover, TextDocument, Position, window, Disposable, ThemeColor,
-    TextEditorDecorationType, TextEditor } from 'vscode';
-import * as assert from 'assert'
+import {
+    Range, languages, HoverProvider, Hover, TextDocument, Position, window, Disposable,
+    TextEditorDecorationType, TextEditor
+} from 'vscode';
 
 export interface Clickable {
     readonly range: Range;
