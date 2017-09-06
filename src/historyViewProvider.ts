@@ -60,8 +60,8 @@ const moreDecorationType = window.createTextEditorDecorationType({
     dark: { color: '#9cdcfe' }
 });
 const branchDecorationType = window.createTextEditorDecorationType({
-    //cursor: 'pointer',
-    //textDecoration: 'underline',
+    cursor: 'pointer',
+    textDecoration: 'underline',
     // flow control coler
     light: { color: '#AF00DB' },
     dark: { color: '#C586C0' }
@@ -120,17 +120,12 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private _selectedHashDecoration: Range;
     private _moreClickableRange: Range;
 
-    private _branchStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 2);
     private _expressStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 1);
     private _express: boolean;
 
     constructor(private _model: Model) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
         this._disposables.push(disposable);
-
-        this._branchStatusBar.command = 'githd.viewBranchHistory';
-        this._branchStatusBar.tooltip = 'Select a branch to see its history';
-        this._disposables.push(this._branchStatusBar);
 
         this._expressStatusBar.command = 'githd.setExpressMode';
         this._expressStatusBar.tooltip = 'Turn on or off of the history vew Express mode';
@@ -143,7 +138,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this.commitsCount = this._model.configuration.commitsCount;
         this._model.onDidChangeConfiguration(config => this.commitsCount = config.commitsCount, null, this._disposables);
         this._model.onDidChangeHistoryViewContext(context => {
-            this.branch = context.branch;
             this.update();
             workspace.openTextDocument(HistoryViewProvider.defaultUri)
                 .then(doc => {
@@ -157,9 +151,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
                 this._setDecorations(editor);
-                this._branchStatusBar.show();
-            } else {
-                this._branchStatusBar.hide();
             }
         }, null, this._disposables);
 
@@ -190,9 +181,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         if ([50, 100, 200, 300, 400, 500, 1000].findIndex(a => { return a === count; }) >= 0) {
             this._commitsCount = count;
         }
-    }
-    private set branch(value: string) {
-        this._branchStatusBar.text = 'githd: ' + value;
     }
 
     async provideTextDocumentContent(uri: Uri): Promise<string> {
@@ -234,8 +222,13 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 this._content += ' on ';
 
                 this._branchDecorationRange = new Range(0, this._content.length, 0, this._content.length + context.branch.length);
+                this._clickableProvider.addClickable({
+                    range: this._branchDecorationRange,
+                    callback: () => commands.executeCommand('githd.viewBranchHistory'),
+                    getHoverMessage: (): string => { return 'Select another branch to see its history' }
+                })
                 this._content += context.branch;
-                
+
                 this._content += '\n\n';
                 this._currentLine += 2;
             }
@@ -323,7 +316,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     window.showInformationMessage(`All ${commitsCount} commits are loaded.`);
                 }
             }
-            this._branchStatusBar.show();
         });
     }
 
