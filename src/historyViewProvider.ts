@@ -2,12 +2,12 @@
 
 import {
     TextDocumentContentProvider, Uri, Disposable, workspace, window, commands, Range, TextEditor,
-    DocumentLinkProvider, DocumentLink, ProviderResult, languages, EventEmitter, Event,
-    TextEditorDecorationType, StatusBarItem, ThemeColor
+    languages, EventEmitter, Event, TextEditorDecorationType, StatusBarItem, ThemeColor
 } from 'vscode';
 import { Model } from './model';
 import { git } from './git';
-import { getIconUri } from './icons'
+import { getIconUri } from './icons';
+import { Clickable, ClickableProvider } from './clickable';
 
 const titleDecorationType = window.createTextEditorDecorationType({
     // class color
@@ -28,6 +28,7 @@ const subjectDecorationType = window.createTextEditorDecorationType({
 });
 const hashDecorationType = window.createTextEditorDecorationType({
     cursor: 'pointer',
+    textDecoration: 'underline',
     // string color
     light: { color: '#a31515' },
     dark: { color: '#ce9178' }
@@ -53,30 +54,18 @@ const emailDecorationType = window.createTextEditorDecorationType({
 });
 const moreDecorationType = window.createTextEditorDecorationType({
     cursor: 'pointer',
+    textDecoration: 'underline',
     // variable color
     light: { color: '#001080' },
     dark: { color: '#9cdcfe' }
 });
-const refreshDecorationType = window.createTextEditorDecorationType({
-    cursor: 'pointer',
+const branchDecorationType = window.createTextEditorDecorationType({
+    //cursor: 'pointer',
+    //textDecoration: 'underline',
     // flow control coler
-    light: {
-        color: '#AF00DB',
-        after: {
-            contentIconPath: getIconUri('refresh', 'light'),
-            margin: '2px',
-        }
-    },
-    dark: {
-        color: '#C586C0',
-        after: {
-            contentIconPath: getIconUri('refresh', 'dark'),
-            margin: '2px',
-        }
-    }
+    light: { color: '#AF00DB' },
+    dark: { color: '#C586C0' }
 });
-
-const hashSeparator: string = '|';
 
 function decorateWithoutWhitspace(options: Range[], target: string, line: number, offset: number): void {
     let start = 0;
@@ -100,25 +89,16 @@ function decorateWithoutWhitspace(options: Range[], target: string, line: number
     }
 }
 
-class Clickable {
-    private _link: DocumentLink;
-
-    constructor(uri: Uri, private _range) {
-        this._link = new DocumentLink(this._range, uri);
-    }
-    get link(): DocumentLink { return this._link; }
-    get range(): Range { return this._range; }
-}
-
-export class HistoryViewProvider implements TextDocumentContentProvider, DocumentLinkProvider {
+export class HistoryViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-logs';
     static defaultUri: Uri = Uri.parse(HistoryViewProvider.scheme + '://authority/Git History');
 
     private static _titleLabel = 'Git History';
-    private static _moreLabel = '...';
+    private static _moreLabel = 'More...';
     private static _refreshLabel = 'refresh';
     private static _separatorLabel = '--------------------------------------------------------------';
 
+    private _clickableProvider = new ClickableProvider(HistoryViewProvider.scheme);
     private _commitsCount: number = 200;
     private _content: string;
     private _logCount: number = 0;
@@ -129,7 +109,8 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private _disposables: Disposable[] = [];
 
     private _titleDecorationOptions: Range[] = [];
-    private _fileDecorationOptions: Range[] = [];
+    private _fileDecorationRange: Range;
+    private _branchDecorationRange: Range;
     private _subjectDecorationOptions: Range[] = [];
     private _hashDecorationOptions: Range[] = [];
     private _refDecorationOptions: Range[] = [];
@@ -137,10 +118,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     private _emailDecorationOptions: Range[] = [];
     private _dateDecorationOptions: Range[] = [];
     private _selectedHashDecoration: Range;
-    
-    private _links: DocumentLink[] = [];
-    private _more: Clickable;
-    private _refresh: Clickable;
+    private _moreClickableRange: Range;
 
     private _branchStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 2);
     private _expressStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 1);
@@ -148,9 +126,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
     constructor(private _model: Model) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
-        this._disposables.push(disposable);
-
-        disposable = languages.registerDocumentLinkProvider({ scheme: HistoryViewProvider.scheme }, this);
         this._disposables.push(disposable);
 
         this._branchStatusBar.command = 'githd.viewBranchHistory';
@@ -163,6 +138,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._disposables.push(this._expressStatusBar);
 
         this._disposables.push(this._onDidChange);
+        this._disposables.push(this._clickableProvider);
 
         this.commitsCount = this._model.configuration.commitsCount;
         this._model.onDidChangeConfiguration(config => this.commitsCount = config.commitsCount, null, this._disposables);
@@ -220,44 +196,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
     }
 
     async provideTextDocumentContent(uri: Uri): Promise<string> {
-        // There is no mouse click event to listen. So it is a little hacky here.
-        // A new temp file is opened with the clicking information and closed immediately
-
-        if (uri.query) { // ref link clicked
-            commands.executeCommand('workbench.action.closeActiveEditor').then(() => {
-                const hash: string = uri.query.split(hashSeparator)[0];
-                const line: number = parseInt(uri.query.split(hashSeparator)[1]);
-                this._model.filesViewContext = {
-                    leftRef: null,
-                    rightRef: hash
-                };
-                if (this._model.configuration.useExplorer) {
-                    commands.executeCommand('workbench.view.explorer');
-                    // vscode bug could make the active doc change to another one
-                    workspace.openTextDocument(HistoryViewProvider.defaultUri).then(doc => window.showTextDocument(doc));
-                }
-                this._selectedHashDecoration = new Range(line, 0, line, hash.length);
-                let editor: TextEditor = window.activeTextEditor;
-                if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
-                    editor.setDecorations(selectedHashDecorationType, [this._selectedHashDecoration]);
-                }
-            });
-            return "";
-        }
-        if (uri.fragment) {
-            if (uri.fragment === HistoryViewProvider._moreLabel) {
-                commands.executeCommand('workbench.action.closeActiveEditor');
-                this._loadingMore = true;
-                this.update();
-                return "";
-            }
-            if (uri.fragment === HistoryViewProvider._refreshLabel) {
-                commands.executeCommand('workbench.action.closeActiveEditor');
-                this.update();
-                return "";
-            }
-        }
-
         return new Promise<string>(async (resolve) => {
             const context = this._model.historyViewContext;
             const loadingMore: boolean = this._loadingMore;
@@ -291,15 +229,13 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                     this._content += ' of ';
                     let start: number = this._content.length;
                     this._content += await git.getGitRelativePath(context.specifiedPath);
-                    this._fileDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, this._content.length));
+                    this._fileDecorationRange = new Range(this._currentLine, start, this._currentLine, this._content.length);
                 }
                 this._content += ' on ';
 
-                this._refresh = new Clickable(
-                    HistoryViewProvider.defaultUri.with({ path: null, fragment: HistoryViewProvider._refreshLabel }),
-                    new Range(0, this._content.length, 0, this._content.length + context.branch.length)
-                );
+                this._branchDecorationRange = new Range(0, this._content.length, 0, this._content.length + context.branch.length);
                 this._content += context.branch;
+                
                 this._content += '\n\n';
                 this._currentLine += 2;
             }
@@ -314,7 +250,19 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                 let info: string = entry.hash;
                 let range = new Range(this._currentLine, 0, this._currentLine, info.length);
                 this._hashDecorationOptions.push(range);
-                this._links.push(new DocumentLink(range, uri.with({ path: null, query: entry.hash + hashSeparator + range.start.line })));
+                this._clickableProvider.addClickable({
+                    range: range,
+                    callback: (): void => {
+                        this._model.filesViewContext = {
+                            leftRef: null,
+                            rightRef: entry.hash
+                        };
+                    },
+                    clickedDecorationType: selectedHashDecorationType,
+                    getHoverMessage: async (): Promise<string> => {
+                        return await git.getCommitDetails(entry.hash);
+                    }
+                });
 
                 if (entry.ref) {
                     let start: number = info.length;
@@ -356,11 +304,20 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
                 ++this._currentLine;
             });
             if (hasMore) {
-                this._more = new Clickable(uri.with({ path: null, fragment: HistoryViewProvider._moreLabel }),
-                    new Range(this._currentLine, 0, this._currentLine, HistoryViewProvider._moreLabel.length));
+                this._moreClickableRange = new Range(this._currentLine, 0, this._currentLine, HistoryViewProvider._moreLabel.length);
+                this._clickableProvider.addClickable({
+                    range: this._moreClickableRange,
+                    callback: () => {
+                        this._clickableProvider.removeClickable(this._moreClickableRange);
+                        this._moreClickableRange = null;
+                        this._loadingMore = true;
+                        this.update();
+                    },
+                    getHoverMessage: (): string => { return 'Load more commits' }
+                });
                 resolve(this._content + HistoryViewProvider._moreLabel);
             } else {
-                this._more = null;
+                this._moreClickableRange = null;
                 resolve(this._content);
                 if (slowLoading) {
                     window.showInformationMessage(`All ${commitsCount} commits are loaded.`);
@@ -370,15 +327,8 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         });
     }
 
-    update(uri: Uri = HistoryViewProvider.defaultUri): void {
-        this._onDidChange.fire(uri);
-    }
-
-    provideDocumentLinks(): ProviderResult<DocumentLink[]> {
-        if (this._more) {
-            return this._links.concat(this._refresh.link, this._more.link);
-        }
-        return this._links.concat(this._refresh.link);
+    update(): void {
+        this._onDidChange.fire(HistoryViewProvider.defaultUri);
     }
 
     dispose(): void {
@@ -387,7 +337,8 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
 
     private _setDecorations(editor: TextEditor): void {
         editor.setDecorations(titleDecorationType, this._titleDecorationOptions);
-        editor.setDecorations(fileDecorationType, this._fileDecorationOptions);
+        editor.setDecorations(fileDecorationType, this._fileDecorationRange ? [this._fileDecorationRange] : []);
+        editor.setDecorations(branchDecorationType, this._branchDecorationRange ? [this._branchDecorationRange] : []);
         
         this._decorate(editor, subjectDecorationType, this._subjectDecorationOptions);
         this._decorate(editor, hashDecorationType, this._hashDecorationOptions);
@@ -395,15 +346,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._decorate(editor, authorDecorationType, this._authorDecorationOptions);
         this._decorate(editor, emailDecorationType, this._emailDecorationOptions);
 
-        if (this._selectedHashDecoration) {
-            editor.setDecorations(selectedHashDecorationType, [this._selectedHashDecoration]);
-        }
-        if (this._refresh) {
-            editor.setDecorations(refreshDecorationType, [{ range: this._refresh.range, hoverMessage: 'Refresh the history' }]);
-        }
-        if (this._more) {
-            editor.setDecorations(moreDecorationType, [this._more.range]);
-        }
+        editor.setDecorations(moreDecorationType, this._moreClickableRange ? [this._moreClickableRange] : []);
     }
     private _decorate(editor: TextEditor, type: TextEditorDecorationType, ranges: Range[]): void {
         if (this._logCount < 1000) {
@@ -424,15 +367,15 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         editor.setDecorations(type, ranges.slice(start, end));
     }
     private _reset(): void {
+        this._clickableProvider.clear();
         this._content = '';
         this._logCount = 0;
         this._currentLine = 0;
-        this._more = null;
-        this._refresh = null;
-        this._links = [];
+        this._moreClickableRange = null;
 
         this._titleDecorationOptions = [];
-        this._fileDecorationOptions = [];
+        this._fileDecorationRange = null;
+        this._branchDecorationRange = null;
         this._subjectDecorationOptions = [];
         this._hashDecorationOptions = [];
         this._refDecorationOptions = [];
@@ -440,5 +383,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider, Documen
         this._emailDecorationOptions = [];
         this._dateDecorationOptions = [];
         this._selectedHashDecoration = null;
+        let editor: TextEditor = window.activeTextEditor;
+        if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
+            editor.setDecorations(selectedHashDecorationType, []);
+        }
     }
 }

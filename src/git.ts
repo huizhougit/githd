@@ -218,4 +218,22 @@ export namespace git {
         return entries;
     }
 
+    export async function getCommitDetails(ref: string): Promise<string> {
+        const format: string =
+` Commit:        %H
+ Author:        %aN <%aE>
+ AuthorDate:    %ad
+ Commit:        %cN <%cE>
+ CommitDate:    %cd
+
+ %s
+`;
+        let details: string = await exec(['show', `--format=${format}`, '--no-patch', '--date=local', ref]);
+        const shortstat: string = await exec(['show', '--format=', '--shortstat', ref]);
+        const stat = await exec(['show', '--format=', '--stat', ref]);
+        details += shortstat + '\r\n';
+        details += (await exec(['show', '--format=', '--stat', ref])).substr(0, stat.length - shortstat.length);
+        return details;
+    }
+
 }
