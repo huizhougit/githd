@@ -94,7 +94,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     static defaultUri: Uri = Uri.parse(HistoryViewProvider.scheme + '://authority/Git History');
 
     private static _titleLabel = 'Git History';
-    private static _moreLabel = 'More...';
+    private static _moreLabel = '\u00b7\u00b7\u00b7';
     private static _refreshLabel = 'refresh';
     private static _separatorLabel = '--------------------------------------------------------------';
 
@@ -229,7 +229,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 })
                 this._content += context.branch;
 
-                this._content += '\n\n';
+                this._content += ' \n\n';
                 this._currentLine += 2;
             }
 
@@ -308,7 +308,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     },
                     getHoverMessage: (): string => { return 'Load more commits' }
                 });
-                resolve(this._content + HistoryViewProvider._moreLabel);
+                resolve(this._content + HistoryViewProvider._moreLabel + ' ');
             } else {
                 this._moreClickableRange = null;
                 resolve(this._content);

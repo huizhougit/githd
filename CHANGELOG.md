@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.8.0
+- Single click to follow a link.
+- Hover SHA1 to see the commit details.
+- Click branch name to select a different one.
+
 ## 0.7.2
 - Continue listing the history of a file beyond renames (works only for a single file).
 
