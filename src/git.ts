@@ -29,7 +29,8 @@ export namespace git {
         author: string;
         email: string;
         date: string;
-        stat: string;
+        stat?: string;
+        lineInfo?: string;
     }
 
     export interface CommittedFile {
@@ -159,17 +160,20 @@ export namespace git {
         return files;
     }
 
-    export async function getLogEntries(express: boolean, start: number, count: number, branch: string, file?: Uri): Promise<LogEntry[]> {
+    export async function getLogEntries(express: boolean, start: number, count: number, branch: string, file?: Uri, line?: number): Promise<LogEntry[]> {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
         let args: string[] = ['log', format, `--skip=${start}`, `--max-count=${count}`, branch];
-        if (!express) {
+        if (!express || !!line) {
             args.push('--shortstat');
         }
         if (file) {
-            args.push('--follow');
-            args.push(await getGitRelativePath(file));
+            const filePath: string = await getGitRelativePath(file);
+            args.push('--follow', filePath);
+            if (line) {
+                args.push(`-L ${line},${line}:${filePath}`);
+            }
         }
         const result = await exec(args);
         let entries: LogEntry[] = [];
@@ -185,6 +189,7 @@ export namespace git {
             let email: string;
             let date: string;
             let stat: string;
+            let lineInfo: string;
             entry.split(itemSeparator).forEach((value, index) => {
                 switch (index % 8) {
                     case 0:
@@ -209,8 +214,12 @@ export namespace git {
                         date += ` (${value})`;
                         break;
                     case 7:
-                        stat = value.replace(/\r?\n/g, '');
-                        entries.push({ subject, hash, ref, author, email, date, stat });
+                        if (!!line) {
+                            lineInfo = value.trim();
+                        } else {
+                            stat = value.trim();
+                        }
+                        entries.push({ subject, hash, ref, author, email, date, stat, lineInfo });
                         break;
                 }
             });

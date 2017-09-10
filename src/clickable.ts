@@ -33,7 +33,7 @@ export class ClickableProvider implements HoverProvider {
             if (editor && editor.document.uri.scheme === scheme) {
                 this._lastClickedItems.forEach(clickable => {
                     editor.setDecorations(clickable.clickedDecorationType, [clickable.range]);
-                })
+                });
             }
         }, null, this._disposables);
     }

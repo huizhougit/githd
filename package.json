@@ -142,6 +142,10 @@
                 "title": "GitHD: View File History"
             },
             {
+                "command": "githd.viewLineHistory",
+                "title": "GitHD: View Line History"
+            },
+            {
                 "command": "githd.viewFolderHistory",
                 "title": "GitHD: View Folder History"
             },
@@ -156,6 +160,11 @@
             {
                 "command": "githd.openCommittedFile",
                 "title": "Open the change of the committed file",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.openLineDiff",
+                "title": "Open the diff of the specified line",
                 "category": "GitHD"
             },
             {
@@ -249,7 +258,15 @@
                     "when": "false"
                 },
                 {
+                    "command": "githd.openCommittedFile",
+                    "when": "false"
+                },
+                {
                     "command": "githd.viewFileHistory",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.viewLineHistory",
                     "when": "false"
                 },
                 {
@@ -391,6 +408,11 @@
             "editor/context": [
                 {
                     "command": "githd.viewFileHistory",
+                    "when": "isGitRepo",
+                    "group": "githd@1"
+                },
+                {
+                    "command": "githd.viewLineHistory",
                     "when": "isGitRepo",
                     "group": "githd@1"
                 },

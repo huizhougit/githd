@@ -8,6 +8,7 @@ import { Model } from './model';
 import { git } from './git';
 import { getIconUri } from './icons';
 import { Clickable, ClickableProvider } from './clickable';
+import { decorateWithoutWhitspace } from './utils';
 
 const titleDecorationType = window.createTextEditorDecorationType({
     // class color
@@ -67,28 +68,6 @@ const branchDecorationType = window.createTextEditorDecorationType({
     dark: { color: '#C586C0' }
 });
 
-function decorateWithoutWhitspace(options: Range[], target: string, line: number, offset: number): void {
-    let start = 0;
-    let newWord = true;
-    let i = 0;
-    for (; i < target.length; ++i) {
-        if (target[i] === ' ' || target[i] === '\t' || target[i] === '\n') {
-            if (!newWord) {
-                newWord = true;
-                options.push(new Range(line, offset + start, line, offset + i));
-            }
-        } else {
-            if (newWord) {
-                newWord = false;
-                start = i;
-            }
-        }
-    }
-    if (!newWord) {
-        options.push(new Range(line, offset + start, line, offset + i));
-    }
-}
-
 export class HistoryViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-logs';
     static defaultUri: Uri = Uri.parse(HistoryViewProvider.scheme + '://authority/Git History');
@@ -140,12 +119,12 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this._model.onDidChangeHistoryViewContext(context => {
             this.update();
             workspace.openTextDocument(HistoryViewProvider.defaultUri)
-                .then(doc => {
-                    window.showTextDocument(doc, { preview: false });
-                    if (!this._loadingMore) {
-                        commands.executeCommand('cursorTop');
-                    }
-                });
+                .then(doc => window.showTextDocument(doc, { preview: false, preserveFocus: true })
+                    .then(() => {
+                        if (!this._loadingMore) {
+                            commands.executeCommand('cursorTop');
+                        }
+                    }));
         });
 
         window.onDidChangeActiveTextEditor(editor => {
@@ -201,7 +180,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
             }
             const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
-            const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch, context.specifiedPath);
+            const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch, context.specifiedPath, context.line);
             if (entries.length === 0) {
                 this._reset();
                 resolve('No History');
@@ -218,6 +197,10 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     let start: number = this._content.length;
                     this._content += await git.getGitRelativePath(context.specifiedPath);
                     this._fileDecorationRange = new Range(this._currentLine, start, this._currentLine, this._content.length);
+
+                    if (context.line) {
+                        this._content += ' at line ' + context.line;
+                    }
                 }
                 this._content += ' on ';
 
@@ -248,7 +231,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     callback: (): void => {
                         this._model.filesViewContext = {
                             leftRef: null,
-                            rightRef: entry.hash
+                            rightRef: entry.hash,
+                            specifiedPath: context.specifiedPath,
+                            focusedLineInfo: entry.lineInfo
                         };
                     },
                     clickedDecorationType: selectedHashDecorationType,

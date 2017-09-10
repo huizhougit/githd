@@ -6,6 +6,7 @@ import { Uri, commands, Disposable, workspace, window , scm, QuickPickItem} from
 
 import { Model, HistoryViewContext } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
+import { LineDiffViewProvider } from './lineDiffViewProvider';
 import { git } from './git';
 
 function toGitUri(uri: Uri, ref: string): Uri {
@@ -53,7 +54,7 @@ function command(id: string) {
 export class CommandCenter {
     private _disposables: Disposable[];
 
-    constructor(private _model: Model, private _viewProvider: HistoryViewProvider) {
+    constructor(private _model: Model, private _historyView: HistoryViewProvider, private _lineDiffView: LineDiffViewProvider) {
         this._disposables = Commands.map(({ id, method }) => {
             return commands.registerCommand(id, (...args: any[]) => {
                 Promise.resolve(method.apply(this, args));
@@ -89,16 +90,19 @@ export class CommandCenter {
         if (specifiedPath) {
             return this._viewHistory({ branch: null, specifiedPath });
         }
-        if (!window.activeTextEditor) {
-            window.showInformationMessage('There is no open file');
-            return;
-        }
-        return this._viewHistory({ specifiedPath: window.activeTextEditor.document.uri });
     }
 
     @command('githd.viewFolderHistory')
     async viewFolderHistory(specifiedPath: Uri): Promise<void> {
         return this.viewFileHistory(specifiedPath);
+    }
+
+    @command('githd.viewLineHistory')
+    async viewLineHistory(file: Uri): Promise<void> {
+        if (file) {
+            const line = window.activeTextEditor.selection.active.line + 1;
+            return this._viewHistory({ branch: null, specifiedPath: file, line });
+        }
     }
 
     @command('githd.viewAllHistory')
@@ -177,13 +181,21 @@ export class CommandCenter {
             title + ' | ' + path.basename(file.gitRelativePath), { preview: true });
     }
 
+    @command('githd.openLineDiff')
+    async openLineDiff(content: string): Promise<void> {
+        this._lineDiffView.update(content);
+        workspace.openTextDocument(LineDiffViewProvider.defaultUri)
+            .then(doc => window.showTextDocument(doc, { preview: true, preserveFocus: true })
+                .then(() => commands.executeCommand('cursorTop')));
+    }
+
     @command('githd.setExpressMode')
     async setExpressMode(): Promise<void> {
-        this._viewProvider.express = !this._viewProvider.express;
+        this._historyView.express = !this._historyView.express;
     }
 
     private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
-        this._viewProvider.loadAll = all;
+        this._historyView.loadAll = all;
         if (context.branch === null) {
             context.branch = await git.getCurrentBranch();
         }

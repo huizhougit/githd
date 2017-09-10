@@ -14,6 +14,18 @@ const rootFolderIcon = {
     light: getIconUri('structure', 'light')
 };
 
+class LineDiffItem extends TreeItem {
+    constructor(content: string, label: string) {
+        super(label);
+        this.command = {
+            title: '',
+            command: 'githd.openLineDiff',
+            arguments: [content]
+        };
+        this.iconPath = { light: getIconUri('diff', 'light'), dark: getIconUri('diff', 'dark') };
+    };
+}
+
 class CommittedFile extends TreeItem implements git.CommittedFile {
     constructor(private _uri: Uri, private _gitRelativePath: string, private _status: string, label: string) {
         super(label);
@@ -46,7 +58,8 @@ class CommittedFile extends TreeItem implements git.CommittedFile {
 class FolderItem extends TreeItem {
     private _subFolders: FolderItem[] = [];
     private _files: CommittedFile[] = [];
-
+    private _lineDiffItem: LineDiffItem;
+    
     constructor(private _parent: FolderItem, private _gitRelativePath: string, label: string, iconPath?: { light: Uri; dark: Uri }) {
         super(label);
         this.contextValue = 'folder';
@@ -60,6 +73,8 @@ class FolderItem extends TreeItem {
     set subFolders(value: FolderItem[]) { this._subFolders = value; }
     get files(): CommittedFile[] { return this._files; }
     set files(value: CommittedFile[]) { this._files = value; }
+    get lineDiffItem(): LineDiffItem { return this._lineDiffItem; }
+    set lineDiffItem(value: LineDiffItem) { this._lineDiffItem = value; }
 }
 
 function getFormatedLabel(relativePath: string): string {
@@ -123,7 +138,7 @@ function setCollapsibleStateOnAll(rootFolder: FolderItem, state: TreeItemCollaps
     rootFolder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
 }
 
-type CommittedTreeItem = CommittedFile | FolderItem;
+type CommittedTreeItem = CommittedFile | FolderItem | LineDiffItem;
 
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
@@ -178,7 +193,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         }
         let folder = element as FolderItem;
         if (folder) {
-            return [].concat(folder.subFolders, folder.files);
+            return [].concat(folder.subFolders, folder.lineDiffItem, folder.files);
         }
         return [];
     }
@@ -188,6 +203,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         const leftRef: string = this._context.leftRef;
         const rightRef: string = this._context.rightRef;
         const specifiedPath: Uri = this._context.specifiedPath;
+        const lineInfo: string = this._context.focusedLineInfo;
 
         if (!rightRef) {
             this._onDidChange.fire();
@@ -200,7 +216,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         } else if (leftRef && !specifiedPath) {
             this._buildDiffBranchTree(committedFiles, leftRef, rightRef);
         } else if (!leftRef && specifiedPath) {
-            await this._buildPathSpecifiedCommitTree(committedFiles, specifiedPath, rightRef);
+            await this._buildPathSpecifiedCommitTree(committedFiles, specifiedPath, lineInfo, rightRef);
         } else {
             await this._buildPathSpecifiedDiffBranchTree(committedFiles, this._context);
         }
@@ -215,9 +231,12 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._buildCommitFolder(`Diffs between ${leftRef} and ${rightRef} \u00a0 (${files.length} files)`, files);
     }
 
-    private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, ref: string): Promise<void> {
-        if (files.findIndex(file => { return file.uri.fsPath === specifiedPath.fsPath; }) >= 0) {
-            await this._buildFocusFolder('Focus', files, specifiedPath);
+    private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, lineInfo:string, ref: string): Promise<void> {
+        if (files.findIndex(file => { return file.uri.fsPath === specifiedPath.fsPath; }) >= 0 || lineInfo) {
+            if (lineInfo) {
+                lineInfo = await git.getCommitDetails(ref) + '\r\n\r\n' + lineInfo;
+            }
+            await this._buildFocusFolder('Focus', files, specifiedPath, lineInfo);
         }
         this._buildCommitTree(files, ref);
     }
@@ -232,8 +251,11 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._rootFolder.push(folder);
     }
 
-    private async _buildFocusFolder(label: string, committedFiles: git.CommittedFile[], specifiedPath: Uri): Promise<void> {
+    private async _buildFocusFolder(label: string, committedFiles: git.CommittedFile[], specifiedPath: Uri, lineInfo?: string): Promise<void> {
         let folder = new FolderItem(null, '', label, rootFolderIcon);
+        if (lineInfo) {
+            folder.lineDiffItem = new LineDiffItem(lineInfo, 'focused line');
+        }
         const relativePath = await git.getGitRelativePath(specifiedPath);
         if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
             let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });

@@ -17,11 +17,13 @@ export interface FilesViewContext {
     leftRef?: string;
     rightRef?: string;
     specifiedPath?: Uri;
+    focusedLineInfo?: string;
 }
 
 export interface HistoryViewContext {
     branch?: string;
     specifiedPath?: Uri;
+    line?: number;
 }
 
 function getConfiguration(): Configuration {
@@ -48,10 +50,9 @@ export class Model {
     private _scmProvider: ScmViewProvider;
     private _explorerProvider: ExplorerViewProvider;
     private _config: Configuration;
-    private _leftRef: string;
-    private _rightRef: string;
-    private _specifiedPath: Uri;
-    private _branch: string;
+
+    private _historyViewContext: HistoryViewContext;
+    private _filesViewContext: FilesViewContext;
 
     private _onDidChangeConfiguratoin = new EventEmitter<Configuration>();
     private _onDidChangeFilesViewContext = new EventEmitter<FilesViewContext>();
@@ -96,53 +97,32 @@ export class Model {
     get configuration(): Configuration { return this._config; }
 
     get filesViewContext(): FilesViewContext {
-        return {
-            leftRef: this._leftRef,
-            rightRef: this._rightRef,
-            specifiedPath: this._specifiedPath
-        }
+        return this._filesViewContext;
     }
     set filesViewContext(context: FilesViewContext) {
-        let changed = false;
-        if (context.leftRef !== undefined && context.leftRef !== this._leftRef) {
-            this._leftRef = context.leftRef;
-            changed = true;
+        if (!this._filesViewContext) {
+            this._filesViewContext = context;
+            return;
         }
-        if (context.rightRef !== undefined && context.rightRef !== this._rightRef) {
-            this._rightRef = context.rightRef;
-            changed = true;
-        }
-        if (context.specifiedPath !== undefined && !sameUri(context.specifiedPath, this._specifiedPath)) {
-            this._specifiedPath = context.specifiedPath;
-            changed = true;
-        }
+        if (this._filesViewContext.leftRef != context.leftRef
+            || this._filesViewContext.rightRef != context.rightRef
+            || this._filesViewContext.specifiedPath != context.specifiedPath
+            || this._filesViewContext.focusedLineInfo != context.focusedLineInfo) {
 
-        if (changed) {
-            this._emitFilesViewContextChanged();
+            this._filesViewContext = context;
+            this._onDidChangeFilesViewContext.fire(this._filesViewContext);
         }
     }
 
     get historyViewContext(): HistoryViewContext {
-        return {
-            branch: this._branch,
-            specifiedPath: this._specifiedPath
-        };
+        return this._historyViewContext;
     }
     async setHistoryViewContext(context: HistoryViewContext) {
-        if (!this._branch && !context.branch) {
-            this._branch = await git.getCurrentBranch();
+        this._historyViewContext = context;
+        if (!this._historyViewContext.branch) {
+            this._historyViewContext.branch = await git.getCurrentBranch();
         }
-        if (context.branch && context.branch !== this._branch) {
-            this._branch = context.branch;
-        }
-        if (context.specifiedPath !== undefined && !sameUri(context.specifiedPath, this._specifiedPath)) {
-            this._specifiedPath = context.specifiedPath;
-        }
-
-        this._onDidChangeHistoryViewContext.fire({
-            branch: this._branch,
-            specifiedPath: this._specifiedPath
-        });
+        this._onDidChangeHistoryViewContext.fire(this._historyViewContext);
     }
 
     get onDidChangeConfiguration(): Event<Configuration> { return this._onDidChangeConfiguratoin.event; }
@@ -151,13 +131,5 @@ export class Model {
 
     dispose(): void {
         this._disposables.forEach(d => d.dispose());
-    }
-
-    private _emitFilesViewContextChanged(): void {
-        this._onDidChangeFilesViewContext.fire({
-            leftRef: this._leftRef,
-            rightRef: this._rightRef,
-            specifiedPath: this._specifiedPath
-        });
     }
 }
