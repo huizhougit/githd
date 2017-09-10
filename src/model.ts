@@ -102,6 +102,7 @@ export class Model {
     set filesViewContext(context: FilesViewContext) {
         if (!this._filesViewContext) {
             this._filesViewContext = context;
+            this._onDidChangeFilesViewContext.fire(this._filesViewContext);
             return;
         }
         if (this._filesViewContext.leftRef != context.leftRef

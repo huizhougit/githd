@@ -67,6 +67,18 @@ const branchDecorationType = window.createTextEditorDecorationType({
     light: { color: '#AF00DB' },
     dark: { color: '#C586C0' }
 });
+const loadingDecorationType = window.createTextEditorDecorationType({
+    light: {
+        after: {
+            contentIconPath: getIconUri('loading', 'light')
+        }
+    },
+    dark: {
+        after: {
+            contentIconPath: getIconUri('loading', 'dark')
+        }
+    }
+});
 
 export class HistoryViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-logs';
@@ -74,7 +86,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
 
     private static _titleLabel = 'Git History';
     private static _moreLabel = '\u00b7\u00b7\u00b7';
-    private static _refreshLabel = 'refresh';
     private static _separatorLabel = '--------------------------------------------------------------';
 
     private _clickableProvider = new ClickableProvider(HistoryViewProvider.scheme);
@@ -117,14 +128,11 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this.commitsCount = this._model.configuration.commitsCount;
         this._model.onDidChangeConfiguration(config => this.commitsCount = config.commitsCount, null, this._disposables);
         this._model.onDidChangeHistoryViewContext(context => {
-            this.update();
+            this._reset();
+            this._update();
             workspace.openTextDocument(HistoryViewProvider.defaultUri)
                 .then(doc => window.showTextDocument(doc, { preview: false, preserveFocus: true })
-                    .then(() => {
-                        if (!this._loadingMore) {
-                            commands.executeCommand('cursorTop');
-                        }
-                    }));
+                    .then(() => commands.executeCommand('cursorTop')));
         });
 
         window.onDidChangeActiveTextEditor(editor => {
@@ -162,157 +170,172 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         }
     }
 
-    async provideTextDocumentContent(uri: Uri): Promise<string> {
-        return new Promise<string>(async (resolve) => {
-            const context = this._model.historyViewContext;
-            const loadingMore: boolean = this._loadingMore;
-            let logStart = 0;
-            if (loadingMore) {
-                this._loadingMore = false;
-                logStart = this._logCount;
-                this._content += HistoryViewProvider._separatorLabel + '\n\n';
-                this._currentLine += 2;
-            }
-            const commitsCount: number = await git.getCommitsCount(context.specifiedPath);
-            let slowLoading = false;
-            if (this._loadAll && ((!this._express && commitsCount > 1000) || (this._express && commitsCount > 10000))) {
-                slowLoading = true;
-                window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
-            }
-            const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
-            const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch, context.specifiedPath, context.line);
-            if (entries.length === 0) {
-                this._reset();
-                resolve('No History');
-                return;
-            }
-
-            if (!loadingMore) {
-                this._reset();
-                this._content = HistoryViewProvider._titleLabel;
-                decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
-
-                if (context.specifiedPath) {
-                    this._content += ' of ';
-                    let start: number = this._content.length;
-                    this._content += await git.getGitRelativePath(context.specifiedPath);
-                    this._fileDecorationRange = new Range(this._currentLine, start, this._currentLine, this._content.length);
-
-                    if (context.line) {
-                        this._content += ' at line ' + context.line;
-                    }
-                }
-                this._content += ' on ';
-
-                this._branchDecorationRange = new Range(0, this._content.length, 0, this._content.length + context.branch.length);
-                this._clickableProvider.addClickable({
-                    range: this._branchDecorationRange,
-                    callback: () => commands.executeCommand('githd.viewBranchHistory'),
-                    getHoverMessage: (): string => { return 'Select another branch to see its history' }
-                })
-                this._content += context.branch;
-
-                this._content += ' \n\n';
-                this._currentLine += 2;
-            }
-
-            const hasMore: boolean = commitsCount > logCount + this._logCount;
-            entries.forEach(entry => {
-                ++this._logCount;
-                decorateWithoutWhitspace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);
-                this._content += entry.subject + '\n';
-                ++this._currentLine;
-
-                let info: string = entry.hash;
-                let range = new Range(this._currentLine, 0, this._currentLine, info.length);
-                this._hashDecorationOptions.push(range);
-                this._clickableProvider.addClickable({
-                    range: range,
-                    callback: (): void => {
-                        this._model.filesViewContext = {
-                            leftRef: null,
-                            rightRef: entry.hash,
-                            specifiedPath: context.specifiedPath,
-                            focusedLineInfo: entry.lineInfo
-                        };
-                    },
-                    clickedDecorationType: selectedHashDecorationType,
-                    getHoverMessage: async (): Promise<string> => {
-                        return await git.getCommitDetails(entry.hash);
-                    }
-                });
-
-                if (entry.ref) {
-                    let start: number = info.length;
-                    info += entry.ref;
-                    decorateWithoutWhitspace(this._refDecorationOptions, entry.ref, this._currentLine, start);
-                }
-                if (entry.author) {
-                    info += ' by ';
-                    let start: number = info.length;
-                    info += entry.author;
-                    decorateWithoutWhitspace(this._authorDecorationOptions, entry.author, this._currentLine, start);
-                }
-                if (entry.email) {
-                    info += ' <';
-                    let start: number = info.length - 1;
-                    info += entry.email;
-                    this._emailDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, info.length + 1));
-                    info += '>';
-                }
-                if (entry.date) {
-                    info += ', ';
-                    let start: number = info.length;
-                    info += entry.date;
-                    decorateWithoutWhitspace(this._dateDecorationOptions, entry.date, this._currentLine, start);
-                }
-                this._content += info + '\n';
-                ++this._currentLine;
-
-                if (entry.stat) {
-                    let stat: string = entry.stat;
-                    if (context.specifiedPath) {
-                        stat = entry.stat.replace('1 file changed, ', '');
-                    }
-                    this._content += stat + '\n';
-                    ++this._currentLine;
-                }
-
-                this._content += '\n';
-                ++this._currentLine;
-            });
-            if (hasMore) {
-                this._moreClickableRange = new Range(this._currentLine, 0, this._currentLine, HistoryViewProvider._moreLabel.length);
-                this._clickableProvider.addClickable({
-                    range: this._moreClickableRange,
-                    callback: () => {
-                        this._clickableProvider.removeClickable(this._moreClickableRange);
-                        this._moreClickableRange = null;
-                        this._loadingMore = true;
-                        this.update();
-                    },
-                    getHoverMessage: (): string => { return 'Load more commits' }
-                });
-                resolve(this._content + HistoryViewProvider._moreLabel + ' ');
-            } else {
-                this._moreClickableRange = null;
-                resolve(this._content);
-                if (slowLoading) {
-                    window.showInformationMessage(`All ${commitsCount} commits are loaded.`);
-                }
-            }
-        });
-    }
-
-    update(): void {
-        this._onDidChange.fire(HistoryViewProvider.defaultUri);
+    provideTextDocumentContent(uri: Uri): string {
+        if (this._content) {
+            return this._content;
+        }
+        this._updateContent();
+        return ' ';
     }
 
     dispose(): void {
         this._disposables.forEach(d => d.dispose());
     }
 
+    private _update(): void {
+        this._onDidChange.fire(HistoryViewProvider.defaultUri);
+    }
+
+    private async _updateContent(): Promise<void> {
+        const context = this._model.historyViewContext;
+        const loadingMore: boolean = this._loadingMore;
+        let logStart = 0;
+        if (loadingMore) {
+            this._loadingMore = false;
+            logStart = this._logCount;
+            this._content = this._content.substr(0, this._content.length - HistoryViewProvider._moreLabel.length - 1);
+            this._content += HistoryViewProvider._separatorLabel + '\n\n';
+            this._currentLine += 2;
+        }
+        const commitsCount: number = await git.getCommitsCount(context.specifiedPath);
+        let slowLoading = false;
+        if (this._loadAll && ((!this._express && commitsCount > 1000) || (this._express && commitsCount > 10000))) {
+            slowLoading = true;
+            window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
+        }
+        const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
+        const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch, context.specifiedPath, context.line);
+        if (entries.length === 0) {
+            this._reset();
+            this._content = 'No History';
+            this._update();
+            return;
+        }
+
+        if (!loadingMore) {
+            this._reset();
+            this._content = HistoryViewProvider._titleLabel;
+            decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
+
+            if (context.specifiedPath) {
+                this._content += ' of ';
+                let start: number = this._content.length;
+                this._content += await git.getGitRelativePath(context.specifiedPath);
+                this._fileDecorationRange = new Range(this._currentLine, start, this._currentLine, this._content.length);
+
+                if (context.line) {
+                    this._content += ' at line ' + context.line;
+                }
+            }
+            this._content += ' on ';
+
+            this._branchDecorationRange = new Range(0, this._content.length, 0, this._content.length + context.branch.length);
+            this._clickableProvider.addClickable({
+                range: this._branchDecorationRange,
+                callback: () => commands.executeCommand('githd.viewBranchHistory'),
+                getHoverMessage: (): string => { return 'Select another branch to see its history' }
+            })
+            this._content += context.branch;
+
+            this._content += ' \n\n';
+            this._currentLine += 2;
+        }
+
+        const hasMore: boolean = commitsCount > logCount + this._logCount;
+        entries.forEach(entry => {
+            ++this._logCount;
+            decorateWithoutWhitspace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);
+            this._content += entry.subject + '\n';
+            ++this._currentLine;
+
+            let info: string = entry.hash;
+            let range = new Range(this._currentLine, 0, this._currentLine, info.length);
+            this._hashDecorationOptions.push(range);
+            this._clickableProvider.addClickable({
+                range: range,
+                callback: (): void => {
+                    this._model.filesViewContext = {
+                        leftRef: null,
+                        rightRef: entry.hash,
+                        specifiedPath: context.specifiedPath,
+                        focusedLineInfo: entry.lineInfo
+                    };
+                },
+                clickedDecorationType: selectedHashDecorationType,
+                getHoverMessage: async (): Promise<string> => {
+                    return await git.getCommitDetails(entry.hash);
+                }
+            });
+
+            if (entry.ref) {
+                let start: number = info.length;
+                info += entry.ref;
+                decorateWithoutWhitspace(this._refDecorationOptions, entry.ref, this._currentLine, start);
+            }
+            if (entry.author) {
+                info += ' by ';
+                let start: number = info.length;
+                info += entry.author;
+                decorateWithoutWhitspace(this._authorDecorationOptions, entry.author, this._currentLine, start);
+            }
+            if (entry.email) {
+                info += ' <';
+                let start: number = info.length - 1;
+                info += entry.email;
+                this._emailDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, info.length + 1));
+                info += '>';
+            }
+            if (entry.date) {
+                info += ', ';
+                let start: number = info.length;
+                info += entry.date;
+                decorateWithoutWhitspace(this._dateDecorationOptions, entry.date, this._currentLine, start);
+            }
+            this._content += info + '\n';
+            ++this._currentLine;
+
+            if (entry.stat) {
+                let stat: string = entry.stat;
+                if (context.specifiedPath) {
+                    stat = entry.stat.replace('1 file changed, ', '');
+                }
+                this._content += stat + '\n';
+                ++this._currentLine;
+            }
+
+            this._content += '\n';
+            ++this._currentLine;
+        });
+        if (hasMore) {
+            this._moreClickableRange = new Range(this._currentLine, 0, this._currentLine, HistoryViewProvider._moreLabel.length);
+            this._clickableProvider.addClickable({
+                range: this._moreClickableRange,
+                callback: () => {
+                    this._clickableProvider.removeClickable(this._moreClickableRange);
+                    this._moreClickableRange = null;
+                    this._loadingMore = true;
+                    this._updateContent();
+                },
+                getHoverMessage: (): string => { return 'Load more commits' }
+            });
+            this._content += HistoryViewProvider._moreLabel + ' ';
+        } else {
+            this._moreClickableRange = null;
+            if (slowLoading) {
+                window.showInformationMessage(`All ${commitsCount} commits are loaded.`);
+            }
+        }
+        this._update();
+        return;
+    }
+
     private _setDecorations(editor: TextEditor): void {
+        if (!this._content) {
+            editor.setDecorations(loadingDecorationType, [new Range(0, 0, 0, 1)]);
+            return;
+        }
+        editor.setDecorations(loadingDecorationType, []);
+
         editor.setDecorations(titleDecorationType, this._titleDecorationOptions);
         editor.setDecorations(fileDecorationType, this._fileDecorationRange ? [this._fileDecorationRange] : []);
         editor.setDecorations(branchDecorationType, this._branchDecorationRange ? [this._branchDecorationRange] : []);

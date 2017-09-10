@@ -200,6 +200,10 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
     private async _update(): Promise<void> {
         this._rootFolder = [];
+        if (!this._context) {
+            return;
+        }
+
         const leftRef: string = this._context.leftRef;
         const rightRef: string = this._context.rightRef;
         const specifiedPath: Uri = this._context.specifiedPath;
@@ -254,7 +258,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     private async _buildFocusFolder(label: string, committedFiles: git.CommittedFile[], specifiedPath: Uri, lineInfo?: string): Promise<void> {
         let folder = new FolderItem(null, '', label, rootFolderIcon);
         if (lineInfo) {
-            folder.lineDiffItem = new LineDiffItem(lineInfo, 'focused line');
+            folder.lineDiffItem = new LineDiffItem(lineInfo, 'line diff');
         }
         const relativePath = await git.getGitRelativePath(specifiedPath);
         if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
