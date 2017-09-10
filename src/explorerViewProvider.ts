@@ -263,9 +263,10 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         const relativePath = await git.getGitRelativePath(specifiedPath);
         if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
             let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });
-            let focus = new CommittedFile(specifiedPath, relativePath, file ? file.status : null,
-                getFormatedLabel(relativePath));
-            folder.files.push(focus);
+            if (file) {
+                let focus = new CommittedFile(specifiedPath, relativePath, file.status, getFormatedLabel(relativePath));
+                folder.files.push(focus);
+            }
         } else {
             let focus: git.CommittedFile[] = [];
             committedFiles.forEach(file => {
