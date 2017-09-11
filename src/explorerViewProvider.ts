@@ -236,12 +236,10 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, lineInfo:string, ref: string): Promise<void> {
-        if (files.findIndex(file => { return file.uri.fsPath === specifiedPath.fsPath; }) >= 0 || lineInfo) {
-            if (lineInfo) {
-                lineInfo = await git.getCommitDetails(ref) + '\r\n\r\n' + lineInfo;
-            }
-            await this._buildFocusFolder('Focus', files, specifiedPath, lineInfo);
+        if (lineInfo) {
+            lineInfo = await git.getCommitDetails(ref) + '\r\n\r\n' + lineInfo;
         }
+        await this._buildFocusFolder('Focus', files, specifiedPath, lineInfo);
         this._buildCommitTree(files, ref);
     }
 
@@ -257,15 +255,14 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
     private async _buildFocusFolder(label: string, committedFiles: git.CommittedFile[], specifiedPath: Uri, lineInfo?: string): Promise<void> {
         let folder = new FolderItem(null, '', label, rootFolderIcon);
-        if (lineInfo) {
-            folder.lineDiffItem = new LineDiffItem(lineInfo, 'line diff');
-        }
         const relativePath = await git.getGitRelativePath(specifiedPath);
         if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
-            let file = committedFiles.find(value => { return value.uri.fsPath === specifiedPath.fsPath; });
+            if (lineInfo) {
+                folder.lineDiffItem = new LineDiffItem(lineInfo, 'line diff');
+            }
+            let file = committedFiles.find(value => { return value.gitRelativePath === relativePath; });
             if (file) {
-                let focus = new CommittedFile(specifiedPath, relativePath, file.status, getFormatedLabel(relativePath));
-                folder.files.push(focus);
+                folder.files.push(createCommittedFile(file));
             }
         } else {
             let focus: git.CommittedFile[] = [];
@@ -276,7 +273,9 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             });
             buildFileTree(folder, focus, this._withFolder);
         }
-        this._rootFolder.push(folder);
+        if (folder.files.length + folder.subFolders.length > 0 || folder.lineDiffItem) {
+            this._rootFolder.push(folder);
+        }
     }
 
     private _showFilesWithFolder(parent: FolderItem): void {
