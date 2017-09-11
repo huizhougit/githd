@@ -82,13 +82,13 @@ export class CommandCenter {
 
     @command('githd.viewHistory')
     async viewHistory(): Promise<void> {
-        return this._viewHistory({ branch: null, specifiedPath: null });
+        return this._viewHistory({});
     }
 
     @command('githd.viewFileHistory')
     async viewFileHistory(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
-            return this._viewHistory({ branch: null, specifiedPath });
+            return this._viewHistory({ specifiedPath });
         }
     }
 
@@ -101,26 +101,34 @@ export class CommandCenter {
     async viewLineHistory(file: Uri): Promise<void> {
         if (file) {
             const line = window.activeTextEditor.selection.active.line + 1;
-            return this._viewHistory({ branch: null, specifiedPath: file, line });
+            return this._viewHistory({ specifiedPath: file, line });
         }
     }
 
     @command('githd.viewAllHistory')
     async viewAllHistory(): Promise<void> {
-        return this._viewHistory({}, true);
+        return this._viewHistory(this._model.historyViewContext ? this._model.historyViewContext : {}, true);
     }
 
     @command('githd.viewBranchHistory')
     async viewBranchHistory(): Promise<void> {
         let placeHolder: string = `Select a ref to see it's history`;
-        const specifiedPath = this._model.historyViewContext.specifiedPath;
-        if (specifiedPath) {
-            placeHolder += ` of ${path.basename(specifiedPath.fsPath)}`;
+        let context: HistoryViewContext = this._model.historyViewContext;
+        if (context) {
+            const specifiedPath = this._model.historyViewContext.specifiedPath;
+            if (specifiedPath) {
+                placeHolder += ` of ${path.basename(specifiedPath.fsPath)}`;
+            }
         }
         window.showQuickPick(selectBranch(), { placeHolder })
             .then(item => {
                 if (item) {
-                    this._viewHistory({ branch: item.label });
+                    if (context) {
+                        context.branch = item.label;
+                        this._viewHistory(context);
+                    } else {
+                        this._viewHistory({ branch: item.label });
+                    }
                 }
             });
     }
