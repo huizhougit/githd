@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.9.0
+- View line history and diff.
+- Display loading page when the history view is loading.
+
 ## 0.8.0
 - Single click to follow a link.
 - Hover SHA1 to see the commit details.
@@ -23,31 +27,31 @@
 
 ## 0.5.0
 - Make all the commands names concise.
-- View the git history of a folder.
-- Diff the selected branch
-- Diff a file or folder with selected branch
-- Display the committed files with list view or folder view
+- View git history of a folder.
+- Diff the selected branch.
+- Diff a file or folder with selected branch.
+- Display the committed files with list view or folder view.
 
 ## 0.4.1
 - Use icons on the status bar instead of text.
 
 ## 0.4.0
-- View the git history of the current file.
+- View git history of the current file.
 - Set the default committed files view to Explorer instead of SCM.
 
 ## 0.3.0
 - Config to list the committed files in Explorer View or SCM View
 
 ## 0.2.2
-- View the entire git history.
-- Select branch to view it's history.
+- View entire git history.
+- Select a branch to view it's history.
 
 ## 0.2.0
-- View the git history.
-- Select the commit from the history view to see the diff.
+- View git history.
+- Select a commit from the history view to see the diff.
 
 ## 0.1.0
-- Add icon to diff the specified commit
+- Add icon to diff the specified commit.
 
 ## 0.0.1
-- Initial release
+- Initial release.

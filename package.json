@@ -1,8 +1,8 @@
 {
     "name": "githd",
     "displayName": "Git History Diff",
-    "description": "View the git log. View the change details of a specified commit",
-    "version": "0.8.0",
+    "description": "View git history. View commit details. View diff of committed files.",
+    "version": "0.9.0",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
@@ -23,6 +23,7 @@
     "keywords": [
         "git",
         "diff",
+        "git diff",
         "git log",
         "git history"
     ],
