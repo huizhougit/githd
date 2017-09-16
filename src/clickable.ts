@@ -2,7 +2,7 @@
 
 import {
     Range, languages, HoverProvider, Hover, TextDocument, Position, window, Disposable,
-    TextEditorDecorationType, TextEditor
+    TextEditorDecorationType, TextEditor, TextEditorSelectionChangeKind
 } from 'vscode';
 
 export interface Clickable {
@@ -21,7 +21,7 @@ export class ClickableProvider implements HoverProvider {
         this._disposables.push(languages.registerHoverProvider({scheme}, this));
         window.onDidChangeTextEditorSelection(event => {
             let editor = event.textEditor;
-            if (editor && editor.document.uri.scheme === scheme) {
+            if (editor && editor.document.uri.scheme === scheme && event.kind === TextEditorSelectionChangeKind.Mouse) {
                 const pos: Position = event.selections[0].anchor;
                 const clickable: Clickable = this._clickables.find(e => { return e.range.contains(pos) });
                 if (clickable) {
