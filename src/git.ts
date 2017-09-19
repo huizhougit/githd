@@ -90,7 +90,7 @@ export namespace git {
     }
 
     export async function getCommitsCount(file?: Uri, author?: string): Promise<number> {
-        let args: string[] = ['rev-list', '--count', 'HEAD'];
+        let args: string[] = ['rev-list', '--simplify-merges', '--count', 'HEAD'];
         if (author) {
             args.push(`--author=${author}`);
         }
@@ -169,7 +169,7 @@ export namespace git {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
-        let args: string[] = ['log', format, `--skip=${start}`, `--max-count=${count}`, branch];
+        let args: string[] = ['log', format, '--simplify-merges', `--skip=${start}`, `--max-count=${count}`, branch];
         if (!express || !!line) {
             args.push('--shortstat');
         }
