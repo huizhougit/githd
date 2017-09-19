@@ -24,6 +24,7 @@ export interface HistoryViewContext {
     branch?: string;
     specifiedPath?: Uri;
     line?: number;
+    author?: string;
 }
 
 function getConfiguration(): Configuration {

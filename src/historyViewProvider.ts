@@ -28,8 +28,6 @@ const subjectDecorationType = window.createTextEditorDecorationType({
     dark: { color: '#569cd6' }
 });
 const hashDecorationType = window.createTextEditorDecorationType({
-    cursor: 'pointer',
-    textDecoration: 'underline',
     // string color
     light: { color: '#a31515' },
     dark: { color: '#ce9178' }
@@ -54,15 +52,11 @@ const emailDecorationType = window.createTextEditorDecorationType({
     dark: { color: '#DCDCAA' }
 });
 const moreDecorationType = window.createTextEditorDecorationType({
-    cursor: 'pointer',
-    textDecoration: 'underline',
     // variable color
     light: { color: '#001080' },
     dark: { color: '#9cdcfe' }
 });
 const branchDecorationType = window.createTextEditorDecorationType({
-    cursor: 'pointer',
-    textDecoration: 'underline',
     // flow control coler
     light: { color: '#AF00DB' },
     dark: { color: '#C586C0' }
@@ -189,6 +183,10 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private async _updateContent(): Promise<void> {
         const context = this._model.historyViewContext;
         const loadingMore: boolean = this._loadingMore;
+        if (context.specifiedPath && context.line) {
+            this._loadAll = true;
+        }
+
         let logStart = 0;
         if (loadingMore) {
             this._loadingMore = false;
@@ -197,14 +195,15 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._content += HistoryViewProvider._separatorLabel + '\n\n';
             this._currentLine += 2;
         }
-        const commitsCount: number = await git.getCommitsCount(context.specifiedPath);
+        const commitsCount: number = await git.getCommitsCount(context.specifiedPath, context.author);
         let slowLoading = false;
         if (this._loadAll && ((!this._express && commitsCount > 1000) || (this._express && commitsCount > 10000))) {
             slowLoading = true;
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
         const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
-        const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch, context.specifiedPath, context.line);
+        const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch,
+            context.specifiedPath, context.line, context.author);
         if (entries.length === 0) {
             this._reset();
             this._content = 'No History';
@@ -233,9 +232,25 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._clickableProvider.addClickable({
                 range: this._branchDecorationRange,
                 callback: () => commands.executeCommand('githd.viewBranchHistory'),
-                getHoverMessage: (): string => { return 'Select another branch to see its history' }
+                getHoverMessage: (): string => { return 'Select a branch to see its history' }
             })
             this._content += context.branch;
+
+            this._content += ' with ';
+            let author: string = context.author;
+            if (!author) {
+                this._content += 'all ';
+                author = 'authors';
+            }
+            let start: number = this._content.length;
+            this._content += author;
+            let range = new Range(this._currentLine, start, this._currentLine, this._content.length);
+            this._emailDecorationOptions.push(range);
+            this._clickableProvider.addClickable({
+                range,
+                callback: () => commands.executeCommand('githd.viewAuthorHistory'),
+                getHoverMessage: (): string => { return 'Select a author to see his/her commits' }
+            });
 
             this._content += ' \n\n';
             this._currentLine += 2;
@@ -252,7 +267,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             let range = new Range(this._currentLine, 0, this._currentLine, info.length);
             this._hashDecorationOptions.push(range);
             this._clickableProvider.addClickable({
-                range: range,
+                range,
                 callback: (): void => {
                     this._model.filesViewContext = {
                         leftRef: null,
@@ -262,9 +277,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     };
                 },
                 clickedDecorationType: selectedHashDecorationType,
-                getHoverMessage: async (): Promise<string> => {
-                    return await git.getCommitDetails(entry.hash);
-                }
+                getHoverMessage: async (): Promise<string> => { return await git.getCommitDetails(entry.hash) }
             });
 
             if (entry.ref) {
@@ -280,9 +293,10 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             }
             if (entry.email) {
                 info += ' <';
-                let start: number = info.length - 1;
+                let start: number = info.length;
                 info += entry.email;
-                this._emailDecorationOptions.push(new Range(this._currentLine, start, this._currentLine, info.length + 1));
+                range = new Range(this._currentLine, start, this._currentLine, info.length);
+                this._emailDecorationOptions.push(range);
                 info += '>';
             }
             if (entry.date) {

@@ -31,8 +31,14 @@ async function selectBranch(): Promise<QuickPickItem[]> {
         } else if (ref.type === git.RefType.RemoteHead) {
             description = `Remote branch at ${ref.commit}`;
         }
-        return { label: ref.name || ref.commit, description: description };
+        return { label: ref.name || ref.commit, description };
     });
+}
+
+async function selectAuthor(): Promise<QuickPickItem[]> {
+    let authors = await git.getAuthors();
+    authors.unshift({ name: 'All', email: '' });
+    return authors.map(author => { return { label: author.name, description: author.email } });
 }
 
 interface Command {
@@ -129,6 +135,25 @@ export class CommandCenter {
                     } else {
                         this._viewHistory({ branch: item.label });
                     }
+                }
+            });
+    }
+
+    @command('githd.viewAuthorHistory')
+    async viewAuthorHistory(): Promise<void> {
+        let placeHolder: string = `Select a author to see his/her commits`;
+
+        window.showQuickPick(selectAuthor(), { placeHolder })
+            .then(item => {
+                if (item) {
+                    const email: string = item.description;
+                    let context: HistoryViewContext = this._model.historyViewContext;
+                    if (context) {
+                        context.author = email;
+                    } else {
+                        context = { author: email };
+                    }
+                    this._viewHistory(context);
                 }
             });
     }

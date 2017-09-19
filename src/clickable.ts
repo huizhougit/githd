@@ -17,16 +17,28 @@ export class ClickableProvider implements HoverProvider {
     private _disposables: Disposable[] = [];
     private _lastClickedItems: Clickable[] = [];
 
+    private _decorationType = window.createTextEditorDecorationType({
+        cursor: 'pointer',
+        textDecoration: 'underline'
+    });
+
     constructor(scheme: string) {
         this._disposables.push(languages.registerHoverProvider({scheme}, this));
+        this._disposables.push(this._decorationType);
+
         window.onDidChangeTextEditorSelection(event => {
             let editor = event.textEditor;
-            if (editor && editor.document.uri.scheme === scheme && event.kind === TextEditorSelectionChangeKind.Mouse) {
-                const pos: Position = event.selections[0].anchor;
-                const clickable: Clickable = this._clickables.find(e => { return e.range.contains(pos) });
-                if (clickable) {
-                    this._onClicked(clickable, editor);
+            if (editor && editor.document.uri.scheme === scheme) {
+                if (event.kind === TextEditorSelectionChangeKind.Mouse) {
+                    const pos: Position = event.selections[0].anchor;
+                    const clickable: Clickable = this._clickables.find(e => { return e.range.contains(pos) });
+                    if (clickable) {
+                        this._onClicked(clickable, editor);
+                    }
                 }
+                editor.setDecorations(this._decorationType, this._clickables.map((clickable => {
+                    return clickable.range;
+                })));
             }
         }, null, this._disposables);
         window.onDidChangeActiveTextEditor(editor => {
@@ -34,6 +46,9 @@ export class ClickableProvider implements HoverProvider {
                 this._lastClickedItems.forEach(clickable => {
                     editor.setDecorations(clickable.clickedDecorationType, [clickable.range]);
                 });
+                editor.setDecorations(this._decorationType, this._clickables.map((clickable => {
+                    return clickable.range;
+                })));
             }
         }, null, this._disposables);
     }

@@ -89,8 +89,11 @@ export namespace git {
         return (await exec(['rev-parse', '--abbrev-ref', 'HEAD'])).trim();
     }
 
-    export async function getCommitsCount(file?: Uri): Promise<number> {
+    export async function getCommitsCount(file?: Uri, author?: string): Promise<number> {
         let args: string[] = ['rev-list', '--count', 'HEAD'];
+        if (author) {
+            args.push(`--author=${author}`);
+        }
         if (file) {
             args.push(await getGitRelativePath(file));
         }
@@ -160,13 +163,18 @@ export namespace git {
         return files;
     }
 
-    export async function getLogEntries(express: boolean, start: number, count: number, branch: string, file?: Uri, line?: number): Promise<LogEntry[]> {
+    export async function getLogEntries(express: boolean, start: number, count: number, branch: string,
+        file?: Uri, line?: number, author?: string): Promise<LogEntry[]> {
+
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
         let args: string[] = ['log', format, `--skip=${start}`, `--max-count=${count}`, branch];
         if (!express || !!line) {
             args.push('--shortstat');
+        }
+        if (author) {
+            args.push(`--author=${author}`);
         }
         if (file) {
             const filePath: string = await getGitRelativePath(file);
@@ -175,6 +183,7 @@ export namespace git {
                 args.push(`-L ${line},${line}:${filePath}`);
             }
         }
+
         const result = await exec(args);
         let entries: LogEntry[] = [];
 
@@ -245,4 +254,17 @@ export namespace git {
         return details;
     }
 
+    export async function getAuthors(): Promise<{name: string, email: string}[]> {
+        const result: string = (await exec(['shortlog', '-se', 'HEAD'])).trim();
+        return result.split(/\r?\n/g).map(item => {
+            item = item.trim();
+            let start: number = item.search(/ |\t/);
+            item = item.substr(start + 1).trim();
+            start = item.indexOf('<');
+
+            const name: string = item.substring(0, start);
+            const email: string = item.substring(start + 1, item.length - 1);
+            return { name, email };
+        });
+    }
 }
