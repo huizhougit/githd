@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.10.0
+- Display history by author.
+
 ## 0.9.0
 - View line history and diff.
 - Display loading page when the history view is loading.

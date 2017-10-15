@@ -7,6 +7,7 @@ View git history. View commit details. View diff of committed files.
 * View **file history**.
 * View **folder history**.
 * View **line history**.
+* View history **by author**.
 * Hover a commit from the history view to see **commit details**.
 * Select a commit from the history view to see **diff of committed files**.
 * Input a commit sha1 to see **diff of the committed files**.
@@ -49,7 +50,7 @@ _Press F1_ and type or select `Preferences: Open Workspace Settings` or  `Prefer
 ![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/configurations.png)
 
 ## Changes
-[Change Log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.md#090)
+[Change Log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.md#0100)
 
 ## Blemish
 * _Cannot focus on the explorer view automatically after selecting the commit._

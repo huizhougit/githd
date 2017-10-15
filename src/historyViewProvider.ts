@@ -236,7 +236,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             })
             this._content += context.branch;
 
-            this._content += ' with ';
+            this._content += ' by ';
             let author: string = context.author;
             if (!author) {
                 this._content += 'all ';
