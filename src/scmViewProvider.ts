@@ -3,7 +3,7 @@
 import * as path from 'path';
 
 import {
-    SourceControlResourceState, SourceControlResourceGroup, scm, SourceControlResourceDecorations,
+    SourceControlResourceState, SourceControlResourceGroup, SourceControl, scm, SourceControlResourceDecorations,
     Uri, workspace, Disposable, Command, commands
 } from 'vscode';
 
@@ -45,31 +45,32 @@ export class Resource implements SourceControlResourceState, git.CommittedFile {
 export class ScmViewProvider {
     private _disposables: Disposable[] = [];
     private _resourceGroup: SourceControlResourceGroup;
+    private _sc: SourceControl;
 
     constructor(model: Model) {
-        let sc = scm.createSourceControl('githd', 'GitHistoryDiff');
-        sc.acceptInputCommand = { command: 'githd.updateRef', title: 'Input the SHA1 code' };
-        this._resourceGroup = sc.createResourceGroup('committed', 'Committed Files');
-        this._disposables.push(sc, this._resourceGroup);
+        this._sc = scm.createSourceControl('githd', 'GitHistoryDiff');
+        this._sc.acceptInputCommand = { command: 'githd.updateRef', title: 'Input the SHA1 code' };
+        this._resourceGroup = this._sc.createResourceGroup('committed', 'Committed Files');
+        this._disposables.push(this._sc, this._resourceGroup);
         model.onDidChangeFilesViewContext(context => this._update(context), null, this._disposables);
         this._update(model.filesViewContext);
     }
 
     dispose(): void {
-        scm.inputBox.value = '';
+        this._sc.inputBox.value = '';
         this._disposables.forEach(d => d.dispose());
     }
 
     private async _update(context: FilesViewContext): Promise<void> {
         const leftRef = context.leftRef;
         const rightRef = context.rightRef;
-        scm.inputBox.value = rightRef;
+        this._sc.inputBox.value = rightRef;
         if (!rightRef) {
             this._resourceGroup.resourceStates = [];
             return;
         }
         if (leftRef) {
-            scm.inputBox.value = `${leftRef} .. ${rightRef}`;
+            this._sc.inputBox.value = `${leftRef} .. ${rightRef}`;
         }
         this._resourceGroup.resourceStates = await this._updateResources(context.leftRef, context.rightRef);
         commands.executeCommand('workbench.view.scm');

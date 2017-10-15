@@ -9,7 +9,7 @@
         "email": "zhou_hui@outlook.com"
     },
     "engines": {
-        "vscode": "^1.14.0"
+        "vscode": "^1.17.0"
     },
     "license": "MIT",
     "repository": {
