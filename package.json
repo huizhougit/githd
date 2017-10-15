@@ -309,6 +309,11 @@
                 {
                     "command": "githd.viewFolderHistoryFromTree",
                     "when": "false"
+                },
+                {
+                    "command": "githd.openLineDiff",
+                    "when": "false"
+                
                 }
             ],
             "scm/title": [
