@@ -42,11 +42,6 @@
             "type": "object",
             "title": "Git History Diff configuration",
             "properties": {
-                "githd.committedFiles.inExplorerView": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "List committed files in the Explorer View instead of SCM."
-                },
                 "githd.explorerView.withFolder": {
                     "type": "boolean",
                     "default": true,
@@ -78,7 +73,7 @@
                 {
                     "id": "committedFiles",
                     "name": "GitHD: Committed Files",
-                    "when": "config.githd.committedFiles.inExplorerView && hasGitRepo"
+                    "when": "hasGitRepo"
                 }
             ]
         },
@@ -303,20 +298,6 @@
                 
                 }
             ],
-            "scm/title": [
-                {
-                    "command": "githd.updateRef",
-                    "group": "navigation",
-                    "when": "scmProvider == githd && hasGitRepo"
-                }
-            ],
-            "scm/resourceGroup/context": [
-                {
-                    "command": "githd.clear",
-                    "when": "scmProvider == githd && hasGitRepo",
-                    "group": "inline"
-                }
-            ],
             "view/title": [
                 {
                     "command": "githd.showFilesWithFolder",
@@ -384,12 +365,12 @@
                 },
                 {
                     "command": "githd.diffFile",
-                    "when": "config.githd.committedFiles.inExplorerView && !explorerResourceIsFolder && hasGitRepo",
+                    "when": "!explorerResourceIsFolder && hasGitRepo",
                     "group": "githd@2"
                 },
                 {
                     "command": "githd.diffFolder",
-                    "when": "config.githd.committedFiles.inExplorerView && explorerResourceIsFolder && hasGitRepo",
+                    "when": "explorerResourceIsFolder && hasGitRepo",
                     "group": "githd@2"
                 }
             ],
@@ -406,7 +387,7 @@
                 },
                 {
                     "command": "githd.diffFile",
-                    "when": "config.githd.committedFiles.inExplorerView && hasGitRepo",
+                    "when": "hasGitRepo",
                     "group": "githd@2"
                 }
             ],

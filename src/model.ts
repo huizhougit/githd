@@ -2,7 +2,6 @@
 
 import { Uri, workspace, Event, EventEmitter, Disposable } from 'vscode';
 
-import { ScmViewProvider } from './scmViewProvider';
 import { ExplorerViewProvider } from './explorerViewProvider';
 import { GitService, GitRepo } from './gitService';
 
@@ -31,7 +30,6 @@ export interface HistoryViewContext {
 
 function getConfiguration(): Configuration {
     return {
-        useExplorer: <boolean>workspace.getConfiguration('githd.committedFiles').get('inExplorerView'),
         withFolder: <boolean>workspace.getConfiguration('githd.explorerView').get('withFolder'),
         commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount'),
         expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode')
@@ -50,7 +48,6 @@ function sameUri(lhs: Uri, rhs: Uri): boolean {
 }
 
 export class Model {
-    private _scmProvider: ScmViewProvider;
     private _explorerProvider: ExplorerViewProvider;
     private _config: Configuration;
 
@@ -67,10 +64,7 @@ export class Model {
         this._config = getConfiguration();
         this._explorerProvider = new ExplorerViewProvider(this, this._gitService);
         this._disposables.push(this._explorerProvider);
-        if (!this._config.useExplorer) {
-            this._scmProvider = new ScmViewProvider(this, this._gitService);
-            this._disposables.push(this._scmProvider);
-        }
+
         workspace.onDidChangeConfiguration(() => {
             let newConfig = getConfiguration();
             if (newConfig.useExplorer !== this._config.useExplorer ||
@@ -78,15 +72,6 @@ export class Model {
                 newConfig.commitsCount !== this._config.commitsCount ||
                 newConfig.expressMode !== this._config.expressMode) {
 
-                if (newConfig.useExplorer !== this._config.useExplorer) {
-                    // Cannot dispose TreeDataProvider because of it's bug: onDidChangeTreeData doesn't work after re-creation!
-                    if (newConfig.useExplorer) {
-                        this._scmProvider.dispose();
-                    } else {
-                        this._scmProvider = new ScmViewProvider(this, this._gitService);
-                        this._disposables.push(this._scmProvider);
-                    }
-                }
                 this._config = newConfig;
                 this._onDidChangeConfiguratoin.fire(newConfig);
             }
