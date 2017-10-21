@@ -102,15 +102,6 @@
                 }
             },
             {
-                "command": "githd.switch",
-                "title": "Switch",
-                "category": "GitHD",
-                "icon": {
-                    "light": "resources/icons/light/three-bars.svg",
-                    "dark": "resources/icons/dark/three-bars.svg"
-                }
-            },
-            {
                 "command": "githd.inputRef",
                 "title": "Input Ref",
                 "category": "GitHD"
@@ -247,10 +238,6 @@
                     "when": "false"
                 },
                 {
-                    "command": "githd.switch",
-                    "when": "false"
-                },
-                {
                     "command": "githd.updateRef",
                     "when": "false"
                 },
@@ -321,11 +308,6 @@
                     "command": "githd.updateRef",
                     "group": "navigation",
                     "when": "scmProvider == githd && hasGitRepo"
-                },
-                {
-                    "command": "githd.switch",
-                    "group": "navigation",
-                    "when": "!config.githd.committedFiles.inExplorerView && hasGitRepo"
                 }
             ],
             "scm/resourceGroup/context": [

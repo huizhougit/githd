@@ -115,11 +115,6 @@ export class CommandCenter {
         this._model.filesViewContext = { leftRef: null, rightRef: null, specifiedPath: null, repo: null };
     }
 
-    @command('githd.switch')
-    async close(): Promise<void> {
-        await commands.executeCommand<void>('scm.switch', ['Git']);
-    }
-
     @command('githd.viewHistory')
     async viewHistory(): Promise<void> {
         selectGitRepo().then(repo => {
