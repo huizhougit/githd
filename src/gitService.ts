@@ -2,114 +2,129 @@
 
 import * as path from 'path';
 
-import { workspace, Uri, commands, WorkspaceFolder } from 'vscode';
+import { workspace, Uri, commands, WorkspaceFolder, Event, EventEmitter, Disposable } from 'vscode';
 import { spawn } from 'child_process';
 
 function formatDate(timestamp: number): string {
     return (new Date(timestamp * 1000)).toDateString();
 }
 
-export namespace git {
+export interface GitRepo {
+    root: string;
+    wsFolders: WorkspaceFolder[];
+}
 
-    export interface GitRepo {
-        root: string;
-        wsFolders: WorkspaceFolder[];
+export enum GitRefType {
+    Head,
+    RemoteHead,
+    Tag
+}
+export interface GitRef {
+    type: GitRefType;
+    name?: string;
+    commit?: string;
+}
+
+export interface GitLogEntry {
+    subject: string;
+    hash: string;
+    ref: string;
+    author: string;
+    email: string;
+    date: string;
+    stat?: string;
+    lineInfo?: string;
+}
+
+export interface GitCommittedFile {
+    uri: Uri;
+    gitRelativePath: string;
+    status: string;
+}
+
+function exec(args: string[], cwd: string): Promise<string> {
+    let content: string = '';
+    let gitShow = spawn('git', args, { cwd });
+    let out = gitShow.stdout;
+    out.setEncoding('utf8');
+    return new Promise<string>((resolve, reject) => {
+        out.on('data', data => content += data);
+        out.on('end', () => resolve(content));
+        out.on('error', err => reject(err));
+    });
+}
+
+// export async function hasGitRepo(): Promise<boolean> {
+//     if (await getGitRoot(wsFolder)) {
+//         return true;
+//     }
+//     return false;
+// }
+
+export class GitService {
+    private _gitReposMap = new Map<string, WorkspaceFolder[]>();
+    private _workspacesMap = new Map<string, string>();
+    private _onDidChangeGitRepositories = new EventEmitter<GitRepo[]>();
+    private _disposables: Disposable[] = [];
+    
+    constructor() {
+        this._disposables.push(this._onDidChangeGitRepositories);
     }
 
-    export enum RefType {
-        Head,
-        RemoteHead,
-        Tag
-    }
-    export interface Ref {
-        type: RefType;
-        name?: string;
-        commit?: string;
+    get onDidChangeGitRepositories(): Event<GitRepo[]> { return this._onDidChangeGitRepositories.event; }
+
+    dispose(): void {
+        this._disposables.forEach(d => d.dispose());
     }
 
-    export interface LogEntry {
-        subject: string;
-        hash: string;
-        ref: string;
-        author: string;
-        email: string;
-        date: string;
-        stat?: string;
-        lineInfo?: string;
-    }
+    updateGitRoots(wsFolders: WorkspaceFolder[]): Promise<void> {
+        this._gitReposMap.clear();
+        this._workspacesMap.clear();
 
-    export interface CommittedFile {
-        uri: Uri;
-        gitRelativePath: string;
-        status: string;
-    }
-
-    function exec(args: string[], cwd: string): Promise<string> {
-        let content: string = '';
-        let gitShow = spawn('git', args, { cwd });
-        let out = gitShow.stdout;
-        out.setEncoding('utf8');
-        return new Promise<string>((resolve, reject) => {
-            out.on('data', data => content += data);
-            out.on('end', () => resolve(content));
-            out.on('error', err => reject(err));
-        });
-    }
-
-    // export async function hasGitRepo(): Promise<boolean> {
-    //     if (await getGitRoot(wsFolder)) {
-    //         return true;
-    //     }
-    //     return false;
-    // }
-
-    let _gitReposMap = new Map<string, WorkspaceFolder[]>();
-    let _workspacesMap = new Map<string, string>();
-    export function updateGitRoots(wsFolders: WorkspaceFolder[]): Promise<void> {
         if (!wsFolders || wsFolders.length === 0) {
             commands.executeCommand('setContext', 'hasGitRepo', false);
+            this._onDidChangeGitRepositories.fire([]);
             return;
         }
-        _gitReposMap.clear();
-        _workspacesMap.clear();
 
         wsFolders.forEach(async (wsFolder, index) => {
             const rootPath: string = (await exec(['rev-parse', '--show-toplevel'], wsFolder.uri.fsPath)).trim();
             if (rootPath) {
-                let wsFolders = _gitReposMap.get(rootPath);
+                let wsFolders = this._gitReposMap.get(rootPath);
                 if (wsFolders) {
                     wsFolders.push(wsFolder);
                 } else {
-                    _gitReposMap.set(rootPath, [wsFolder]);
+                    this._gitReposMap.set(rootPath, [wsFolder]);
                 }
             }
-            _workspacesMap.set(wsFolder.uri.fsPath, rootPath);
+            this._workspacesMap.set(wsFolder.uri.fsPath, rootPath);
             if (index === wsFolders.length - 1) {
-                commands.executeCommand('setContext', 'hasGitRepo', _gitReposMap.size > 0);
+                commands.executeCommand('setContext', 'hasGitRepo', this._gitReposMap.size > 0);
+                this._onDidChangeGitRepositories.fire(this.getGitRepos());
             }
         });
-        }
+    }
 
-    export function getGitRepos(): GitRepo[] {
+    getGitRepos(): GitRepo[] {
         let repos: GitRepo[] = [];
-        _gitReposMap.forEach((wsFolders, root) => repos.push({ root, wsFolders }));
+        this._gitReposMap.forEach((wsFolders, root) => repos.push({ root, wsFolders }));
         return repos;
     }
 
-    export function getGitRepo(uri: Uri): GitRepo {
+    getGitRepo(uri: Uri): GitRepo {
         const wsFolder: WorkspaceFolder = workspace.getWorkspaceFolder(uri.with({ scheme: 'file' }));
         if (!wsFolder) {
             return null;
         }
-        const root = _workspacesMap.get(wsFolder.uri.fsPath);
+        const root = this._workspacesMap.get(wsFolder.uri.fsPath);
         if (!root) {
             return null;
         }
-        return { root, wsFolders: _gitReposMap.get(root) };
+        return { root, wsFolders: this._gitReposMap.get(root) };
     }
 
-    export function getGitRelativePath(file: Uri) {
-        const repo: GitRepo = getGitRepo(file);
+    getGitRelativePath(file: Uri) {
+        const repo: GitRepo = this.getGitRepo(file);
         if (!repo) {
             return;
         }
@@ -117,14 +132,14 @@ export namespace git {
         return relative === '' ? '.' : relative;
     }
 
-    export async function getCurrentBranch(repo: GitRepo): Promise<string> {
+    async getCurrentBranch(repo: GitRepo): Promise<string> {
         if (!repo) {
             return null;
         }
         return (await exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
     }
 
-    export async function getCommitsCount(repo: GitRepo, file?: Uri, author?: string): Promise<number> {
+    async getCommitsCount(repo: GitRepo, file?: Uri, author?: string): Promise<number> {
         if (!repo) {
             return 0;
         }
@@ -133,25 +148,25 @@ export namespace git {
             args.push(`--author=${author}`);
         }
         if (file) {
-            args.push(await getGitRelativePath(file));
+            args.push(await this.getGitRelativePath(file));
         }
         return parseInt(await exec(args, repo.root));
     }
 
-    export async function getRefs(repo: GitRepo): Promise<Ref[]> {
+    async getRefs(repo: GitRepo): Promise<GitRef[]> {
         if (!repo) {
             return [];
         }
         const result = await exec(['for-each-ref', '--format', '%(refname) %(objectname:short)'], repo.root);
-        const fn = (line): Ref | null => {
+        const fn = (line): GitRef | null => {
             let match: RegExpExecArray | null;
 
             if (match = /^refs\/heads\/([^ ]+) ([0-9a-f]+)$/.exec(line)) {
-                return { name: match[1], commit: match[2], type: RefType.Head };
+                return { name: match[1], commit: match[2], type: GitRefType.Head };
             } else if (match = /^refs\/remotes\/([^/]+)\/([^ ]+) ([0-9a-f]+)$/.exec(line)) {
-                return { name: `${match[1]}/${match[2]}`, commit: match[3], type: RefType.RemoteHead };
+                return { name: `${match[1]}/${match[2]}`, commit: match[3], type: GitRefType.RemoteHead };
             } else if (match = /^refs\/tags\/([^ ]+) ([0-9a-f]+)$/.exec(line)) {
-                return { name: match[1], commit: match[2], type: RefType.Tag };
+                return { name: match[1], commit: match[2], type: GitRefType.Tag };
             }
 
             return null;
@@ -160,10 +175,10 @@ export namespace git {
         return result.trim().split('\n')
             .filter(line => !!line)
             .map(fn)
-            .filter(ref => !!ref) as Ref[];
+            .filter(ref => !!ref) as GitRef[];
     }
 
-    export async function getCommittedFiles(repo: GitRepo, leftRef: string, rightRef: string): Promise<CommittedFile[]> {
+    async getCommittedFiles(repo: GitRepo, leftRef: string, rightRef: string): Promise<GitCommittedFile[]> {
         if (!repo) {
             return [];
         }
@@ -172,7 +187,7 @@ export namespace git {
             args = ['diff', '--name-status', `${leftRef}..${rightRef}`];
         }
         const result = await exec(args, repo.root);
-        let files: CommittedFile[] = [];
+        let files: GitCommittedFile[] = [];
         result.split(/\r?\n/g).forEach((value, index) => {
             if (value) {
                 let info = value.split(/\t/g);
@@ -205,8 +220,8 @@ export namespace git {
         return files;
     }
 
-    export async function getLogEntries(repo: GitRepo, express: boolean, start: number, count: number, branch: string,
-        file?: Uri, line?: number, author?: string): Promise<LogEntry[]> {
+    async getLogEntries(repo: GitRepo, express: boolean, start: number, count: number, branch: string,
+        file?: Uri, line?: number, author?: string): Promise<GitLogEntry[]> {
 
         if (!repo) {
             return [];
@@ -222,7 +237,7 @@ export namespace git {
             args.push(`--author=${author}`);
         }
         if (file) {
-            const filePath: string = await getGitRelativePath(file);
+            const filePath: string = await this.getGitRelativePath(file);
             args.push('--follow', filePath);
             if (line) {
                 args.push(`-L ${line},${line}:${filePath}`);
@@ -230,7 +245,7 @@ export namespace git {
         }
 
         const result = await exec(args, repo.root);
-        let entries: LogEntry[] = [];
+        let entries: GitLogEntry[] = [];
 
         result.split(entrySeparator).forEach(entry => {
             if (!entry) {
@@ -281,12 +296,11 @@ export namespace git {
         return entries;
     }
 
-    export async function getCommitDetails(repo: GitRepo, ref: string): Promise<string> {
+    async getCommitDetails(repo: GitRepo, ref: string): Promise<string> {
         if (!repo) {
             return null;
         }
-        const format: string =
-` Commit:        %H
+        const format: string = ` Commit:        %H
  Author:        %aN <%aE>
  AuthorDate:    %ad
  Commit:        %cN <%cE>
@@ -302,7 +316,7 @@ export namespace git {
         return details;
     }
 
-    export async function getAuthors(repo: GitRepo): Promise<{name: string, email: string}[]> {
+    async getAuthors(repo: GitRepo): Promise<{ name: string, email: string }[]> {
         if (!repo) {
             return null;
         }

@@ -5,7 +5,7 @@ import {
     languages, EventEmitter, Event, TextEditorDecorationType, StatusBarItem, ThemeColor
 } from 'vscode';
 import { Model } from './model';
-import { git } from './git';
+import { GitService, GitLogEntry } from './gitService';
 import { getIconUri } from './icons';
 import { Clickable, ClickableProvider } from './clickable';
 import { decorateWithoutWhitspace } from './utils';
@@ -107,7 +107,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private _expressStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 1);
     private _express: boolean;
 
-    constructor(private _model: Model) {
+    constructor(private _model: Model, private _gitService: GitService) {
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
         this._disposables.push(disposable);
 
@@ -129,6 +129,14 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     .then(() => commands.executeCommand('cursorTop')));
         });
 
+        this._gitService.onDidChangeGitRepositories(repos => {
+            if (repos.length > 0) {
+                this._expressStatusBar.show();
+            } else {
+                this._expressStatusBar.hide();
+            }
+        });
+
         window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
                 this._setDecorations(editor);
@@ -142,12 +150,11 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             }
         }, null, this._disposables);
 
-        // (async () => {
-        //     if (await git.hasGitRepo()) {
-        //         this._expressStatusBar.show();
-        //     }
-        // })();
-        this._expressStatusBar.show();
+        if (this._gitService.getGitRepos().length > 0) {
+            this._expressStatusBar.show();
+        } else {
+            this._expressStatusBar.hide();
+        }
     }
 
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
@@ -196,14 +203,14 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._content += HistoryViewProvider._separatorLabel + '\n\n';
             this._currentLine += 2;
         }
-        const commitsCount: number = await git.getCommitsCount(context.repo, context.specifiedPath, context.author);
+        const commitsCount: number = await this._gitService.getCommitsCount(context.repo, context.specifiedPath, context.author);
         let slowLoading = false;
         if (this._loadAll && ((!this._express && commitsCount > 1000) || (this._express && commitsCount > 10000))) {
             slowLoading = true;
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
         const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
-        const entries: git.LogEntry[] = await git.getLogEntries(context.repo, this._express, logStart, logCount, context.branch,
+        const entries: GitLogEntry[] = await this._gitService.getLogEntries(context.repo, this._express, logStart, logCount, context.branch,
             context.specifiedPath, context.line, context.author);
         if (entries.length === 0) {
             this._reset();
@@ -220,7 +227,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             if (context.specifiedPath) {
                 this._content += ' of ';
                 let start: number = this._content.length;
-                this._content += await git.getGitRelativePath(context.specifiedPath);
+                this._content += await this._gitService.getGitRelativePath(context.specifiedPath);
                 this._fileDecorationRange = new Range(this._currentLine, start, this._currentLine, this._content.length);
 
                 if (context.line) {
@@ -279,7 +286,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     };
                 },
                 clickedDecorationType: selectedHashDecorationType,
-                getHoverMessage: async (): Promise<string> => { return await git.getCommitDetails(context.repo, entry.hash) }
+                getHoverMessage: async (): Promise<string> => { return await this._gitService.getCommitDetails(context.repo, entry.hash) }
             });
 
             if (entry.ref) {

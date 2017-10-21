@@ -5,7 +5,7 @@ import * as fs from 'fs';
 
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Event, EventEmitter,
     Disposable, commands } from 'vscode';
-import { git } from './git';
+import { GitService, GitCommittedFile } from './gitService';
 import { Model, FilesViewContext } from './model'
 import { Icons, getIconUri } from './icons';
 
@@ -26,7 +26,7 @@ class LineDiffItem extends TreeItem {
     };
 }
 
-class CommittedFile extends TreeItem implements git.CommittedFile {
+class CommittedFile extends TreeItem implements GitCommittedFile {
     constructor(private _uri: Uri, private _gitRelativePath: string, private _status: string, label: string) {
         super(label);
         this.command = {
@@ -86,11 +86,11 @@ function getFormatedLabel(relativePath: string): string {
     return name + ' \u00a0\u2022\u00a0 ' + dir;
 }
 
-function createCommittedFile(file: git.CommittedFile): CommittedFile {
+function createCommittedFile(file: GitCommittedFile): CommittedFile {
     return new CommittedFile(file.uri, file.gitRelativePath, file.status, getFormatedLabel(file.gitRelativePath));
 }
 
-function buildOneFileWithFolder(rootFolder: FolderItem, file: git.CommittedFile, relateivePath: string = ''): void {
+function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relateivePath: string = ''): void {
     const segments: string[] = relateivePath ? path.relative(relateivePath, file.gitRelativePath).split(/\\|\//) :
         file.gitRelativePath.split('/');
     let gitRelativePath: string = relateivePath;
@@ -108,7 +108,7 @@ function buildOneFileWithFolder(rootFolder: FolderItem, file: git.CommittedFile,
     parent.files.push(new CommittedFile(file.uri, file.gitRelativePath, file.status, segments[i]));
 }
 
-function buildFileTree(rootFolder: FolderItem, files: git.CommittedFile[], withFolder: boolean): void {
+function buildFileTree(rootFolder: FolderItem, files: GitCommittedFile[], withFolder: boolean): void {
     if (withFolder) {
         files.forEach(file => buildOneFileWithFolder(rootFolder, file));
     } else {
@@ -148,7 +148,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     private _context: FilesViewContext;
     private _rootFolder: FolderItem[] = [];
 
-    constructor(model: Model) {
+    constructor(model: Model, private _gitService: GitService) {
         this._disposables.push(window.registerTreeDataProvider('committedFiles', this));
         this._disposables.push(commands.registerCommand('githd.showFilesWithFolder',
             (folder: FolderItem) => this._showFilesWithFolder(folder)));
@@ -216,7 +216,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             return;
         }
 
-        const committedFiles: git.CommittedFile[] = await git.getCommittedFiles(this._context.repo, leftRef, rightRef);
+        const committedFiles: GitCommittedFile[] = await this._gitService.getCommittedFiles(this._context.repo, leftRef, rightRef);
         if (!leftRef && !specifiedPath) {
             this._buildCommitTree(committedFiles, rightRef);
         } else if (leftRef && !specifiedPath) {
@@ -229,35 +229,35 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._onDidChange.fire();
     }
 
-    private _buildCommitTree(files: git.CommittedFile[], ref: string): void {
+    private _buildCommitTree(files: GitCommittedFile[], ref: string): void {
         this._buildCommitFolder(`Commit ${ref} \u00a0 (${files.length} files changed)`, files);
     }
 
-    private _buildDiffBranchTree(files: git.CommittedFile[], leftRef: string, rightRef): void {
+    private _buildDiffBranchTree(files: GitCommittedFile[], leftRef: string, rightRef): void {
         this._buildCommitFolder(`Diffs between ${leftRef} and ${rightRef} \u00a0 (${files.length} files)`, files);
     }
 
-    private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, lineInfo:string, ref: string): Promise<void> {
+    private async _buildPathSpecifiedCommitTree(files: GitCommittedFile[], specifiedPath: Uri, lineInfo:string, ref: string): Promise<void> {
         if (lineInfo) {
-            lineInfo = await git.getCommitDetails(this._context.repo, ref) + '\r\n\r\n' + lineInfo;
+            lineInfo = await this._gitService.getCommitDetails(this._context.repo, ref) + '\r\n\r\n' + lineInfo;
         }
         await this._buildFocusFolder('Focus', files, specifiedPath, lineInfo);
         this._buildCommitTree(files, ref);
     }
 
-    private async _buildPathSpecifiedDiffBranchTree(files: git.CommittedFile[], context: FilesViewContext): Promise<void> {
+    private async _buildPathSpecifiedDiffBranchTree(files: GitCommittedFile[], context: FilesViewContext): Promise<void> {
         await this._buildFocusFolder(`${context.leftRef} .. ${context.rightRef}`, files, context.specifiedPath);
     }
 
-    private _buildCommitFolder(label: string, committedFiles: git.CommittedFile[]): void {
+    private _buildCommitFolder(label: string, committedFiles: GitCommittedFile[]): void {
         let folder = new FolderItem(null, '', label, rootFolderIcon);
         buildFileTree(folder, committedFiles, this._withFolder);
         this._rootFolder.push(folder);
     }
 
-    private async _buildFocusFolder(label: string, committedFiles: git.CommittedFile[], specifiedPath: Uri, lineInfo?: string): Promise<void> {
+    private async _buildFocusFolder(label: string, committedFiles: GitCommittedFile[], specifiedPath: Uri, lineInfo?: string): Promise<void> {
         let folder = new FolderItem(null, '', label, rootFolderIcon);
-        const relativePath = await git.getGitRelativePath(specifiedPath);
+        const relativePath = await this._gitService.getGitRelativePath(specifiedPath);
         if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
             if (lineInfo) {
                 folder.lineDiffItem = new LineDiffItem(lineInfo, 'line diff');
@@ -267,7 +267,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
                 folder.files.push(createCommittedFile(file));
             }
         } else {
-            let focus: git.CommittedFile[] = [];
+            let focus: GitCommittedFile[] = [];
             committedFiles.forEach(file => {
                 if (file.gitRelativePath.search(relativePath) === 0) {
                     focus.push(createCommittedFile(file));

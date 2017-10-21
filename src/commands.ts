@@ -8,7 +8,7 @@ import { Uri, commands, Disposable, workspace, window , QuickPickItem} from 'vsc
 import { Model, HistoryViewContext } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
 import { LineDiffViewProvider } from './lineDiffViewProvider';
-import { git } from './git';
+import { GitService, GitRepo, GitRefType, GitCommittedFile } from './gitService';
 
 function toGitUri(uri: Uri, ref: string): Uri {
     return uri.with({
@@ -21,15 +21,15 @@ function toGitUri(uri: Uri, ref: string): Uri {
     });
 }
 
-async function selectBranch(repo: git.GitRepo): Promise<QuickPickItem[]> {
-    const refs = await git.getRefs(repo);
+async function selectBranch(gitService: GitService, repo: GitRepo): Promise<QuickPickItem[]> {
+    const refs = await gitService.getRefs(repo);
     return refs.map(ref => {
         let description: string;
-        if (ref.type === git.RefType.Head) {
+        if (ref.type === GitRefType.Head) {
             description = ref.commit;
-        } else if (ref.type === git.RefType.Tag) {
+        } else if (ref.type === GitRefType.Tag) {
             description = `Tag at ${ref.commit}`;
-        } else if (ref.type === git.RefType.RemoteHead) {
+        } else if (ref.type === GitRefType.RemoteHead) {
             description = `Remote branch at ${ref.commit}`;
         }
         return { label: ref.name || ref.commit, description };
@@ -37,11 +37,11 @@ async function selectBranch(repo: git.GitRepo): Promise<QuickPickItem[]> {
 }
 
 interface RepoPickItem extends QuickPickItem {
-    repo: git.GitRepo;
+    repo: GitRepo;
 }
 
-function selectGitRepo(): Thenable<git.GitRepo> {
-    const repos: git.GitRepo[] = git.getGitRepos();
+function selectGitRepo(gitService: GitService): Thenable<GitRepo> {
+    const repos: GitRepo[] = gitService.getGitRepos();
     if (repos.length === 0) {
         return null;
     }
@@ -57,7 +57,7 @@ function selectGitRepo(): Thenable<git.GitRepo> {
         return { label, description: repo.root, repo };
     });
     return window.showQuickPick(pickItems, { placeHolder: 'Select the git repo' })
-        .then<git.GitRepo>(item => {
+        .then<GitRepo>(item => {
             if (item) {
                 return item.repo;
             }
@@ -65,8 +65,8 @@ function selectGitRepo(): Thenable<git.GitRepo> {
         });
 }
 
-async function selectAuthor(repo: git.GitRepo): Promise<QuickPickItem[]> {
-    let authors = await git.getAuthors(repo);
+async function selectAuthor(gitService: GitService, repo: GitRepo): Promise<QuickPickItem[]> {
+    let authors = await gitService.getAuthors(repo);
     authors.unshift({ name: 'All', email: '' });
     return authors.map(author => { return { label: author.name, description: author.email } });
 }
@@ -90,7 +90,9 @@ function command(id: string) {
 export class CommandCenter {
     private _disposables: Disposable[];
 
-    constructor(private _model: Model, private _historyView: HistoryViewProvider, private _lineDiffView: LineDiffViewProvider) {
+    constructor(private _model: Model, private _gitService: GitService,
+        private _historyView: HistoryViewProvider, private _lineDiffView: LineDiffViewProvider) {
+
         this._disposables = Commands.map(({ id, method }) => {
             return commands.registerCommand(id, (...args: any[]) => {
                 Promise.resolve(method.apply(this, args));
@@ -103,7 +105,7 @@ export class CommandCenter {
 
     @command('githd.updateRef')
     async updateRef(ref: string): Promise<void> {
-        selectGitRepo().then(repo => {
+        selectGitRepo(this._gitService).then(repo => {
             if (repo) {
                 this._model.filesViewContext = { leftRef: null, rightRef: ref, repo };
             }
@@ -117,7 +119,7 @@ export class CommandCenter {
 
     @command('githd.viewHistory')
     async viewHistory(): Promise<void> {
-        selectGitRepo().then(repo => {
+        selectGitRepo(this._gitService).then(repo => {
             if (repo) {
                 this._viewHistory({ repo });
             }
@@ -127,7 +129,7 @@ export class CommandCenter {
     @command('githd.viewFileHistory')
     async viewFileHistory(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
-            return this._viewHistory({ specifiedPath, repo: git.getGitRepo(specifiedPath) });
+            return this._viewHistory({ specifiedPath, repo: this._gitService.getGitRepo(specifiedPath) });
         }
     }
 
@@ -140,20 +142,20 @@ export class CommandCenter {
     async viewLineHistory(file: Uri): Promise<void> {
         if (file) {
             const line = window.activeTextEditor.selection.active.line + 1;
-            return this._viewHistory({ specifiedPath: file, line, repo: git.getGitRepo(file) });
+            return this._viewHistory({ specifiedPath: file, line, repo: this._gitService.getGitRepo(file) });
         }
     }
 
     @command('githd.viewAllHistory')
     async viewAllHistory(): Promise<void> {
         return this._viewHistory(this._model.historyViewContext ? this._model.historyViewContext
-            : { repo: git.getGitRepos()[0] }, true);
+            : { repo: this._gitService.getGitRepos()[0] }, true);
     }
 
     @command('githd.viewBranchHistory')
     async viewBranchHistory(context?: HistoryViewContext): Promise<void> {
         let placeHolder: string = `Select a ref to see it's history`;
-        let repo: git.GitRepo;
+        let repo: GitRepo;
         if (context) {
             repo = context.repo;
             const specifiedPath = this._model.historyViewContext.specifiedPath;
@@ -161,14 +163,14 @@ export class CommandCenter {
                 placeHolder += ` of ${path.basename(specifiedPath.fsPath)}`;
             }
         } else {
-            repo = await Promise.resolve(selectGitRepo());
+            repo = await Promise.resolve(selectGitRepo(this._gitService));
             if (!repo) {
                 return;
             }
         }
         placeHolder += ` (${repo.root})`;
 
-        window.showQuickPick(selectBranch(repo), { placeHolder })
+        window.showQuickPick(selectBranch(this._gitService, repo), { placeHolder })
             .then(item => {
                 if (item) {
                     if (context) {
@@ -186,7 +188,7 @@ export class CommandCenter {
         assert(this._model.historyViewContext, 'history view context should exist');
         const context: HistoryViewContext = this._model.historyViewContext;
         let placeHolder: string = `Select a author to see his/her commits`;
-        window.showQuickPick(selectAuthor(context.repo), { placeHolder })
+        window.showQuickPick(selectAuthor(this._gitService, context.repo), { placeHolder })
             .then(item => {
                 if (item) {
                     const email: string = item.description;
@@ -201,12 +203,12 @@ export class CommandCenter {
 
     @command('githd.diffBranch')
     async diffBranch(): Promise<void> {
-        selectGitRepo().then(async repo => {
+        selectGitRepo(this._gitService).then(async repo => {
             if (!repo) {
                 return;
             }
-            const currentRef: string = await git.getCurrentBranch(repo);
-            window.showQuickPick(selectBranch(repo), { placeHolder: `Select a ref to see it's diff with ${currentRef} (${repo.root})` })
+            const currentRef: string = await this._gitService.getCurrentBranch(repo);
+            window.showQuickPick(selectBranch(this._gitService, repo), { placeHolder: `Select a ref to see it's diff with ${currentRef} (${repo.root})` })
                 .then(async item => {
                     if (item) {
                         this._model.filesViewContext = {
@@ -223,11 +225,12 @@ export class CommandCenter {
     @command('githd.diffFile')
     async diffFile(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
-            const repo: git.GitRepo = git.getGitRepo(specifiedPath);
-            window.showQuickPick(selectBranch(repo), { placeHolder: `Select a ref to see the diff of ${path.basename(specifiedPath.path)}` })
+            const repo: GitRepo = this._gitService.getGitRepo(specifiedPath);
+            window.showQuickPick(selectBranch(this._gitService, repo),
+                { placeHolder: `Select a ref to see the diff of ${path.basename(specifiedPath.path)}` })
                 .then(async item => {
                     if (item) {
-                        const currentRef: string = await git.getCurrentBranch(repo);
+                        const currentRef: string = await this._gitService.getCurrentBranch(repo);
                         this._model.filesViewContext = {
                             repo,
                             leftRef: item.label,
@@ -246,7 +249,7 @@ export class CommandCenter {
 
     @command('githd.inputRef')
     async inputRef(): Promise<void> {
-        selectGitRepo().then(repo => {
+        selectGitRepo(this._gitService).then(repo => {
             if (!repo) {
                 return;
             }
@@ -256,7 +259,7 @@ export class CommandCenter {
     }
 
     @command('githd.openCommittedFile')
-    async openCommittedFile(file: git.CommittedFile): Promise<void> {
+    async openCommittedFile(file: GitCommittedFile): Promise<void> {
         let rightRef: string = this._model.filesViewContext.rightRef;
         let leftRef: string = rightRef + '~';
         let title = rightRef;

@@ -4,7 +4,7 @@ import { Uri, workspace, Event, EventEmitter, Disposable } from 'vscode';
 
 import { ScmViewProvider } from './scmViewProvider';
 import { ExplorerViewProvider } from './explorerViewProvider';
-import { git } from './git';
+import { GitService, GitRepo } from './gitService';
 
 export interface Configuration {
     readonly useExplorer?: boolean;
@@ -14,7 +14,7 @@ export interface Configuration {
 }
 
 export interface FilesViewContext {
-    repo: git.GitRepo;
+    repo: GitRepo;
     leftRef?: string;
     rightRef?: string;
     specifiedPath?: Uri;
@@ -22,7 +22,7 @@ export interface FilesViewContext {
 }
 
 export interface HistoryViewContext {
-    repo: git.GitRepo;
+    repo: GitRepo;
     branch?: string;
     specifiedPath?: Uri;
     line?: number;
@@ -63,12 +63,12 @@ export class Model {
 
     private _disposables: Disposable[] = [];
 
-    constructor() {
+    constructor(private _gitService: GitService) {
         this._config = getConfiguration();
-        this._explorerProvider = new ExplorerViewProvider(this);
+        this._explorerProvider = new ExplorerViewProvider(this, this._gitService);
         this._disposables.push(this._explorerProvider);
         if (!this._config.useExplorer) {
-            this._scmProvider = new ScmViewProvider(this);
+            this._scmProvider = new ScmViewProvider(this, this._gitService);
             this._disposables.push(this._scmProvider);
         }
         workspace.onDidChangeConfiguration(() => {
@@ -83,7 +83,7 @@ export class Model {
                     if (newConfig.useExplorer) {
                         this._scmProvider.dispose();
                     } else {
-                        this._scmProvider = new ScmViewProvider(this);
+                        this._scmProvider = new ScmViewProvider(this, this._gitService);
                         this._disposables.push(this._scmProvider);
                     }
                 }
@@ -93,9 +93,9 @@ export class Model {
         }, null, this._disposables);
 
         workspace.onDidChangeWorkspaceFolders(e => {
-            git.updateGitRoots(workspace.workspaceFolders);
+            this._gitService.updateGitRoots(workspace.workspaceFolders);
         }, null, this._disposables);
-        git.updateGitRoots(workspace.workspaceFolders);
+        this._gitService.updateGitRoots(workspace.workspaceFolders);
 
         this._disposables.push(this._onDidChangeConfiguratoin);
         this._disposables.push(this._onDidChangeFilesViewContext);
@@ -129,7 +129,7 @@ export class Model {
     async setHistoryViewContext(context: HistoryViewContext) {
         this._historyViewContext = context;
         if (!this._historyViewContext.branch) {
-            this._historyViewContext.branch = await git.getCurrentBranch(context.repo);
+            this._historyViewContext.branch = await this._gitService.getCurrentBranch(context.repo);
         }
         this._onDidChangeHistoryViewContext.fire(this._historyViewContext);
     }

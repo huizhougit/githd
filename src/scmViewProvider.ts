@@ -7,11 +7,11 @@ import {
     Uri, workspace, Disposable, Command, commands
 } from 'vscode';
 
-import { git } from './git';
+import { GitService, GitRepo, GitCommittedFile } from './gitService';
 import { Icons } from './icons';
 import { Model, FilesViewContext } from './model'
 
-export class Resource implements SourceControlResourceState, git.CommittedFile {
+export class Resource implements SourceControlResourceState, GitCommittedFile {
     readonly uri: Uri = this._uri;
     readonly gitRelativePath: string = this._gitRelativePath;
     readonly status: string = this._status;
@@ -47,7 +47,7 @@ export class ScmViewProvider {
     private _resourceGroup: SourceControlResourceGroup;
     private _sc: SourceControl;
 
-    constructor(model: Model) {
+    constructor(model: Model, private _gitService: GitService) {
         this._sc = scm.createSourceControl('githd', 'GitHistoryDiff');
         this._sc.acceptInputCommand = { command: 'githd.updateRef', title: 'Input the SHA1 code', arguments: [this._sc.inputBox.value] };
         this._resourceGroup = this._sc.createResourceGroup('committed', 'Committed Files');
@@ -76,8 +76,8 @@ export class ScmViewProvider {
         commands.executeCommand('workbench.view.scm');
     }
 
-    private async _updateResources(repo: git.GitRepo, leftRef: string, rightRef: string): Promise<Resource[]> {
-        const files: git.CommittedFile[] = await git.getCommittedFiles(repo, leftRef, rightRef);
+    private async _updateResources(repo: GitRepo, leftRef: string, rightRef: string): Promise<Resource[]> {
+        const files: GitCommittedFile[] = await this._gitService.getCommittedFiles(repo, leftRef, rightRef);
         return files.map(file => {
             return new Resource(file.uri, file.gitRelativePath, file.status);
         });
