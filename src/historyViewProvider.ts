@@ -38,7 +38,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         light: { color: '#811f3f' },
         dark: { color: '#d16969' }
     });
-    
     private _subjectDecorationType = window.createTextEditorDecorationType({
         // keyword color
         light: { color: '#0000ff' },
@@ -270,7 +269,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._clickableProvider.addClickable({
                 range,
                 callback: () => commands.executeCommand('githd.viewAuthorHistory'),
-                getHoverMessage: (): string => { return 'Select a author to see his/her commits' }
+                getHoverMessage: (): string => { return 'Select an author to see the commits' }
             });
 
             this._content += ` (${context.repo.root})\n\n`;

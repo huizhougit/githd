@@ -14,7 +14,7 @@ export function activate(context: ExtensionContext) {
     let lineDiffViewProvider = new LineDiffViewProvider();
     let commandCenter = new CommandCenter(model, gitService, historyViewProvider, lineDiffViewProvider);
 
-    context.subscriptions.push(gitService, commandCenter, historyViewProvider, lineDiffViewProvider, model);
+    context.subscriptions.push(commandCenter, historyViewProvider, lineDiffViewProvider, model, gitService);
 }
 
 export function deactivate() {

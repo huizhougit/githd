@@ -36,17 +36,6 @@ function getConfiguration(): Configuration {
     };
 }
 
-
-function sameUri(lhs: Uri, rhs: Uri): boolean {
-    if (!lhs && !rhs) {
-        return true;
-    }
-    if ((lhs && !rhs) || (!lhs && rhs)) {
-        return false;
-    }
-    return lhs.fsPath === rhs.fsPath;
-}
-
 export class Model {
     private _explorerProvider: ExplorerViewProvider;
     private _config: Configuration;
