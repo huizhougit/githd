@@ -2,7 +2,7 @@
 
 import * as path from 'path';
 
-import { workspace, Uri, commands, env } from 'vscode';
+import { workspace, Uri, commands, WorkspaceFolder } from 'vscode';
 import { spawn } from 'child_process';
 
 function formatDate(timestamp: number): string {
@@ -10,6 +10,11 @@ function formatDate(timestamp: number): string {
 }
 
 export namespace git {
+
+    export interface GitRepo {
+        root: string;
+        wsFolders: WorkspaceFolder[];
+    }
 
     export enum RefType {
         Head,
@@ -39,25 +44,7 @@ export namespace git {
         status: string;
     }
 
-    let _gitRootPath: string;
-    async function getGitRoot(): Promise<string> {
-        if (!_gitRootPath && workspace.rootPath) {
-            _gitRootPath = (await exec(['rev-parse', '--show-toplevel'], workspace.rootPath)).trim();
-        }
-        return _gitRootPath;
-    }
-
-    (async function checkGitRepository(): Promise<void> {
-        const gitRootPath = await getGitRoot();
-        if (gitRootPath && gitRootPath.trim()) {
-            commands.executeCommand('setContext', 'isGitRepo', true);
-        }
-    })();
-
-    async function exec(args: string[], cwd?: string): Promise<string> {
-        if (!cwd) {
-            cwd = await getGitRoot();
-        }
+    function exec(args: string[], cwd: string): Promise<string> {
         let content: string = '';
         let gitShow = spawn('git', args, { cwd });
         let out = gitShow.stdout;
@@ -69,27 +56,78 @@ export namespace git {
         });
     }
 
-    export async function isGitRepo(): Promise<boolean> {
-        if (await getGitRoot()) {
-            return true;
+    // export async function hasGitRepo(): Promise<boolean> {
+    //     if (await getGitRoot(wsFolder)) {
+    //         return true;
+    //     }
+    //     return false;
+    // }
+
+    let _gitReposMap = new Map<string, WorkspaceFolder[]>();
+    let _workspacesMap = new Map<string, string>();
+    export function updateGitRoots(wsFolders: WorkspaceFolder[]): Promise<void> {
+        if (!wsFolders || wsFolders.length === 0) {
+            commands.executeCommand('setContext', 'hasGitRepo', false);
+            return;
         }
-        return false;
+        _gitReposMap.clear();
+        _workspacesMap.clear();
+
+        wsFolders.forEach(async (wsFolder, index) => {
+            const rootPath: string = (await exec(['rev-parse', '--show-toplevel'], wsFolder.uri.fsPath)).trim();
+            if (rootPath) {
+                let wsFolders = _gitReposMap.get(rootPath);
+                if (wsFolders) {
+                    wsFolders.push(wsFolder);
+                } else {
+                    _gitReposMap.set(rootPath, [wsFolder]);
+                }
+            }
+            _workspacesMap.set(wsFolder.uri.fsPath, rootPath);
+            if (index === wsFolders.length - 1) {
+                commands.executeCommand('setContext', 'hasGitRepo', _gitReposMap.size > 0);
+            }
+        });
+        }
+
+    export function getGitRepos(): GitRepo[] {
+        let repos: GitRepo[] = [];
+        _gitReposMap.forEach((wsFolders, root) => repos.push({ root, wsFolders }));
+        return repos;
     }
 
-    export function getGitRootPath(): string {
-        return _gitRootPath;
+    export function getGitRepo(uri: Uri): GitRepo {
+        const wsFolder: WorkspaceFolder = workspace.getWorkspaceFolder(uri.with({ scheme: 'file' }));
+        if (!wsFolder) {
+            return null;
+        }
+        const root = _workspacesMap.get(wsFolder.uri.fsPath);
+        if (!root) {
+            return null;
+        }
+        return { root, wsFolders: _gitReposMap.get(root) };
     }
 
-    export async function getGitRelativePath(file: Uri) {
-        let gitRoot: string = await getGitRoot();
-        return path.relative(gitRoot, file.fsPath).replace(/\\/g, '/');
+    export function getGitRelativePath(file: Uri) {
+        const repo: GitRepo = getGitRepo(file);
+        if (!repo) {
+            return;
+        }
+        let relative: string = path.relative(repo.root, file.fsPath).replace(/\\/g, '/');
+        return relative === '' ? '.' : relative;
     }
 
-    export async function getCurrentBranch(): Promise<string> {
-        return (await exec(['rev-parse', '--abbrev-ref', 'HEAD'])).trim();
+    export async function getCurrentBranch(repo: GitRepo): Promise<string> {
+        if (!repo) {
+            return null;
+        }
+        return (await exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
     }
 
-    export async function getCommitsCount(file?: Uri, author?: string): Promise<number> {
+    export async function getCommitsCount(repo: GitRepo, file?: Uri, author?: string): Promise<number> {
+        if (!repo) {
+            return 0;
+        }
         let args: string[] = ['rev-list', '--simplify-merges', '--count', 'HEAD'];
         if (author) {
             args.push(`--author=${author}`);
@@ -97,12 +135,14 @@ export namespace git {
         if (file) {
             args.push(await getGitRelativePath(file));
         }
-        return parseInt(await exec(args));
+        return parseInt(await exec(args, repo.root));
     }
 
-    export async function getRefs(): Promise<Ref[]> {
-        const result = await exec(['for-each-ref', '--format', '%(refname) %(objectname:short)']);
-
+    export async function getRefs(repo: GitRepo): Promise<Ref[]> {
+        if (!repo) {
+            return [];
+        }
+        const result = await exec(['for-each-ref', '--format', '%(refname) %(objectname:short)'], repo.root);
         const fn = (line): Ref | null => {
             let match: RegExpExecArray | null;
 
@@ -123,13 +163,15 @@ export namespace git {
             .filter(ref => !!ref) as Ref[];
     }
 
-    export async function getCommittedFiles(leftRef: string, rightRef: string): Promise<CommittedFile[]> {
-        const gitRootPath = await getGitRoot();
+    export async function getCommittedFiles(repo: GitRepo, leftRef: string, rightRef: string): Promise<CommittedFile[]> {
+        if (!repo) {
+            return [];
+        }
         let args = ['show', '--format=%h', '--name-status', rightRef];
         if (leftRef) {
             args = ['diff', '--name-status', `${leftRef}..${rightRef}`];
         }
-        const result = await exec(args);
+        const result = await exec(args, repo.root);
         let files: CommittedFile[] = [];
         result.split(/\r?\n/g).forEach((value, index) => {
             if (value) {
@@ -157,15 +199,18 @@ export namespace git {
                     default:
                         throw new Error('Cannot parse ' + info);
                 }
-                files.push({ gitRelativePath, status, uri: Uri.file(path.join(gitRootPath, gitRelativePath)) });
+                files.push({ gitRelativePath, status, uri: Uri.file(path.join(repo.root, gitRelativePath)) });
             }
         });
         return files;
     }
 
-    export async function getLogEntries(express: boolean, start: number, count: number, branch: string,
+    export async function getLogEntries(repo: GitRepo, express: boolean, start: number, count: number, branch: string,
         file?: Uri, line?: number, author?: string): Promise<LogEntry[]> {
 
+        if (!repo) {
+            return [];
+        }
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
@@ -184,7 +229,7 @@ export namespace git {
             }
         }
 
-        const result = await exec(args);
+        const result = await exec(args, repo.root);
         let entries: LogEntry[] = [];
 
         result.split(entrySeparator).forEach(entry => {
@@ -236,7 +281,10 @@ export namespace git {
         return entries;
     }
 
-    export async function getCommitDetails(ref: string): Promise<string> {
+    export async function getCommitDetails(repo: GitRepo, ref: string): Promise<string> {
+        if (!repo) {
+            return null;
+        }
         const format: string =
 ` Commit:        %H
  Author:        %aN <%aE>
@@ -246,16 +294,19 @@ export namespace git {
 
  %s
 `;
-        let details: string = await exec(['show', `--format=${format}`, '--no-patch', '--date=local', ref]);
-        const shortstat: string = await exec(['show', '--format=', '--shortstat', ref]);
-        const stat = await exec(['show', '--format=', '--stat', ref]);
+        let details: string = await exec(['show', `--format=${format}`, '--no-patch', '--date=local', ref], repo.root);
+        const shortstat: string = await exec(['show', '--format=', '--shortstat', ref], repo.root);
+        const stat = await exec(['show', '--format=', '--stat', ref], repo.root);
         details += shortstat + '\r\n';
-        details += (await exec(['show', '--format=', '--stat', ref])).substr(0, stat.length - shortstat.length);
+        details += (await exec(['show', '--format=', '--stat', ref], repo.root)).substr(0, stat.length - shortstat.length);
         return details;
     }
 
-    export async function getAuthors(): Promise<{name: string, email: string}[]> {
-        const result: string = (await exec(['shortlog', '-se', 'HEAD'])).trim();
+    export async function getAuthors(repo: GitRepo): Promise<{name: string, email: string}[]> {
+        if (!repo) {
+            return null;
+        }
+        const result: string = (await exec(['shortlog', '-se', 'HEAD'], repo.root)).trim();
         return result.split(/\r?\n/g).map(item => {
             item = item.trim();
             let start: number = item.search(/ |\t/);

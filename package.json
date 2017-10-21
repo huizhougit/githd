@@ -78,7 +78,7 @@
                 {
                     "id": "committedFiles",
                     "name": "GitHD: Committed Files",
-                    "when": "config.githd.committedFiles.inExplorerView && isGitRepo"
+                    "when": "config.githd.committedFiles.inExplorerView && hasGitRepo"
                 }
             ]
         },
@@ -224,23 +224,23 @@
             "commandPalette": [
                 {
                     "command": "githd.viewHistory",
-                    "when": "isGitRepo"
+                    "when": "hasGitRepo"
                 },
                 {
                     "command": "githd.viewAllHistory",
-                    "when": "isGitRepo"
+                    "when": "hasGitRepo"
                 },
                 {
                     "command": "githd.viewBranchHistory",
-                    "when": "isGitRepo"
+                    "when": "hasGitRepo"
                 },
                 {
                     "command": "githd.diffBranch",
-                    "when": "isGitRepo"
+                    "when": "hasGitRepo"
                 },
                 {
                     "command": "githd.inputRef",
-                    "when": "isGitRepo"
+                    "when": "hasGitRepo"
                 },
                 {
                     "command": "githd.clear",
@@ -320,118 +320,118 @@
                 {
                     "command": "githd.updateRef",
                     "group": "navigation",
-                    "when": "scmProvider == githd && isGitRepo"
+                    "when": "scmProvider == githd && hasGitRepo"
                 },
                 {
                     "command": "githd.switch",
                     "group": "navigation",
-                    "when": "!config.githd.committedFiles.inExplorerView && isGitRepo"
+                    "when": "!config.githd.committedFiles.inExplorerView && hasGitRepo"
                 }
             ],
             "scm/resourceGroup/context": [
                 {
                     "command": "githd.clear",
-                    "when": "scmProvider == githd && isGitRepo",
+                    "when": "scmProvider == githd && hasGitRepo",
                     "group": "inline"
                 }
             ],
             "view/title": [
                 {
                     "command": "githd.showFilesWithFolder",
-                    "when": "view == committedFiles && isGitRepo",
+                    "when": "view == committedFiles && hasGitRepo",
                     "group": "navigation@1"
                 },
                 {
                     "command": "githd.showFilesWithoutFolder",
-                    "when": "view == committedFiles && isGitRepo",
+                    "when": "view == committedFiles && hasGitRepo",
                     "group": "navigation@2"
                 },
                 {
                     "command": "githd.collapseFolder",
-                    "when": "view == committedFiles && isGitRepo",
+                    "when": "view == committedFiles && hasGitRepo",
                     "group": "navigation@3"
                 },
                 {
                     "command": "githd.clear",
-                    "when": "view == committedFiles && isGitRepo",
+                    "when": "view == committedFiles && hasGitRepo",
                     "group": "navigation@9"
                 }
             ],
             "view/item/context": [
                 {
                     "command": "githd.showFilesWithFolder",
-                    "when": "view == committedFiles && viewItem == folder && isGitRepo",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
                     "group": "githd_2"
                 },
                 {
                     "command": "githd.showFilesWithoutFolder",
-                    "when": "view == committedFiles && viewItem == folder && isGitRepo",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
                     "group": "githd_2"
                 },
                 {
                     "command": "githd.collapseFolder",
-                    "when": "view == committedFiles && viewItem == folder && isGitRepo",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
                     "group": "githd_3"
                 },
                 {
                     "command": "githd.expandFolder",
-                    "when": "view == committedFiles && viewItem == folder && isGitRepo",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
                     "group": "githd_3"
                 },
                 {
                     "command": "githd.viewFileHistoryFromTree",
-                    "when": "view == committedFiles && viewItem != folder && isGitRepo",
+                    "when": "view == committedFiles && viewItem != folder && hasGitRepo",
                     "group": "githd_1"
                 },
                 {
                     "command": "githd.viewFolderHistoryFromTree",
-                    "when": "view == committedFiles && viewItem == folder && isGitRepo",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
                     "group": "githd_1"
                 }
             ],
             "explorer/context": [
                 {
                     "command": "githd.viewFileHistory",
-                    "when": "isGitRepo && !explorerResourceIsFolder",
+                    "when": "hasGitRepo && !explorerResourceIsFolder",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.viewFolderHistory",
-                    "when": "isGitRepo && explorerResourceIsFolder",
+                    "when": "hasGitRepo && explorerResourceIsFolder",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.diffFile",
-                    "when": "config.githd.committedFiles.inExplorerView && !explorerResourceIsFolder && isGitRepo",
+                    "when": "config.githd.committedFiles.inExplorerView && !explorerResourceIsFolder && hasGitRepo",
                     "group": "githd@2"
                 },
                 {
                     "command": "githd.diffFolder",
-                    "when": "config.githd.committedFiles.inExplorerView && explorerResourceIsFolder && isGitRepo",
+                    "when": "config.githd.committedFiles.inExplorerView && explorerResourceIsFolder && hasGitRepo",
                     "group": "githd@2"
                 }
             ],
             "editor/context": [
                 {
                     "command": "githd.viewFileHistory",
-                    "when": "isGitRepo",
+                    "when": "hasGitRepo",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.viewLineHistory",
-                    "when": "isGitRepo",
+                    "when": "hasGitRepo",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.diffFile",
-                    "when": "config.githd.committedFiles.inExplorerView && isGitRepo",
+                    "when": "config.githd.committedFiles.inExplorerView && hasGitRepo",
                     "group": "githd@2"
                 }
             ],
             "editor/title": [
                 {
                     "command": "githd.viewHistory",
-                    "when": "isGitRepo",
+                    "when": "hasGitRepo",
                     "group": "navigation"
                 }
             ]

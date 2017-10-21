@@ -159,10 +159,11 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._disposables.push(commands.registerCommand('githd.expandFolder',
             (folder: FolderItem) => this._setCollapsibleStateOnAll(folder, TreeItemCollapsibleState.Expanded)));
         this._disposables.push(commands.registerCommand('githd.viewFileHistoryFromTree',
-            (file: CommittedFile) => model.setHistoryViewContext({ specifiedPath: file.uri })));
+            (file: CommittedFile) => model.setHistoryViewContext({ repo: this._context.repo, specifiedPath: file.uri })));
         this._disposables.push(commands.registerCommand('githd.viewFolderHistoryFromTree',
             (folder: FolderItem) => model.setHistoryViewContext({
-                specifiedPath: Uri.file(path.join(git.getGitRootPath(), folder.gitRelativePath))
+                repo: this._context.repo,
+                specifiedPath: Uri.file(path.join(this._context.repo.root, folder.gitRelativePath))
             })));
 
         this._disposables.push(this._onDidChange);
@@ -215,7 +216,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             return;
         }
 
-        const committedFiles: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
+        const committedFiles: git.CommittedFile[] = await git.getCommittedFiles(this._context.repo, leftRef, rightRef);
         if (!leftRef && !specifiedPath) {
             this._buildCommitTree(committedFiles, rightRef);
         } else if (leftRef && !specifiedPath) {
@@ -238,7 +239,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
 
     private async _buildPathSpecifiedCommitTree(files: git.CommittedFile[], specifiedPath: Uri, lineInfo:string, ref: string): Promise<void> {
         if (lineInfo) {
-            lineInfo = await git.getCommitDetails(ref) + '\r\n\r\n' + lineInfo;
+            lineInfo = await git.getCommitDetails(this._context.repo, ref) + '\r\n\r\n' + lineInfo;
         }
         await this._buildFocusFolder('Focus', files, specifiedPath, lineInfo);
         this._buildCommitTree(files, ref);

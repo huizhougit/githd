@@ -14,6 +14,7 @@ export interface Configuration {
 }
 
 export interface FilesViewContext {
+    repo: git.GitRepo;
     leftRef?: string;
     rightRef?: string;
     specifiedPath?: Uri;
@@ -21,6 +22,7 @@ export interface FilesViewContext {
 }
 
 export interface HistoryViewContext {
+    repo: git.GitRepo;
     branch?: string;
     specifiedPath?: Uri;
     line?: number;
@@ -90,6 +92,11 @@ export class Model {
             }
         }, null, this._disposables);
 
+        workspace.onDidChangeWorkspaceFolders(e => {
+            git.updateGitRoots(workspace.workspaceFolders);
+        }, null, this._disposables);
+        git.updateGitRoots(workspace.workspaceFolders);
+
         this._disposables.push(this._onDidChangeConfiguratoin);
         this._disposables.push(this._onDidChangeFilesViewContext);
         this._disposables.push(this._onDidChangeHistoryViewContext);
@@ -122,7 +129,7 @@ export class Model {
     async setHistoryViewContext(context: HistoryViewContext) {
         this._historyViewContext = context;
         if (!this._historyViewContext.branch) {
-            this._historyViewContext.branch = await git.getCurrentBranch();
+            this._historyViewContext.branch = await git.getCurrentBranch(context.repo);
         }
         this._onDidChangeHistoryViewContext.fire(this._historyViewContext);
     }

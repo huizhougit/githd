@@ -142,11 +142,12 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             }
         }, null, this._disposables);
 
-        (async () => {
-            if (await git.isGitRepo()) {
-                this._expressStatusBar.show();
-            }
-        })();
+        // (async () => {
+        //     if (await git.hasGitRepo()) {
+        //         this._expressStatusBar.show();
+        //     }
+        // })();
+        this._expressStatusBar.show();
     }
 
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
@@ -195,14 +196,14 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._content += HistoryViewProvider._separatorLabel + '\n\n';
             this._currentLine += 2;
         }
-        const commitsCount: number = await git.getCommitsCount(context.specifiedPath, context.author);
+        const commitsCount: number = await git.getCommitsCount(context.repo, context.specifiedPath, context.author);
         let slowLoading = false;
         if (this._loadAll && ((!this._express && commitsCount > 1000) || (this._express && commitsCount > 10000))) {
             slowLoading = true;
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
         const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
-        const entries: git.LogEntry[] = await git.getLogEntries(this._express, logStart, logCount, context.branch,
+        const entries: git.LogEntry[] = await git.getLogEntries(context.repo, this._express, logStart, logCount, context.branch,
             context.specifiedPath, context.line, context.author);
         if (entries.length === 0) {
             this._reset();
@@ -231,7 +232,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._branchDecorationRange = new Range(0, this._content.length, 0, this._content.length + context.branch.length);
             this._clickableProvider.addClickable({
                 range: this._branchDecorationRange,
-                callback: () => commands.executeCommand('githd.viewBranchHistory'),
+                callback: () => commands.executeCommand('githd.viewBranchHistory', context),
                 getHoverMessage: (): string => { return 'Select a branch to see its history' }
             })
             this._content += context.branch;
@@ -252,7 +253,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 getHoverMessage: (): string => { return 'Select a author to see his/her commits' }
             });
 
-            this._content += ' \n\n';
+            this._content += ` (${context.repo.root})\n\n`;
             this._currentLine += 2;
         }
 
@@ -270,6 +271,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 range,
                 callback: (): void => {
                     this._model.filesViewContext = {
+                        repo: context.repo,
                         leftRef: null,
                         rightRef: entry.hash,
                         specifiedPath: context.specifiedPath,
@@ -277,7 +279,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     };
                 },
                 clickedDecorationType: selectedHashDecorationType,
-                getHoverMessage: async (): Promise<string> => { return await git.getCommitDetails(entry.hash) }
+                getHoverMessage: async (): Promise<string> => { return await git.getCommitDetails(context.repo, entry.hash) }
             });
 
             if (entry.ref) {

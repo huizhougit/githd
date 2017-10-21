@@ -49,7 +49,7 @@ export class ScmViewProvider {
 
     constructor(model: Model) {
         this._sc = scm.createSourceControl('githd', 'GitHistoryDiff');
-        this._sc.acceptInputCommand = { command: 'githd.updateRef', title: 'Input the SHA1 code' };
+        this._sc.acceptInputCommand = { command: 'githd.updateRef', title: 'Input the SHA1 code', arguments: [this._sc.inputBox.value] };
         this._resourceGroup = this._sc.createResourceGroup('committed', 'Committed Files');
         this._disposables.push(this._sc, this._resourceGroup);
         model.onDidChangeFilesViewContext(context => this._update(context), null, this._disposables);
@@ -72,12 +72,12 @@ export class ScmViewProvider {
         if (leftRef) {
             this._sc.inputBox.value = `${leftRef} .. ${rightRef}`;
         }
-        this._resourceGroup.resourceStates = await this._updateResources(context.leftRef, context.rightRef);
+        this._resourceGroup.resourceStates = await this._updateResources(context.repo, context.leftRef, context.rightRef);
         commands.executeCommand('workbench.view.scm');
     }
 
-    private async _updateResources(leftRef: string, rightRef: string): Promise<Resource[]> {
-        const files: git.CommittedFile[] = await git.getCommittedFiles(leftRef, rightRef);
+    private async _updateResources(repo: git.GitRepo, leftRef: string, rightRef: string): Promise<Resource[]> {
+        const files: git.CommittedFile[] = await git.getCommittedFiles(repo, leftRef, rightRef);
         return files.map(file => {
             return new Resource(file.uri, file.gitRelativePath, file.status);
         });
