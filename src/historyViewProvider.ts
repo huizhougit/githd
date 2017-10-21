@@ -10,70 +10,6 @@ import { getIconUri } from './icons';
 import { Clickable, ClickableProvider } from './clickable';
 import { decorateWithoutWhitspace } from './utils';
 
-const titleDecorationType = window.createTextEditorDecorationType({
-    // class color
-    light: { color: '#267f99' },
-    dark: { color: '#4EC9B0' }
-});
-
-const fileDecorationType = window.createTextEditorDecorationType({
-    // regexp color
-    light: { color: '#811f3f' },
-    dark: { color: '#d16969' }
-});
-
-const subjectDecorationType = window.createTextEditorDecorationType({
-    // keyword color
-    light: { color: '#0000ff' },
-    dark: { color: '#569cd6' }
-});
-const hashDecorationType = window.createTextEditorDecorationType({
-    // string color
-    light: { color: '#a31515' },
-    dark: { color: '#ce9178' }
-});
-const selectedHashDecorationType = window.createTextEditorDecorationType({
-    backgroundColor: new ThemeColor('merge.currentContentBackground'),
-    isWholeLine: true
-});
-const refDecorationType = window.createTextEditorDecorationType({
-    // comment color
-    light: { color: '#008000' },
-    dark: { color: '#608b4e' }
-});
-const authorDecorationType = window.createTextEditorDecorationType({
-    // variable color
-    light: { color: '#001080' },
-    dark: { color: '#9CDCFE' }
-});
-const emailDecorationType = window.createTextEditorDecorationType({
-    // function color
-    light: { color: '#795E26' },
-    dark: { color: '#DCDCAA' }
-});
-const moreDecorationType = window.createTextEditorDecorationType({
-    // variable color
-    light: { color: '#001080' },
-    dark: { color: '#9cdcfe' }
-});
-const branchDecorationType = window.createTextEditorDecorationType({
-    // flow control coler
-    light: { color: '#AF00DB' },
-    dark: { color: '#C586C0' }
-});
-const loadingDecorationType = window.createTextEditorDecorationType({
-    light: {
-        after: {
-            contentIconPath: getIconUri('loading', 'light')
-        }
-    },
-    dark: {
-        after: {
-            contentIconPath: getIconUri('loading', 'dark')
-        }
-    }
-});
-
 export class HistoryViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-logs';
     static defaultUri: Uri = Uri.parse(HistoryViewProvider.scheme + '://authority/Git History');
@@ -91,6 +27,69 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private _loadAll: boolean = false;
     private _onDidChange = new EventEmitter<Uri>();
     private _disposables: Disposable[] = [];
+
+    private _titleDecorationType = window.createTextEditorDecorationType({
+        // class color
+        light: { color: '#267f99' },
+        dark: { color: '#4EC9B0' }
+    });
+    private _fileDecorationType = window.createTextEditorDecorationType({
+        // regexp color
+        light: { color: '#811f3f' },
+        dark: { color: '#d16969' }
+    });
+    
+    private _subjectDecorationType = window.createTextEditorDecorationType({
+        // keyword color
+        light: { color: '#0000ff' },
+        dark: { color: '#569cd6' }
+    });
+    private _hashDecorationType = window.createTextEditorDecorationType({
+        // string color
+        light: { color: '#a31515' },
+        dark: { color: '#ce9178' }
+    });
+    private _selectedHashDecorationType = window.createTextEditorDecorationType({
+        backgroundColor: new ThemeColor('merge.currentContentBackground'),
+        isWholeLine: true
+    });
+    private _refDecorationType = window.createTextEditorDecorationType({
+        // comment color
+        light: { color: '#008000' },
+        dark: { color: '#608b4e' }
+    });
+    private _authorDecorationType = window.createTextEditorDecorationType({
+        // variable color
+        light: { color: '#001080' },
+        dark: { color: '#9CDCFE' }
+    });
+    private _emailDecorationType = window.createTextEditorDecorationType({
+        // function color
+        light: { color: '#795E26' },
+        dark: { color: '#DCDCAA' }
+    });
+    private _moreDecorationType = window.createTextEditorDecorationType({
+        // variable color
+        light: { color: '#001080' },
+        dark: { color: '#9cdcfe' }
+    });
+    private _branchDecorationType = window.createTextEditorDecorationType({
+        // flow control coler
+        light: { color: '#AF00DB' },
+        dark: { color: '#C586C0' }
+    });
+    private _loadingDecorationType = window.createTextEditorDecorationType({
+        light: {
+            after: {
+                contentIconPath: getIconUri('loading', 'light')
+            }
+        },
+        dark: {
+            after: {
+                contentIconPath: getIconUri('loading', 'dark')
+            }
+        }
+    });
 
     private _titleDecorationOptions: Range[] = [];
     private _fileDecorationRange: Range;
@@ -155,6 +154,20 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         } else {
             this._expressStatusBar.hide();
         }
+
+        this._disposables.push(
+            this._titleDecorationType,
+            this._fileDecorationType,
+            this._subjectDecorationType,
+            this._hashDecorationType,
+            this._selectedHashDecorationType,
+            this._refDecorationType,
+            this._authorDecorationType,
+            this._emailDecorationType,
+            this._moreDecorationType,
+            this._branchDecorationType,
+            this._loadingDecorationType,
+        );
     }
 
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
@@ -285,7 +298,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                         focusedLineInfo: entry.lineInfo
                     };
                 },
-                clickedDecorationType: selectedHashDecorationType,
+                clickedDecorationType: this._selectedHashDecorationType,
                 getHoverMessage: async (): Promise<string> => { return await this._gitService.getCommitDetails(context.repo, entry.hash) }
             });
 
@@ -354,22 +367,22 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
 
     private _setDecorations(editor: TextEditor): void {
         if (!this._content) {
-            editor.setDecorations(loadingDecorationType, [new Range(0, 0, 0, 1)]);
+            editor.setDecorations(this._loadingDecorationType, [new Range(0, 0, 0, 1)]);
             return;
         }
-        editor.setDecorations(loadingDecorationType, []);
+        editor.setDecorations(this._loadingDecorationType, []);
 
-        editor.setDecorations(titleDecorationType, this._titleDecorationOptions);
-        editor.setDecorations(fileDecorationType, this._fileDecorationRange ? [this._fileDecorationRange] : []);
-        editor.setDecorations(branchDecorationType, this._branchDecorationRange ? [this._branchDecorationRange] : []);
+        editor.setDecorations(this._titleDecorationType, this._titleDecorationOptions);
+        editor.setDecorations(this._fileDecorationType, this._fileDecorationRange ? [this._fileDecorationRange] : []);
+        editor.setDecorations(this._branchDecorationType, this._branchDecorationRange ? [this._branchDecorationRange] : []);
         
-        this._decorate(editor, subjectDecorationType, this._subjectDecorationOptions);
-        this._decorate(editor, hashDecorationType, this._hashDecorationOptions);
-        this._decorate(editor, refDecorationType, this._refDecorationOptions);
-        this._decorate(editor, authorDecorationType, this._authorDecorationOptions);
-        this._decorate(editor, emailDecorationType, this._emailDecorationOptions);
+        this._decorate(editor, this._subjectDecorationType, this._subjectDecorationOptions);
+        this._decorate(editor, this._hashDecorationType, this._hashDecorationOptions);
+        this._decorate(editor, this._refDecorationType, this._refDecorationOptions);
+        this._decorate(editor, this._authorDecorationType, this._authorDecorationOptions);
+        this._decorate(editor, this._emailDecorationType, this._emailDecorationOptions);
 
-        editor.setDecorations(moreDecorationType, this._moreClickableRange ? [this._moreClickableRange] : []);
+        editor.setDecorations(this._moreDecorationType, this._moreClickableRange ? [this._moreClickableRange] : []);
     }
     private _decorate(editor: TextEditor, type: TextEditorDecorationType, ranges: Range[]): void {
         if (this._logCount < 1000) {
@@ -408,7 +421,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this._selectedHashDecoration = null;
         let editor: TextEditor = window.activeTextEditor;
         if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
-            editor.setDecorations(selectedHashDecorationType, []);
+            editor.setDecorations(this._selectedHashDecorationType, []);
         }
     }
 }
