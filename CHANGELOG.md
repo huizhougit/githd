@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.0
+- Support multi-root workspaces.
+- Remove scm view.
+
 ## 0.10.0
 - Display history by author.
 

@@ -44,13 +44,13 @@ _Press F1_ and type or select below commands to run.
 ### Display of the Committed Files
 ![Image of display files](https://raw.githubusercontent.com/huizhougit/githd/master/resources/display_files.gif) 
 
-## <a id="config"></a>Configuration
+## Configuration
 _Press F1_ and type or select `Preferences: Open Workspace Settings` or  `Preferences: Open User Settings` and set the configurations.
 
 ![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/configurations.png)
 
 ## Changes
-[Change Log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.md#0100)
+[Change Log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.md#100)
 
 ## Blemish
 * _Cannot focus on the explorer view automatically after selecting the commit._
