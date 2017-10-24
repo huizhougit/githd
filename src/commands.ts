@@ -103,15 +103,6 @@ export class CommandCenter {
         this._disposables.forEach(d => d.dispose());
     }
 
-    @command('githd.updateRef')
-    async updateRef(ref: string): Promise<void> {
-        selectGitRepo(this._gitService).then(repo => {
-            if (repo) {
-                this._model.filesViewContext = { leftRef: null, rightRef: ref, repo };
-            }
-        });
-    }
-
     @command('githd.clear')
     async clear(): Promise<void> {
         this._model.filesViewContext = { leftRef: null, rightRef: null, specifiedPath: null, repo: null };
@@ -254,7 +245,7 @@ export class CommandCenter {
                 return;
             }
             window.showInputBox({ placeHolder: `Input a ref(sha1) to see it's committed files` })
-                .then(ref => this._model.filesViewContext = { leftRef: null, rightRef: ref, specifiedPath: null, repo });
+                .then(ref => this._model.filesViewContext = { leftRef: null, rightRef: ref.trim(), specifiedPath: null, repo });
         });
     }
 

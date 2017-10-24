@@ -102,7 +102,8 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private _selectedHashDecoration: Range;
     private _moreClickableRange: Range;
 
-    private _expressStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 1);
+    private _repoStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 1);
+    private _expressStatusBar: StatusBarItem = window.createStatusBarItem(undefined, 2);
     private _express: boolean;
 
     constructor(private _model: Model, private _gitService: GitService) {
@@ -114,6 +115,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this.express = this._model.configuration.expressMode;
         this._disposables.push(this._expressStatusBar);
 
+        this._disposables.push(this._repoStatusBar);
         this._disposables.push(this._onDidChange);
         this._disposables.push(this._clickableProvider);
 
@@ -138,6 +140,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
                 this._setDecorations(editor);
+                this.repo = this._model.historyViewContext.repo.root;
+            } else {
+                this.repo = null;
             }
         }, null, this._disposables);
 
@@ -181,6 +186,15 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private set commitsCount(count: number) {
         if ([50, 100, 200, 300, 400, 500, 1000].findIndex(a => { return a === count; }) >= 0) {
             this._commitsCount = count;
+        }
+    }
+
+    private set repo(repo: string) {
+        if (repo) {
+            this._repoStatusBar.text = 'githd: Repository ' + repo;
+            this._repoStatusBar.show();
+        } else {
+            this._repoStatusBar.hide();
         }
     }
 
@@ -272,7 +286,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 getHoverMessage: (): string => { return 'Select an author to see the commits' }
             });
 
-            this._content += ` (${context.repo.root})\n\n`;
+            this._content += ` \n\n`;
             this._currentLine += 2;
         }
 
@@ -361,7 +375,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             }
         }
         this._update();
-        return;
+        this.repo = context.repo.root;
     }
 
     private _setDecorations(editor: TextEditor): void {

@@ -79,15 +79,6 @@
         },
         "commands": [
             {
-                "command": "githd.updateRef",
-                "title": "Check",
-                "category": "GitHD",
-                "icon": {
-                    "light": "resources/icons/light/check.svg",
-                    "dark": "resources/icons/dark/check.svg"
-                }
-            },
-            {
                 "command": "githd.clear",
                 "title": "Clear",
                 "category": "GitHD",
@@ -230,10 +221,6 @@
                 },
                 {
                     "command": "githd.clear",
-                    "when": "false"
-                },
-                {
-                    "command": "githd.updateRef",
                     "when": "false"
                 },
                 {

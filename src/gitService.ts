@@ -2,7 +2,7 @@
 
 import * as path from 'path';
 
-import { workspace, Uri, commands, WorkspaceFolder, Event, EventEmitter, Disposable } from 'vscode';
+import { workspace, Uri, commands, WorkspaceFolder, Event, EventEmitter, Disposable, window } from 'vscode';
 import { spawn } from 'child_process';
 
 function formatDate(timestamp: number): string {
@@ -114,6 +114,7 @@ export class GitService {
     getGitRepo(uri: Uri): GitRepo {
         const wsFolder: WorkspaceFolder = workspace.getWorkspaceFolder(uri.with({ scheme: 'file' }));
         if (!wsFolder) {
+            window.showWarningMessage(`${uri.fsPath} is not in any workspace.`);
             return null;
         }
         const root = this._workspacesMap.get(wsFolder.uri.fsPath);
