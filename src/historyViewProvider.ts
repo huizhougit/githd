@@ -2,7 +2,7 @@
 
 import {
     TextDocumentContentProvider, Uri, Disposable, workspace, window, commands, Range, TextEditor,
-    languages, EventEmitter, Event, TextEditorDecorationType, StatusBarItem, ThemeColor
+    languages, EventEmitter, Event, TextEditorDecorationType, StatusBarItem, ThemeColor, OverviewRulerLane
 } from 'vscode';
 import { Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
@@ -50,7 +50,10 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     });
     private _selectedHashDecorationType = window.createTextEditorDecorationType({
         backgroundColor: new ThemeColor('merge.currentContentBackground'),
-        isWholeLine: true
+        isWholeLine: true,
+        //overviewRulerColor: new ThemeColor('merge.currentContentBackground'),
+        overviewRulerColor: 'darkgreen',
+        overviewRulerLane: OverviewRulerLane.Full
     });
     private _refDecorationType = window.createTextEditorDecorationType({
         // comment color
