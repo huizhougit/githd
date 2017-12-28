@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.1.0
+- Add overview ruler for selected commit.
+- View the folder or file history whose git repository is not the current workspace.
+
 ## 1.0.0
 - Support multi-root workspaces.
 - Remove scm view.
