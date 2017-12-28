@@ -1,6 +1,7 @@
 'use strict'
 
 import * as path from 'path';
+import * as fs from 'fs';
 
 import { workspace, Uri, commands, WorkspaceFolder, Event, EventEmitter, Disposable, window } from 'vscode';
 import { spawn } from 'child_process';
@@ -11,7 +12,6 @@ function formatDate(timestamp: number): string {
 
 export interface GitRepo {
     root: string;
-    wsFolders: WorkspaceFolder[];
 }
 
 export enum GitRefType {
@@ -54,16 +54,8 @@ function exec(args: string[], cwd: string): Promise<string> {
     });
 }
 
-// export async function hasGitRepo(): Promise<boolean> {
-//     if (await getGitRoot(wsFolder)) {
-//         return true;
-//     }
-//     return false;
-// }
-
 export class GitService {
-    private _gitReposMap = new Map<string, WorkspaceFolder[]>();
-    private _workspacesMap = new Map<string, string>();
+    private _gitRepos: GitRepo[] = [];
     private _onDidChangeGitRepositories = new EventEmitter<GitRepo[]>();
     private _disposables: Disposable[] = [];
     
@@ -77,55 +69,36 @@ export class GitService {
         this._disposables.forEach(d => d.dispose());
     }
 
-    updateGitRoots(wsFolders: WorkspaceFolder[]): Promise<void> {
-        this._gitReposMap.clear();
-        this._workspacesMap.clear();
-
-        if (!wsFolders || wsFolders.length === 0) {
-            commands.executeCommand('setContext', 'hasGitRepo', false);
-            this._onDidChangeGitRepositories.fire([]);
-            return;
-        }
+    updateGitRoots(wsFolders: WorkspaceFolder[]): void {
+        // reset repos first. Should optimize it to avoid firing multiple events.
+        this._gitRepos = [];
+        commands.executeCommand('setContext', 'hasGitRepo', false);
+        this._onDidChangeGitRepositories.fire([]);
 
         wsFolders.forEach(async (wsFolder, index) => {
-            const rootPath: string = (await exec(['rev-parse', '--show-toplevel'], wsFolder.uri.fsPath)).trim();
-            if (rootPath) {
-                let wsFolders = this._gitReposMap.get(rootPath);
-                if (wsFolders) {
-                    wsFolders.push(wsFolder);
-                } else {
-                    this._gitReposMap.set(rootPath, [wsFolder]);
-                }
-            }
-            this._workspacesMap.set(wsFolder.uri.fsPath, rootPath);
-            if (index === wsFolders.length - 1) {
-                commands.executeCommand('setContext', 'hasGitRepo', this._gitReposMap.size > 0);
-                this._onDidChangeGitRepositories.fire(this.getGitRepos());
-            }
+            const root = wsFolder.uri.fsPath;
+            this._scanSubFolders(root);
         });
     }
 
     getGitRepos(): GitRepo[] {
-        let repos: GitRepo[] = [];
-        this._gitReposMap.forEach((wsFolders, root) => repos.push({ root, wsFolders }));
-        return repos;
+        return this._gitRepos;
     }
 
-    getGitRepo(uri: Uri): GitRepo {
-        const wsFolder: WorkspaceFolder = workspace.getWorkspaceFolder(uri.with({ scheme: 'file' }));
-        if (!wsFolder) {
-            window.showWarningMessage(`${uri.fsPath} is not in any workspace.`);
-            return null;
+    async getGitRepo(uri: Uri): Promise<GitRepo> {
+        let fsPath = uri.fsPath;
+        if (fs.statSync(fsPath).isFile()) {
+            fsPath = path.dirname(fsPath);
         }
-        const root = this._workspacesMap.get(wsFolder.uri.fsPath);
-        if (!root) {
-            return null;
+        let root: string = (await exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
+        if (root) {
+            root = path.normalize(root);
         }
-        return { root, wsFolders: this._gitReposMap.get(root) };
+        return { root };
     }
 
-    getGitRelativePath(file: Uri) {
-        const repo: GitRepo = this.getGitRepo(file);
+    async getGitRelativePath(file: Uri) {
+        const repo: GitRepo = await this.getGitRepo(file);
         if (!repo) {
             return;
         }
@@ -331,6 +304,24 @@ export class GitService {
             const name: string = item.substring(0, start);
             const email: string = item.substring(start + 1, item.length - 1);
             return { name, email };
+        });
+    }
+
+    private _scanSubFolders(root: string): void {
+        const children = fs.readdirSync(root);
+        children.filter(child => child !== '.git').forEach(async (child) => {
+            const fullPath = path.join(root, child);
+            if (fs.statSync(fullPath).isDirectory()) {
+                const gitRoot: string = (await exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
+                if (gitRoot) {
+                    if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == gitRoot; }) === -1) {
+                        this._gitRepos.push({ root: gitRoot });
+                        commands.executeCommand('setContext', 'hasGitRepo', true);
+                        this._onDidChangeGitRepositories.fire(this.getGitRepos());
+                    }
+                }
+                //this._scanSubFolders(fullPath);
+            }
         });
     }
 }

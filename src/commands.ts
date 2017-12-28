@@ -50,11 +50,7 @@ function selectGitRepo(gitService: GitService): Thenable<GitRepo> {
     }
     const pickItems: RepoPickItem[] = repos.map(repo => {
         let label: string = '';
-        assert(repo.wsFolders.length > 0, 'every git repo should have at least one workspace folder');
-        repo.wsFolders.forEach(folder => label += folder.name + ', ');
-        label = label.slice(0, -2);
-
-        return { label, description: repo.root, repo };
+        return { label: path.basename(repo.root), description: repo.root, repo };
     });
     return window.showQuickPick(pickItems, { placeHolder: 'Select the git repo' })
         .then<GitRepo>(item => {
@@ -120,7 +116,7 @@ export class CommandCenter {
     @command('githd.viewFileHistory')
     async viewFileHistory(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
-            return this._viewHistory({ specifiedPath, repo: this._gitService.getGitRepo(specifiedPath) });
+            return this._viewHistory({ specifiedPath, repo: await this._gitService.getGitRepo(specifiedPath) });
         }
     }
 
@@ -133,7 +129,7 @@ export class CommandCenter {
     async viewLineHistory(file: Uri): Promise<void> {
         if (file) {
             const line = window.activeTextEditor.selection.active.line + 1;
-            return this._viewHistory({ specifiedPath: file, line, repo: this._gitService.getGitRepo(file) });
+            return this._viewHistory({ specifiedPath: file, line, repo: await this._gitService.getGitRepo(file) });
         }
     }
 
@@ -216,7 +212,7 @@ export class CommandCenter {
     @command('githd.diffFile')
     async diffFile(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
-            const repo: GitRepo = this._gitService.getGitRepo(specifiedPath);
+            const repo: GitRepo = await this._gitService.getGitRepo(specifiedPath);
             window.showQuickPick(selectBranch(this._gitService, repo),
                 { placeHolder: `Select a ref to see the diff of ${path.basename(specifiedPath.path)}` })
                 .then(async item => {
