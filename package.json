@@ -342,39 +342,36 @@
             "explorer/context": [
                 {
                     "command": "githd.viewFileHistory",
-                    "when": "hasGitRepo && !explorerResourceIsFolder",
+                    "when": "!explorerResourceIsFolder",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.viewFolderHistory",
-                    "when": "hasGitRepo && explorerResourceIsFolder",
+                    "when": "explorerResourceIsFolder",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.diffFile",
-                    "when": "!explorerResourceIsFolder && hasGitRepo",
+                    "when": "!explorerResourceIsFolder",
                     "group": "githd@2"
                 },
                 {
                     "command": "githd.diffFolder",
-                    "when": "explorerResourceIsFolder && hasGitRepo",
+                    "when": "explorerResourceIsFolder",
                     "group": "githd@2"
                 }
             ],
             "editor/context": [
                 {
                     "command": "githd.viewFileHistory",
-                    "when": "hasGitRepo",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.viewLineHistory",
-                    "when": "hasGitRepo",
                     "group": "githd@1"
                 },
                 {
                     "command": "githd.diffFile",
-                    "when": "hasGitRepo",
                     "group": "githd@2"
                 }
             ],

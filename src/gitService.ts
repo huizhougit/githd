@@ -76,6 +76,7 @@ export class GitService {
         this._onDidChangeGitRepositories.fire([]);
 
         wsFolders.forEach(async (wsFolder, index) => {
+            this.getGitRepo(wsFolder.uri);
             const root = wsFolder.uri.fsPath;
             this._scanSubFolders(root);
         });
@@ -93,6 +94,11 @@ export class GitService {
         let root: string = (await exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
         if (root) {
             root = path.normalize(root);
+            if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == root; }) === -1) {
+                this._gitRepos.push({ root });
+                commands.executeCommand('setContext', 'hasGitRepo', true);
+                this._onDidChangeGitRepositories.fire(this.getGitRepos());
+            }
         }
         return { root };
     }
