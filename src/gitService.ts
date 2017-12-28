@@ -318,8 +318,9 @@ export class GitService {
         children.filter(child => child !== '.git').forEach(async (child) => {
             const fullPath = path.join(root, child);
             if (fs.statSync(fullPath).isDirectory()) {
-                const gitRoot: string = (await exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
+                let gitRoot: string = (await exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
                 if (gitRoot) {
+                    gitRoot = path.normalize(gitRoot);
                     if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == gitRoot; }) === -1) {
                         this._gitRepos.push({ root: gitRoot });
                         commands.executeCommand('setContext', 'hasGitRepo', true);

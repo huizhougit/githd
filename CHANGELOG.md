@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.1.1
+- Fix duplicate git repository issue.
+
 ## 1.1.0
 - Add overview ruler for selected commit.
 - View the folder or file history whose git repository is not the current workspace.
