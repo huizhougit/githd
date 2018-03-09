@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.1.2
+## 1.1.3
 - Update decoration render way to accommodate vscode 1.21 upgrade.
 
 ## 1.1.1

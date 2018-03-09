@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View git history. View commit details. View diff of committed files. Multi-root workspaces supported.",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
