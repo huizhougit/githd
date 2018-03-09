@@ -2,7 +2,7 @@
 
 import {
     Range, languages, HoverProvider, Hover, TextDocument, Position, window, Disposable,
-    TextEditorDecorationType, TextEditor, TextEditorSelectionChangeKind
+    TextEditorDecorationType, TextEditor, TextEditorSelectionChangeKind, workspace
 } from 'vscode';
 
 export interface Clickable {
@@ -36,19 +36,18 @@ export class ClickableProvider implements HoverProvider {
                         this._onClicked(clickable, editor);
                     }
                 }
-                editor.setDecorations(this._decorationType, this._clickables.map((clickable => {
-                    return clickable.range;
-                })));
             }
         }, null, this._disposables);
+
         window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.uri.scheme === scheme) {
-                this._lastClickedItems.forEach(clickable => {
-                    editor.setDecorations(clickable.clickedDecorationType, [clickable.range]);
-                });
-                editor.setDecorations(this._decorationType, this._clickables.map((clickable => {
-                    return clickable.range;
-                })));
+                this._setDecorations(editor);
+            }
+        }, null, this._disposables);
+
+        workspace.onDidChangeTextDocument(e => {
+            if (e.document.uri.scheme === scheme) {
+                this._setDecorations(window.activeTextEditor);
             }
         }, null, this._disposables);
     }
@@ -100,5 +99,17 @@ export class ClickableProvider implements HoverProvider {
             this._lastClickedItems.push(clickable);
         }
         clickable.callback();
+    }
+
+    private _setDecorations(editor: TextEditor): void {
+        if (!editor) {
+            return;
+        }
+        this._lastClickedItems.forEach(clickable => {
+            editor.setDecorations(clickable.clickedDecorationType, [clickable.range]);
+        });
+        editor.setDecorations(this._decorationType, this._clickables.map((clickable => {
+            return clickable.range;
+        })));
     }
 }

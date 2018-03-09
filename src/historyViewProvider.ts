@@ -51,7 +51,6 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private _selectedHashDecorationType = window.createTextEditorDecorationType({
         backgroundColor: new ThemeColor('merge.currentContentBackground'),
         isWholeLine: true,
-        //overviewRulerColor: new ThemeColor('merge.currentContentBackground'),
         overviewRulerColor: 'darkgreen',
         overviewRulerLane: OverviewRulerLane.Full
     });
@@ -381,6 +380,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     }
 
     private _setDecorations(editor: TextEditor): void {
+        if (!editor) {
+            return;
+        }
         if (!this._content) {
             editor.setDecorations(this._loadingDecorationType, [new Range(0, 0, 0, 1)]);
             return;
