@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.1.2
+- Update decoration render way to accommodate vscode 1.21 upgrade.
+
 ## 1.1.1
 - Fix duplicate git repository issue.
 

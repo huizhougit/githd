@@ -149,10 +149,9 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             }
         }, null, this._disposables);
 
-        window.onDidChangeTextEditorSelection(event => {
-            let editor = event.textEditor;
-            if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
-                this._setDecorations(editor);
+        workspace.onDidChangeTextDocument(e => {
+            if (e.document.uri.scheme === HistoryViewProvider.scheme) {
+                this._setDecorations(window.activeTextEditor);
             }
         }, null, this._disposables);
 
@@ -392,32 +391,15 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         editor.setDecorations(this._fileDecorationType, this._fileDecorationRange ? [this._fileDecorationRange] : []);
         editor.setDecorations(this._branchDecorationType, this._branchDecorationRange ? [this._branchDecorationRange] : []);
         
-        this._decorate(editor, this._subjectDecorationType, this._subjectDecorationOptions);
-        this._decorate(editor, this._hashDecorationType, this._hashDecorationOptions);
-        this._decorate(editor, this._refDecorationType, this._refDecorationOptions);
-        this._decorate(editor, this._authorDecorationType, this._authorDecorationOptions);
-        this._decorate(editor, this._emailDecorationType, this._emailDecorationOptions);
+        editor.setDecorations(this._subjectDecorationType, this._subjectDecorationOptions);
+        editor.setDecorations(this._hashDecorationType, this._hashDecorationOptions);
+        editor.setDecorations(this._refDecorationType, this._refDecorationOptions);
+        editor.setDecorations(this._authorDecorationType, this._authorDecorationOptions);
+        editor.setDecorations(this._emailDecorationType, this._emailDecorationOptions);
 
         editor.setDecorations(this._moreDecorationType, this._moreClickableRange ? [this._moreClickableRange] : []);
     }
-    private _decorate(editor: TextEditor, type: TextEditorDecorationType, ranges: Range[]): void {
-        if (this._logCount < 1000) {
-            editor.setDecorations(type, ranges);
-            return;
-        }
-        const displayCount = 300;
-        let currentLine = editor.selection.active.line;
-        let start: number = ranges.findIndex(range => {
-            return range.start.line > currentLine - displayCount;
-        });
-        let end: number = ranges.findIndex(range => {
-            return range.start.line > currentLine + displayCount;
-        });
-        if (end === -1) {
-            end = ranges.length;
-        }
-        editor.setDecorations(type, ranges.slice(start, end));
-    }
+
     private _reset(): void {
         this._clickableProvider.clear();
         this._content = '';
