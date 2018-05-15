@@ -6,9 +6,9 @@ import { ExplorerViewProvider } from './explorerViewProvider';
 import { GitService, GitRepo } from './gitService';
 
 export interface Configuration {
-    readonly useExplorer?: boolean;
     readonly commitsCount?: number;
     readonly expressMode?: boolean;
+    readonly displayExpress?: boolean;
     withFolder?: boolean;
 }
 
@@ -32,7 +32,8 @@ function getConfiguration(): Configuration {
     return {
         withFolder: <boolean>workspace.getConfiguration('githd.explorerView').get('withFolder'),
         commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount'),
-        expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode')
+        expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode'),
+        displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressMode')
     };
 }
 
@@ -56,10 +57,10 @@ export class Model {
 
         workspace.onDidChangeConfiguration(() => {
             let newConfig = getConfiguration();
-            if (newConfig.useExplorer !== this._config.useExplorer ||
-                newConfig.withFolder !== this._config.withFolder ||
+            if (newConfig.withFolder !== this._config.withFolder ||
                 newConfig.commitsCount !== this._config.commitsCount ||
-                newConfig.expressMode !== this._config.expressMode) {
+                newConfig.expressMode !== this._config.expressMode ||
+                newConfig.displayExpress !== this._config.displayExpress) {
 
                 this._config = newConfig;
                 this._onDidChangeConfiguratoin.fire(newConfig);

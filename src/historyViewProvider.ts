@@ -122,7 +122,10 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this._disposables.push(this._clickableProvider);
 
         this.commitsCount = this._model.configuration.commitsCount;
-        this._model.onDidChangeConfiguration(config => this.commitsCount = config.commitsCount, null, this._disposables);
+        this._model.onDidChangeConfiguration(config => {
+            this.commitsCount = config.commitsCount;
+            this._updateExpressStatusBar();
+        }, null, this._disposables);
         this._model.onDidChangeHistoryViewContext(context => {
             this._reset();
             this._update();
@@ -132,11 +135,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         });
 
         this._gitService.onDidChangeGitRepositories(repos => {
-            if (repos.length > 0) {
-                this._expressStatusBar.show();
-            } else {
-                this._expressStatusBar.hide();
-            }
+            this._updateExpressStatusBar();
         });
 
         window.onDidChangeActiveTextEditor(editor => {
@@ -154,11 +153,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             }
         }, null, this._disposables);
 
-        if (this._gitService.getGitRepos().length > 0) {
-            this._expressStatusBar.show();
-        } else {
-            this._expressStatusBar.hide();
-        }
+        this._updateExpressStatusBar();
 
         this._disposables.push(
             this._titleDecorationType,
@@ -209,6 +204,14 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
 
     dispose(): void {
         this._disposables.forEach(d => d.dispose());
+    }
+
+    private _updateExpressStatusBar(): void {
+        if (this._model.configuration.displayExpress && this._gitService.getGitRepos().length > 0) {
+            this._expressStatusBar.show();
+        } else {
+            this._expressStatusBar.hide();
+        }
     }
 
     private _update(): void {

@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.1.4
+- Add configuration to support hiding Express mode in status bar.
+
 ## 1.1.3
 - Update decoration render way to accommodate vscode 1.21 upgrade.
 
