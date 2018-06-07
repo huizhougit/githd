@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.1.5
+- Fix express mode statusbar not showing issue.
+
 ## 1.1.4
 - Add configuration to support hiding Express mode in status bar.
 
