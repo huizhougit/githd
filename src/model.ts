@@ -33,7 +33,7 @@ function getConfiguration(): Configuration {
         withFolder: <boolean>workspace.getConfiguration('githd.explorerView').get('withFolder'),
         commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount'),
         expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode'),
-        displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressMode')
+        displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressStatus')
     };
 }
 
