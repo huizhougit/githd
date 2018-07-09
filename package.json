@@ -9,7 +9,7 @@
         "email": "zhou_hui@outlook.com"
     },
     "engines": {
-        "vscode": "^1.21.0"
+        "vscode": "^1.23.0"
     },
     "license": "MIT",
     "repository": {
@@ -73,11 +73,20 @@
                 }
             }
         },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "githd-explorer",
+                    "title": "GitHD",
+                    "icon": "resources/icons/githd.svg"
+                }
+            ]
+        },
         "views": {
-            "explorer": [
+            "githd-explorer": [
                 {
                     "id": "committedFiles",
-                    "name": "GitHD: Committed Files",
+                    "name": "Committed Files",
                     "when": "hasGitRepo"
                 }
             ]
