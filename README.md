@@ -50,18 +50,13 @@ _Press F1_ and type or select `Preferences: Open Workspace Settings` or  `Prefer
 ![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/configurations.png)
 
 ## Changes
-[Change Log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.md#115)
-
-## Blemish
-* _Cannot focus on the explorer view automatically after selecting the commit._
+[Change Log](https://github.com/huizhougit/githd/blob/master/CHANGELOG.md#210)
 
 ## License
 [MIT](https://raw.githubusercontent.com/huizhougit/githd/master/LICENSE)
 
 ## Unofficial Author's Words
 >This is the tool I wanted but could not find so wrote myself.
->
->I don't know why I put the Blemish here.
 >
 >我会说中文。
 >

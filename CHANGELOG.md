@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.2.0
+- Move explore view to activity bar.
+
 ## 1.1.5
 - Fix express mode statusbar not showing issue.
 
