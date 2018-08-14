@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.2.1
+- Fix line history display issue.
+
 ## 1.2.0
 - Move explore view to activity bar.
 
