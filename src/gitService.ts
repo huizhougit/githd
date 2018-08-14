@@ -218,9 +218,10 @@ export class GitService {
         }
         if (file) {
             const filePath: string = await this.getGitRelativePath(file);
-            args.push('--follow', filePath);
             if (line) {
                 args.push(`-L ${line},${line}:${filePath}`);
+            } else {
+                args.push('--follow', filePath);
             }
         }
 
