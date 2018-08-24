@@ -131,11 +131,13 @@
             },
             {
                 "command": "githd.viewFileHistory",
-                "title": "GitHD: View File History"
+                "title": "GitHD: View File History",
+                "category": "GitHD"
             },
             {
                 "command": "githd.viewLineHistory",
-                "title": "GitHD: View Line History"
+                "title": "GitHD: View Line History",
+                "category": "GitHD"
             },
             {
                 "command": "githd.viewFolderHistory",
@@ -247,11 +249,11 @@
                 },
                 {
                     "command": "githd.viewFileHistory",
-                    "when": "false"
+                    "when": "hasGitRepo && editorIsOpen"
                 },
                 {
                     "command": "githd.viewLineHistory",
-                    "when": "false"
+                    "when": "hasGitRepo && editorIsOpen"
                 },
                 {
                     "command": "githd.viewFolderHistory",
@@ -296,7 +298,7 @@
                 {
                     "command": "githd.openLineDiff",
                     "when": "false"
-                
+
                 }
             ],
             "view/title": [
