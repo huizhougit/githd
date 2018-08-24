@@ -3,7 +3,7 @@
 import * as path from 'path';
 import * as assert from 'assert';
 
-import { Uri, commands, Disposable, workspace, window , QuickPickItem} from 'vscode';
+import { Uri, commands, Disposable, workspace, window, QuickPickItem } from 'vscode';
 
 import { Model, HistoryViewContext } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
@@ -114,10 +114,12 @@ export class CommandCenter {
     }
 
     @command('githd.viewFileHistory')
-    async viewFileHistory(specifiedPath: Uri): Promise<void> {
-        if (specifiedPath) {
-            return this._viewHistory({ specifiedPath, repo: await this._gitService.getGitRepo(specifiedPath) });
-        }
+    async viewFileHistory(
+        specifiedPath: Uri | undefined = window.activeTextEditor ? window.activeTextEditor.document.uri : undefined
+    ): Promise<void> {
+        if (!specifiedPath) { return; }
+
+        return this._viewHistory({ specifiedPath, repo: await this._gitService.getGitRepo(specifiedPath) });
     }
 
     @command('githd.viewFolderHistory')
@@ -126,11 +128,15 @@ export class CommandCenter {
     }
 
     @command('githd.viewLineHistory')
-    async viewLineHistory(file: Uri): Promise<void> {
-        if (file) {
-            const line = window.activeTextEditor.selection.active.line + 1;
-            return this._viewHistory({ specifiedPath: file, line, repo: await this._gitService.getGitRepo(file) });
-        }
+    async viewLineHistory(
+        file: Uri | undefined = window.activeTextEditor ? window.activeTextEditor.document.uri : undefined
+    ): Promise<void> {
+        if (!file) { return; }
+
+        const line = window.activeTextEditor && window.activeTextEditor.selection.active.line + 1;
+        if (!line) { return; }
+
+        return this._viewHistory({ specifiedPath: file, line, repo: await this._gitService.getGitRepo(file) });
     }
 
     @command('githd.viewAllHistory')
