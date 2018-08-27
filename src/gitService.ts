@@ -75,11 +75,13 @@ export class GitService {
         commands.executeCommand('setContext', 'hasGitRepo', false);
         this._onDidChangeGitRepositories.fire([]);
 
-        wsFolders.forEach(async (wsFolder, index) => {
-            this.getGitRepo(wsFolder.uri);
-            const root = wsFolder.uri.fsPath;
-            this._scanSubFolders(root);
-        });
+        if (wsFolders) {
+            wsFolders.forEach(async (wsFolder, index) => {
+                this.getGitRepo(wsFolder.uri);
+                const root = wsFolder.uri.fsPath;
+                this._scanSubFolders(root);
+            });
+        }
     }
 
     getGitRepos(): GitRepo[] {
