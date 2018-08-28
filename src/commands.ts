@@ -43,7 +43,7 @@ interface RepoPickItem extends QuickPickItem {
 }
 
 class EnterShaPickItem implements QuickPickItem {
-    label = "$(search) Enter commit SHA";
+    label = "Enter commit SHA";
     description = "";
     openShaTextBox = true;
 }
@@ -244,7 +244,7 @@ export class CommandCenter {
                         if (!leftRef) return;
                         this._model.filesViewContext = {
                             repo,
-                            leftRef: leftRef,
+                            leftRef,
                             rightRef: currentRef,
                             specifiedPath
                         };
