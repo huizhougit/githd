@@ -21,9 +21,9 @@ function toGitUri(uri: Uri, ref: string): Uri {
     });
 }
 
-async function selectBranch(gitService: GitService, repo: GitRepo): Promise<QuickPickItem[]> {
+async function selectBranch(gitService: GitService, repo: GitRepo, allowEnterSha?: boolean): Promise<QuickPickItem[]> {
     const refs = await gitService.getRefs(repo);
-    return refs.map(ref => {
+    const items = refs.map(ref => {
         let description: string;
         if (ref.type === GitRefType.Head) {
             description = ref.commit;
@@ -34,10 +34,18 @@ async function selectBranch(gitService: GitService, repo: GitRepo): Promise<Quic
         }
         return { label: ref.name || ref.commit, description };
     });
+    if (allowEnterSha) items.unshift(new EnterShaPickItem);
+    return items;
 }
 
 interface RepoPickItem extends QuickPickItem {
     repo: GitRepo;
+}
+
+class EnterShaPickItem implements QuickPickItem {
+    label = "Enter commit SHA";
+    description = "";
+    openShaTextBox = true;
 }
 
 function selectGitRepo(gitService: GitService): Thenable<GitRepo> {
@@ -59,6 +67,12 @@ function selectGitRepo(gitService: GitService): Thenable<GitRepo> {
             }
             return null;
         });
+}
+
+async function getRefFromQuickPickItem(item: QuickPickItem | EnterShaPickItem, inputBoxTitle: string): Promise<string> {
+    return (<EnterShaPickItem>item).openShaTextBox
+        ? await window.showInputBox({ prompt: inputBoxTitle })
+        : item.label;
 }
 
 async function selectAuthor(gitService: GitService, repo: GitRepo): Promise<QuickPickItem[]> {
@@ -201,12 +215,14 @@ export class CommandCenter {
                 return;
             }
             const currentRef: string = await this._gitService.getCurrentBranch(repo);
-            window.showQuickPick(selectBranch(this._gitService, repo), { placeHolder: `Select a ref to see it's diff with ${currentRef} (${repo.root})` })
+            window.showQuickPick(selectBranch(this._gitService, repo, true), { placeHolder: `Select a ref to see it's diff with ${currentRef} (${repo.root})` })
                 .then(async item => {
                     if (item) {
+                        const leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef}`);
+                        if (!leftRef) return;
                         this._model.filesViewContext = {
                             repo,
-                            leftRef: item.label,
+                            leftRef,
                             rightRef: currentRef,
                             specifiedPath: null
                         };
@@ -219,14 +235,16 @@ export class CommandCenter {
     async diffFile(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
             const repo: GitRepo = await this._gitService.getGitRepo(specifiedPath);
-            window.showQuickPick(selectBranch(this._gitService, repo),
+            window.showQuickPick(selectBranch(this._gitService, repo, true),
                 { placeHolder: `Select a ref to see the diff of ${path.basename(specifiedPath.path)}` })
                 .then(async item => {
                     if (item) {
                         const currentRef: string = await this._gitService.getCurrentBranch(repo);
+                        const leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef}`);
+                        if (!leftRef) return;
                         this._model.filesViewContext = {
                             repo,
-                            leftRef: item.label,
+                            leftRef,
                             rightRef: currentRef,
                             specifiedPath
                         };
