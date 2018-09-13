@@ -21,6 +21,8 @@ _Press F1_ and type or select below commands to run.
 * `GitHD: View Branch History`
 * `GitHD: View Entire History`
 * `GitHD: View Branch Diff`
+* `GitHD: View File History`
+* `GitHD: View Line History`
 * `GitHD: Input Ref`
 
 ## Usage
@@ -54,6 +56,9 @@ _Press F1_ and type or select `Preferences: Open Workspace Settings` or  `Prefer
 
 ## License
 [MIT](https://raw.githubusercontent.com/huizhougit/githd/master/LICENSE)
+
+## Thanks
+**Big thanks** to the contributions of **_Thomas Müller_** and **_Eugene Voynov_**
 
 ## Unofficial Author's Words
 >This is the tool I wanted but could not find so wrote myself.

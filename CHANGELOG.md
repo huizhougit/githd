@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.2.2
+-- Add "View File History" and "View Line History" in command palette.
+-- Add ability to diff branches and files by commit sha.
+
 ## 1.2.1
 - Fix line history display issue.
 
