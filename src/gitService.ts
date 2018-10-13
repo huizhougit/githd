@@ -5,6 +5,7 @@ import * as fs from 'fs';
 
 import { workspace, Uri, commands, WorkspaceFolder, Event, EventEmitter, Disposable, window } from 'vscode';
 import { spawn } from 'child_process';
+import { Tracer } from './tracer';
 
 function formatDate(timestamp: number): string {
     return (new Date(timestamp * 1000)).toDateString();
@@ -43,6 +44,7 @@ export interface GitCommittedFile {
 }
 
 function exec(args: string[], cwd: string): Promise<string> {
+    Tracer.verbose(`git command: git ${args.join(' ')}`);
     let content: string = '';
     let gitShow = spawn('git', args, { cwd });
     let out = gitShow.stdout;

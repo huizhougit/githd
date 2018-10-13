@@ -7,8 +7,9 @@ import {
 import { Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
 import { getIconUri } from './icons';
-import { Clickable, ClickableProvider } from './clickable';
+import { ClickableProvider } from './clickable';
 import { decorateWithoutWhitspace } from './utils';
+import { Tracer } from './tracer';
 
 export class HistoryViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-logs';
@@ -109,6 +110,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private _express: boolean;
 
     constructor(private _model: Model, private _gitService: GitService) {
+        Tracer.info('Creating history view');
         let disposable = workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this);
         this._disposables.push(disposable);
 
@@ -168,6 +170,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._branchDecorationType,
             this._loadingDecorationType,
         );
+        Tracer.info('History view created');
     }
 
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }

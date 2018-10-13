@@ -70,6 +70,18 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Display the express mode setting on the status bar"
+                },
+                "githd.traceLevel": {
+                    "type": "string",
+                    "default": "silent",
+                    "description": "The trace level set to see githd logs from output window.",
+                    "enum": [
+                        "silent",
+                        "error",
+                        "warning",
+                        "info",
+                        "verbose"
+                    ]
                 }
             }
         },
