@@ -295,7 +295,7 @@ export class GitService {
         const shortstat: string = await exec(['show', '--format=', '--shortstat', ref], repo.root);
         const stat = await exec(['show', '--format=', '--stat', ref], repo.root);
         details += shortstat + '\r\n';
-        details += (await exec(['show', '--format=', '--stat', ref], repo.root)).substr(0, stat.length - shortstat.length);
+        details += stat.substr(0, stat.length - shortstat.length);
         return details;
     }
 

@@ -2,7 +2,6 @@
 
 import { Uri, workspace, Event, EventEmitter, Disposable } from 'vscode';
 
-import { ExplorerViewProvider } from './explorerViewProvider';
 import { GitService, GitRepo } from './gitService';
 
 export interface Configuration {
@@ -38,7 +37,6 @@ function getConfiguration(): Configuration {
 }
 
 export class Model {
-    private _explorerProvider: ExplorerViewProvider;
     private _config: Configuration;
 
     private _historyViewContext: HistoryViewContext;
@@ -52,8 +50,6 @@ export class Model {
 
     constructor(private _gitService: GitService) {
         this._config = getConfiguration();
-        this._explorerProvider = new ExplorerViewProvider(this, this._gitService);
-        this._disposables.push(this._explorerProvider);
 
         workspace.onDidChangeConfiguration(() => {
             let newConfig = getConfiguration();

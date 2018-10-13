@@ -1,11 +1,14 @@
 'use strict'
 
 import { TextDocumentContentProvider, Uri, Event, EventEmitter, TextEditor, Range, Disposable, window, workspace, languages } from 'vscode';
+
+import { Model } from './model';
+import { GitService } from './gitService';
 import { decorateWithoutWhitspace } from './utils';
 
-export class LineDiffViewProvider implements TextDocumentContentProvider {
+export class InfoViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-line';
-    static defaultUri: Uri = Uri.parse(LineDiffViewProvider.scheme + '://authority/Line Diff');
+    static defaultUri: Uri = Uri.parse(InfoViewProvider.scheme + '://authority/Commit Info');
 
     private _infoDecoration = window.createTextEditorDecorationType({
         // comment color
@@ -29,15 +32,28 @@ export class LineDiffViewProvider implements TextDocumentContentProvider {
     private _onDidChange = new EventEmitter<Uri>();
     private _disposables: Disposable[] = [];
 
-    constructor() {
-        let disposable = workspace.registerTextDocumentContentProvider(LineDiffViewProvider.scheme, this);
+    constructor(model: Model, gitService: GitService) {
+        let disposable = workspace.registerTextDocumentContentProvider(InfoViewProvider.scheme, this);
         this._disposables.push(disposable);
 
         window.onDidChangeActiveTextEditor(editor => {
-            if (editor && editor.document.uri.scheme === LineDiffViewProvider.scheme) {
+            if (editor && editor.document.uri.scheme === InfoViewProvider.scheme) {
                 this._decorate(editor);
             }
         }, null, this._disposables);
+
+        workspace.onDidChangeTextDocument(e => {
+            if (e.document.uri.scheme === InfoViewProvider.scheme) {
+                this._decorate(window.activeTextEditor);
+            }
+        }, null, this._disposables);
+
+        model.onDidChangeFilesViewContext(async context => {
+            if (!context.leftRef) {
+                // It is not a diff of two commits so there will be a commit info update
+                this.update(await gitService.getCommitDetails(context.repo, context.rightRef));
+            }
+         }, null, this._disposables);
 
         this._disposables.push(this._onDidChange);
         this._disposables.push(this._infoDecoration, this._pathDecoration, this._oldLineDecoration, this._newLineDecoration);
@@ -51,7 +67,7 @@ export class LineDiffViewProvider implements TextDocumentContentProvider {
 
     update(content: string): void {
         this._content = content;
-        this._onDidChange.fire(LineDiffViewProvider.defaultUri);
+        this._onDidChange.fire(InfoViewProvider.defaultUri);
     }
 
     dispose(): void {

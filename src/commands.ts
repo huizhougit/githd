@@ -7,7 +7,7 @@ import { Uri, commands, Disposable, workspace, window, QuickPickItem } from 'vsc
 
 import { Model, HistoryViewContext } from './model';
 import { HistoryViewProvider } from './historyViewProvider';
-import { LineDiffViewProvider } from './lineDiffViewProvider';
+import { InfoViewProvider } from './infoViewProvider';
 import { GitService, GitRepo, GitRefType, GitCommittedFile } from './gitService';
 
 function toGitUri(uri: Uri, ref: string): Uri {
@@ -101,7 +101,7 @@ export class CommandCenter {
     private _disposables: Disposable[];
 
     constructor(private _model: Model, private _gitService: GitService,
-        private _historyView: HistoryViewProvider, private _lineDiffView: LineDiffViewProvider) {
+        private _historyView: HistoryViewProvider, private _infoView: InfoViewProvider) {
 
         this._disposables = Commands.map(({ id, method }) => {
             return commands.registerCommand(id, (...args: any[]) => {
@@ -282,10 +282,10 @@ export class CommandCenter {
             title + ' | ' + path.basename(file.gitRelativePath), { preview: true });
     }
 
-    @command('githd.openLineDiff')
-    async openLineDiff(content: string): Promise<void> {
-        this._lineDiffView.update(content);
-        workspace.openTextDocument(LineDiffViewProvider.defaultUri)
+    @command('githd.openCommitInfo')
+    async openCommitInfo(content: string): Promise<void> {
+        this._infoView.update(content);
+        workspace.openTextDocument(InfoViewProvider.defaultUri)
             .then(doc => window.showTextDocument(doc, { preview: true, preserveFocus: true })
                 .then(() => commands.executeCommand('cursorTop')));
     }
