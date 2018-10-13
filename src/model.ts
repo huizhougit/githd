@@ -3,11 +3,13 @@
 import { Uri, workspace, Event, EventEmitter, Disposable, commands } from 'vscode';
 
 import { GitService, GitRepo } from './gitService';
+import { Tracer } from './tracer';
 
 export interface Configuration {
     readonly commitsCount?: number;
     readonly expressMode?: boolean;
     readonly displayExpress?: boolean;
+    readonly traceLevel?: string;
     withFolder?: boolean;
 }
 
@@ -32,7 +34,8 @@ function getConfiguration(): Configuration {
         withFolder: <boolean>workspace.getConfiguration('githd.explorerView').get('withFolder'),
         commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount'),
         expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode'),
-        displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressStatus')
+        displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressStatus'),
+        traceLevel: <string>workspace.getConfiguration('githd').get('traceLevel')
     };
 }
 
@@ -50,16 +53,19 @@ export class Model {
 
     constructor(private _gitService: GitService) {
         this._config = getConfiguration();
+        Tracer.level = this._config.traceLevel;
 
         workspace.onDidChangeConfiguration(() => {
             let newConfig = getConfiguration();
             if (newConfig.withFolder !== this._config.withFolder ||
                 newConfig.commitsCount !== this._config.commitsCount ||
                 newConfig.expressMode !== this._config.expressMode ||
-                newConfig.displayExpress !== this._config.displayExpress) {
+                newConfig.displayExpress !== this._config.displayExpress ||
+                newConfig.traceLevel !== this._config.traceLevel) {
 
                 this._config = newConfig;
                 this._onDidChangeConfiguratoin.fire(newConfig);
+                Tracer.level = newConfig.traceLevel;
             }
         }, null, this._disposables);
 
