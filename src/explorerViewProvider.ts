@@ -173,7 +173,6 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         model.onDidChangeFilesViewContext(context => {
             this._context = context;
             this._update();
-            commands.executeCommand('workbench.view.extension.githd-explorer');
          }, null, this._disposables);
 
         this._context = model.filesViewContext;
