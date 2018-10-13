@@ -1,6 +1,6 @@
 'use strict'
 
-import { Uri, workspace, Event, EventEmitter, Disposable } from 'vscode';
+import { Uri, workspace, Event, EventEmitter, Disposable, commands } from 'vscode';
 
 import { GitService, GitRepo } from './gitService';
 
@@ -82,9 +82,7 @@ export class Model {
         if (!this._filesViewContext) {
             this._filesViewContext = context;
             this._onDidChangeFilesViewContext.fire(this._filesViewContext);
-            return;
-        }
-        if (this._filesViewContext.leftRef != context.leftRef
+        } else if (this._filesViewContext.leftRef != context.leftRef
             || this._filesViewContext.rightRef != context.rightRef
             || this._filesViewContext.specifiedPath != context.specifiedPath
             || this._filesViewContext.focusedLineInfo != context.focusedLineInfo) {
@@ -92,6 +90,7 @@ export class Model {
             this._filesViewContext = context;
             this._onDidChangeFilesViewContext.fire(this._filesViewContext);
         }
+        commands.executeCommand('workbench.view.extension.githd-explorer');
     }
 
     get historyViewContext(): HistoryViewContext {
