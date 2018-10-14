@@ -155,8 +155,9 @@ export class CommandCenter {
 
     @command('githd.viewAllHistory')
     async viewAllHistory(): Promise<void> {
-        return this._viewHistory(this._model.historyViewContext ? this._model.historyViewContext
-            : { repo: this._gitService.getGitRepos()[0] }, true);
+        let context = this._model.historyViewContext ? this._model.historyViewContext : { repo: this._gitService.getGitRepos()[0] };
+        context.isStash = false;
+        return this._viewHistory(context, true);
     }
 
     @command('githd.viewBranchHistory')
