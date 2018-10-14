@@ -201,6 +201,10 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         return [];
     }
 
+    private get commitOrStashString(): string {
+        return this._context.isStash ? 'Stash' : 'Commit';
+    }
+
     private async _update(): Promise<void> {
         this._treeRoot = [];
         if (!this._context) {
@@ -234,11 +238,12 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
     }
 
     private async _buildCommitInfo(ref: string): Promise<void> {
-        await this._treeRoot.push(new InfoItem(await this._gitService.getCommitDetails(this._context.repo, ref), 'Commit Info'));
+        await this._treeRoot.push(new InfoItem(await this._gitService.getCommitDetails(this._context.repo, ref, this._context.isStash),
+            `${this.commitOrStashString} Info`));
     }
 
     private _buildCommitTree(files: GitCommittedFile[], ref: string): void {
-        this._buildCommitFolder(`Commit ${ref} \u00a0 (${files.length} files changed)`, files);
+        this._buildCommitFolder(`${this.commitOrStashString} ${ref} \u00a0 (${files.length} files changed)`, files);
     }
 
     private _buildDiffBranchTree(files: GitCommittedFile[], leftRef: string, rightRef): void {

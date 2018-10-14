@@ -51,7 +51,10 @@ function exec(args: string[], cwd: string): Promise<string> {
     out.setEncoding('utf8');
     return new Promise<string>((resolve, reject) => {
         out.on('data', data => content += data);
-        out.on('end', () => resolve(content));
+        out.on('end', () => {
+            resolve(content);
+            Tracer.verbose('git command finished');
+        });
         out.on('error', err => reject(err));
     });
 }
@@ -204,7 +207,7 @@ export class GitService {
         return files;
     }
 
-    async getLogEntries(repo: GitRepo, express: boolean, start: number, count: number, branch: string,
+    async getLogEntries(repo: GitRepo, express: boolean, start: number, count: number, branch: string, isStash?: boolean,
         file?: Uri, line?: number, author?: string): Promise<GitLogEntry[]> {
 
         if (!repo) {
@@ -213,19 +216,24 @@ export class GitService {
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
         const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
-        let args: string[] = ['log', format, '--simplify-merges', `--skip=${start}`, `--max-count=${count}`, branch];
+        let args: string[] = [format];
         if (!express || !!line) {
             args.push('--shortstat');
         }
-        if (author) {
-            args.push(`--author=${author}`);
-        }
-        if (file) {
-            const filePath: string = await this.getGitRelativePath(file);
-            if (line) {
-                args.push(`-L ${line},${line}:${filePath}`);
-            } else {
-                args.push('--follow', filePath);
+        if (isStash) {
+            args.unshift('stash', 'list');
+        } else {
+            args.unshift('log', `--skip=${start}`, `--max-count=${count}`, '--simplify-merges', branch);
+            if (author) {
+                args.push(`--author=${author}`);
+            }
+            if (file) {
+                const filePath: string = await this.getGitRelativePath(file);
+                if (line) {
+                    args.push(`-L ${line},${line}:${filePath}`);
+                } else {
+                    args.push('--follow', filePath);
+                }
             }
         }
 
@@ -281,11 +289,18 @@ export class GitService {
         return entries;
     }
 
-    async getCommitDetails(repo: GitRepo, ref: string): Promise<string> {
+    async getCommitDetails(repo: GitRepo, ref: string, isStash: boolean): Promise<string> {
         if (!repo) {
             return null;
         }
-        const format: string = ` Commit:        %H
+        const format: string = isStash ?
+` Stash:        %H
+ Author:        %aN <%aE>
+ AuthorDate:    %ad
+
+ %s
+ ` :
+` Commit:        %H
  Author:        %aN <%aE>
  AuthorDate:    %ad
  Commit:        %cN <%cE>
@@ -294,10 +309,7 @@ export class GitService {
  %s
 `;
         let details: string = await exec(['show', `--format=${format}`, '--no-patch', '--date=local', ref], repo.root);
-        const shortstat: string = await exec(['show', '--format=', '--shortstat', ref], repo.root);
-        const stat = await exec(['show', '--format=', '--stat', ref], repo.root);
-        details += shortstat + '\r\n';
-        details += stat.substr(0, stat.length - shortstat.length);
+        details += await exec(['show', '--format=', '--stat', ref], repo.root);
         return details;
     }
 
