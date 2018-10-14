@@ -49,10 +49,9 @@
                 },
                 "githd.logView.commitsCount": {
                     "type": "number",
-                    "default": 200,
+                    "default": 300,
                     "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking ... or load the entire log with command.",
                     "enum": [
-                        50,
                         100,
                         200,
                         300,

@@ -184,7 +184,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     }
 
     private set commitsCount(count: number) {
-        if ([50, 100, 200, 300, 400, 500, 1000].findIndex(a => { return a === count; }) >= 0) {
+        if ([100, 200, 300, 400, 500, 1000].findIndex(a => { return a === count; }) >= 0) {
             this._commitsCount = count;
         }
     }
@@ -242,12 +242,17 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         }
         const commitsCount: number = await this._gitService.getCommitsCount(context.repo, context.specifiedPath, context.author);
         let slowLoading = false;
-        if (this._loadAll && ((!this._express && commitsCount > 1000) || (this._express && commitsCount > 10000))) {
+        let express = this._express;
+        if (this._loadAll && !express && commitsCount > 1000) {
+            window.showInformationMessage(`Too many commits to be loaded and express mode is enabled.`);
+            express = true;
+        }
+        if (this._loadAll && commitsCount > 30000) {
             slowLoading = true;
             window.showInformationMessage(`There are ${commitsCount} commits and it will take a while to load all.`);
         }
         const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
-        const entries: GitLogEntry[] = await this._gitService.getLogEntries(context.repo, this._express, logStart, logCount, context.branch,
+        const entries: GitLogEntry[] = await this._gitService.getLogEntries(context.repo, express, logStart, logCount, context.branch,
             context.isStash, context.specifiedPath, context.line, context.author);
         if (entries.length === 0) {
             this._reset();
