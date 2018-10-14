@@ -212,7 +212,8 @@ export class GitService {
 
     async getLogEntries(repo: GitRepo, express: boolean, start: number, count: number, branch: string, isStash?: boolean,
         file?: Uri, line?: number, author?: string): Promise<GitLogEntry[]> {
-
+        Tracer.info(`Get entries. repo: ${repo.root}, express: ${express}, start: ${start}, count: ${count}, branch: ${branch},` +
+            `isStash: ${isStash}, file: ${file ? file.fsPath : ''}, line: ${line}, author: ${author}`);
         if (!repo) {
             return [];
         }
