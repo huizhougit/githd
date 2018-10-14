@@ -51,7 +51,7 @@ export class Tracer {
     }
 
     private static get timestamp(): string {
-        return (new Date()).toISOString().replace('T', ' ').replace('Z', '');
+        return (new Date()).toISOString().split('T')[1].replace('Z', '');
     }
 
     private static _log(message: string, level: TraceLevel) {

@@ -44,7 +44,7 @@ export interface GitCommittedFile {
 }
 
 function exec(args: string[], cwd: string): Promise<string> {
-    Tracer.verbose(`git command: git ${args.join(' ')}`);
+    const start = Date.now();
     let content: string = '';
     let gitShow = spawn('git', args, { cwd });
     let out = gitShow.stdout;
@@ -53,9 +53,12 @@ function exec(args: string[], cwd: string): Promise<string> {
         out.on('data', data => content += data);
         out.on('end', () => {
             resolve(content);
-            Tracer.verbose('git command finished');
+            Tracer.verbose(`git command: git ${args.join(' ')} (${Date.now() - start}ms)`);
         });
-        out.on('error', err => reject(err));
+        out.on('error', err => {
+            reject(err);
+            Tracer.error(`git command failed: git ${args.join(' ')} (${Date.now() - start}ms)\r\n${err.message}`);
+        });
     });
 }
 
