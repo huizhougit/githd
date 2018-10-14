@@ -50,10 +50,15 @@ export class Tracer {
         this._log(message, TraceLevel.Error);
     }
 
+    private static get timestamp(): string {
+        return (new Date()).toISOString().replace('T', ' ').replace('Z', '');
+    }
+
     private static _log(message: string, level: TraceLevel) {
         if (this._debugging || this._level >= level) {
+            message = `[${this.timestamp}] ${message}`;
             if (this._debugging) {
-                console.log(message);
+                console.log('[GitHD]', message);
             }
             if (this._level >= level) {
                 this._output.appendLine(message);
