@@ -208,6 +208,15 @@ export class CommandCenter {
             });
     }
 
+    @command('githd.viewStashes')
+    async viewStashes(): Promise<void> {
+        selectGitRepo(this._gitService).then(repo => {
+            if (repo) {
+                this._viewHistory({ repo, isStash: true });
+            }
+        });
+    }
+
     @command('githd.diffBranch')
     async diffBranch(): Promise<void> {
         selectGitRepo(this._gitService).then(async repo => {

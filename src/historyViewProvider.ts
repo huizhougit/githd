@@ -15,6 +15,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-logs';
     static defaultUri: Uri = Uri.parse(HistoryViewProvider.scheme + '://authority/Git History');
 
+    private static _stashTitleLabel = 'Git Stashes';
     private static _titleLabel = 'Git History';
     private static _moreLabel = '\u00b7\u00b7\u00b7';
     private static _separatorLabel = '--------------------------------------------------------------';
@@ -224,9 +225,12 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private async _updateContent(): Promise<void> {
         const context = this._model.historyViewContext;
         const loadingMore: boolean = this._loadingMore;
+        const isStash = context.isStash;
         if (context.specifiedPath && context.line) {
             this._loadAll = true;
         }
+
+        Tracer.info(`Update history view content. ${JSON.stringify(context)}`);
 
         let logStart = 0;
         if (loadingMore) {
@@ -244,60 +248,62 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         }
         const logCount = this._loadAll ? Number.MAX_SAFE_INTEGER : this._commitsCount;
         const entries: GitLogEntry[] = await this._gitService.getLogEntries(context.repo, this._express, logStart, logCount, context.branch,
-            context.specifiedPath, context.line, context.author);
+            context.isStash, context.specifiedPath, context.line, context.author);
         if (entries.length === 0) {
             this._reset();
-            this._content = 'No History';
+            this._content = isStash ? 'No Stash' : 'No History';
             this._update();
             return;
         }
 
         if (!loadingMore) {
             this._reset();
-            this._content = HistoryViewProvider._titleLabel;
+            this._content = isStash ? HistoryViewProvider._stashTitleLabel : HistoryViewProvider._titleLabel;
             decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
 
-            if (context.specifiedPath) {
-                this._content += ' of ';
-                let start: number = this._content.length;
-                this._content += await this._gitService.getGitRelativePath(context.specifiedPath);
-                this._fileDecorationRange = new Range(this._currentLine, start, this._currentLine, this._content.length);
+            if (!isStash) { // TODO: need to refine
+                if (context.specifiedPath) {
+                    this._content += ' of ';
+                    let start: number = this._content.length;
+                    this._content += await this._gitService.getGitRelativePath(context.specifiedPath);
+                    this._fileDecorationRange = new Range(this._currentLine, start, this._currentLine, this._content.length);
 
-                if (context.line) {
-                    this._content += ' at line ' + context.line;
+                    if (context.line) {
+                        this._content += ' at line ' + context.line;
+                    }
                 }
-            }
-            this._content += ' on ';
+                this._content += ' on ';
 
-            this._branchDecorationRange = new Range(0, this._content.length, 0, this._content.length + context.branch.length);
-            this._clickableProvider.addClickable({
-                range: this._branchDecorationRange,
-                callback: () => commands.executeCommand('githd.viewBranchHistory', context),
-                getHoverMessage: (): string => { return 'Select a branch to see its history' }
-            })
-            this._content += context.branch;
+                this._branchDecorationRange = new Range(0, this._content.length, 0, this._content.length + context.branch.length);
+                this._clickableProvider.addClickable({
+                    range: this._branchDecorationRange,
+                    callback: () => commands.executeCommand('githd.viewBranchHistory', context),
+                    getHoverMessage: (): string => { return 'Select a branch to see its history' }
+                })
+                this._content += context.branch;
 
-            this._content += ' by ';
-            let author: string = context.author;
-            if (!author) {
-                this._content += 'all ';
-                author = 'authors';
+                this._content += ' by ';
+                let author: string = context.author;
+                if (!author) {
+                    this._content += 'all ';
+                    author = 'authors';
+                }
+                let start: number = this._content.length;
+                this._content += author;
+                let range = new Range(this._currentLine, start, this._currentLine, this._content.length);
+                this._emailDecorationOptions.push(range);
+                this._clickableProvider.addClickable({
+                    range,
+                    callback: () => commands.executeCommand('githd.viewAuthorHistory'),
+                    getHoverMessage: (): string => { return 'Select an author to see the commits' }
+                });
             }
-            let start: number = this._content.length;
-            this._content += author;
-            let range = new Range(this._currentLine, start, this._currentLine, this._content.length);
-            this._emailDecorationOptions.push(range);
-            this._clickableProvider.addClickable({
-                range,
-                callback: () => commands.executeCommand('githd.viewAuthorHistory'),
-                getHoverMessage: (): string => { return 'Select an author to see the commits' }
-            });
 
             this._content += ` \n\n`;
             this._currentLine += 2;
         }
 
-        const hasMore: boolean = commitsCount > logCount + this._logCount;
+        const hasMore: boolean = !isStash && commitsCount > logCount + this._logCount;
         entries.forEach(entry => {
             ++this._logCount;
             decorateWithoutWhitspace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);
@@ -312,6 +318,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 callback: (): void => {
                     this._model.filesViewContext = {
                         repo: context.repo,
+                        isStash,
                         leftRef: null,
                         rightRef: entry.hash,
                         specifiedPath: context.specifiedPath,
@@ -319,7 +326,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                     };
                 },
                 clickedDecorationType: this._selectedHashDecorationType,
-                getHoverMessage: async (): Promise<string> => { return await this._gitService.getCommitDetails(context.repo, entry.hash) }
+                getHoverMessage: async (): Promise<string> => { return await this._gitService.getCommitDetails(context.repo, entry.hash, isStash) }
             });
 
             if (entry.ref) {

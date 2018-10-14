@@ -15,6 +15,7 @@ export interface Configuration {
 
 export interface FilesViewContext {
     repo: GitRepo;
+    isStash?: boolean;
     leftRef?: string;
     rightRef?: string;
     specifiedPath?: Uri;
@@ -23,6 +24,7 @@ export interface FilesViewContext {
 
 export interface HistoryViewContext {
     repo: GitRepo;
+    isStash?: boolean;
     branch?: string;
     specifiedPath?: Uri;
     line?: number;

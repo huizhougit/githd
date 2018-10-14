@@ -51,7 +51,7 @@ export class InfoViewProvider implements TextDocumentContentProvider {
         model.onDidChangeFilesViewContext(async context => {
             if (!context.leftRef) {
                 // It is not a diff of two commits so there will be a commit info update
-                this.update(await gitService.getCommitDetails(context.repo, context.rightRef));
+                this.update(await gitService.getCommitDetails(context.repo, context.rightRef, context.isStash));
             }
          }, null, this._disposables);
 

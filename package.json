@@ -221,6 +221,11 @@
                 "command": "githd.viewFolderHistoryFromTree",
                 "title": "View Folder History",
                 "category": "GitHD"
+            },
+            {
+                "command": "githd.viewStashes",
+                "title": "View Stashes",
+                "category": "GitHD"
             }
         ],
         "menus": {
@@ -243,6 +248,10 @@
                 },
                 {
                     "command": "githd.inputRef",
+                    "when": "hasGitRepo"
+                },
+                {
+                    "command": "githd.viewStashes",
                     "when": "hasGitRepo"
                 },
                 {
