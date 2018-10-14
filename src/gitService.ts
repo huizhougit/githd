@@ -219,7 +219,11 @@ export class GitService {
         }
         const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
         const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
-        const format = `--format=${entrySeparator}%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
+        let format = `--format=${entrySeparator}`;
+        if (isStash) {
+            format += '%gd: ';
+        }
+        format += `%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
         let args: string[] = [format];
         if (!express || !!line) {
             args.push('--shortstat');
