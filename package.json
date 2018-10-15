@@ -415,7 +415,126 @@
                     "group": "navigation"
                 }
             ]
-        }
+        },
+        "colors": [
+            {
+                "id": "githd.historyView.title",
+                "description": "The color of history view title.",
+                "defaults": {
+                    "light": "#267F99",
+                    "dark": "#4EC9B0",
+                    "highContrast": "#4EC9B0"
+                }
+            },
+            {
+                "id": "githd.historyView.branch",
+                "description": "The color of branch in history view.",
+                "defaults": {
+                    "light": "#AF00DB",
+                    "dark": "#C586C0",
+                    "highContrast": "#C586C0"
+                }
+            },
+            {
+                "id": "githd.historyView.filePath",
+                "description": "The color of specified file path in history view.",
+                "defaults": {
+                    "light": "#811F3F",
+                    "dark": "#D16969",
+                    "highContrast": "#D16969"
+                }
+            },
+            {
+                "id": "githd.historyView.subject",
+                "description": "The color of commit subject in history view.",
+                "defaults": {
+                    "light": "#0000FF",
+                    "dark": "#569CD6",
+                    "highContrast": "#569CD6"
+                }
+            },
+            {
+                "id": "githd.historyView.hash",
+                "description": "The color of commit hash code in history view.",
+                "defaults": {
+                    "light": "#A31515",
+                    "dark": "#CE9178",
+                    "highContrast": "#CE9178"
+                }
+            },
+            {
+                "id": "githd.historyView.ref",
+                "description": "The color of commit ref in history view.",
+                "defaults": {
+                    "light": "#008000",
+                    "dark": "#608B4E",
+                    "highContrast": "#608B4E"
+                }
+            },
+            {
+                "id": "githd.historyView.author",
+                "description": "The color of commit author in history view.",
+                "defaults": {
+                    "light": "#001080",
+                    "dark": "#9CDCFE",
+                    "highContrast": "#9CDCFE"
+                }
+            },
+            {
+                "id": "githd.historyView.email",
+                "description": "The color of commit email in history view.",
+                "defaults": {
+                    "light": "#795E26",
+                    "dark": "#DCDCAA",
+                    "highContrast": "#DCDCAA"
+                }
+            },
+            {
+                "id": "githd.historyView.more",
+                "description": "The color of history view 'more commits'.",
+                "defaults": {
+                    "light": "#001080",
+                    "dark": "#9CDCFE",
+                    "highContrast": "#9CDCFE"
+                }
+            },
+            {
+                "id": "githd.infoView.content",
+                "description": "The color of info view content.",
+                "defaults": {
+                    "light": "#008000",
+                    "dark": "#608B4E",
+                    "highContrast": "#608B4E"
+                }
+            },
+            {
+                "id": "githd.infoView.path",
+                "description": "The color of file path in info view.",
+                "defaults": {
+                    "light": "#000080",
+                    "dark": "#569CD6",
+                    "highContrast": "#569CD6"
+                }
+            },
+            {
+                "id": "githd.infoView.old",
+                "description": "The color of old content before the change in info view.",
+                "defaults": {
+                    "light": "#A31515",
+                    "dark": "#CE9178",
+                    "highContrast": "#CE9178"
+                }
+            },
+            {
+                "id": "githd.infoView.new",
+                "description": "The color of new content after the change in info view.",
+                "defaults": {
+                    "light": "#09885A",
+                    "dark": "#B5CEA8",
+                    "highContrast": "#B5CEA8"
+                }
+            }
+        ]
     },
     "devDependencies": {
         "@types/mocha": "^2.2.32",
