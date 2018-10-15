@@ -1,6 +1,6 @@
 'use strict'
 
-import { window } from 'vscode';
+import { window, OutputChannel } from 'vscode';
 
 enum TraceLevel {
     Silent,
@@ -16,7 +16,7 @@ function isDebugging(): boolean {
 }
 
 export class Tracer {
-    private static _output = window.createOutputChannel('GitHD');
+    private static _output = null;
     private static _level: TraceLevel = TraceLevel.Silent;
     private static _debugging = isDebugging();
 
@@ -50,6 +50,13 @@ export class Tracer {
         this._log(message, TraceLevel.Error);
     }
 
+    private static get output(): OutputChannel {
+        if (!this._output) {
+            this._output = window.createOutputChannel('GitHD');
+        }
+        return this._output;
+    }
+
     private static get timestamp(): string {
         return (new Date()).toISOString().split('T')[1].replace('Z', '');
     }
@@ -61,7 +68,7 @@ export class Tracer {
                 console.log('[GitHD]', message);
             }
             if (this._level >= level) {
-                this._output.appendLine(message);
+                this.output.appendLine(message);
             }
         }
     }
