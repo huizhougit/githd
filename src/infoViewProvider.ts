@@ -1,6 +1,6 @@
 'use strict'
 
-import { TextDocumentContentProvider, Uri, Event, EventEmitter, TextEditor, Range, Disposable, window, workspace, languages } from 'vscode';
+import { TextDocumentContentProvider, Uri, Event, EventEmitter, TextEditor, Range, Disposable, window, workspace, languages, ThemeColor } from 'vscode';
 
 import { Model } from './model';
 import { GitService } from './gitService';
@@ -11,21 +11,16 @@ export class InfoViewProvider implements TextDocumentContentProvider {
     static defaultUri: Uri = Uri.parse(InfoViewProvider.scheme + '://authority/Commit Info');
 
     private _infoDecoration = window.createTextEditorDecorationType({
-        // comment color
-        light: { color: '#008000' },
-        dark: { color: '#608b4e' }
+        color: new ThemeColor('githd.infoView.content')
     });
     private _pathDecoration = window.createTextEditorDecorationType({
-        light: { color: '#000080' },
-        dark: { color: '#569CD6' }
+        color: new ThemeColor('githd.infoView.path')
     });
     private _oldLineDecoration = window.createTextEditorDecorationType({
-        light: { color: '#A31515' },
-        dark: { color: '#CE9178' }
+        color: new ThemeColor('githd.infoView.old')
     });
     private _newLineDecoration = window.createTextEditorDecorationType({
-        light: { color: '#09885A' },
-        dark: { color: '#B5CEA8' }
+        color: new ThemeColor('githd.infoView.new')
     });
 
     private _content: string;
