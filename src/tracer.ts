@@ -63,7 +63,7 @@ export class Tracer {
 
     private static _log(message: string, level: TraceLevel) {
         if (this._debugging || this._level >= level) {
-            message = `[${this.timestamp}] ${message}`;
+            message = `[${this.timestamp}][${TraceLevel[level]}] ${message}`;
             if (this._debugging) {
                 console.log('[GitHD]', message);
             }
