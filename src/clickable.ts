@@ -17,14 +17,14 @@ export class ClickableProvider implements HoverProvider {
     private _disposables: Disposable[] = [];
     private _lastClickedItems: Clickable[] = [];
 
-    private _decorationType = window.createTextEditorDecorationType({
+    private _decoration = window.createTextEditorDecorationType({
         cursor: 'pointer',
         textDecoration: 'underline'
     });
 
     constructor(scheme: string) {
         this._disposables.push(languages.registerHoverProvider({scheme}, this));
-        this._disposables.push(this._decorationType);
+        this._disposables.push(this._decoration);
 
         window.onDidChangeTextEditorSelection(event => {
             let editor = event.textEditor;
@@ -108,7 +108,7 @@ export class ClickableProvider implements HoverProvider {
         this._lastClickedItems.forEach(clickable => {
             editor.setDecorations(clickable.clickedDecorationType, [clickable.range]);
         });
-        editor.setDecorations(this._decorationType, this._clickables.map((clickable => {
+        editor.setDecorations(this._decoration, this._clickables.map((clickable => {
             return clickable.range;
         })));
     }

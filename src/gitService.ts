@@ -43,6 +43,13 @@ export interface GitCommittedFile {
     status: string;
 }
 
+export interface GitBlameItem {
+    hash: string;
+    subject: string;
+    author: string;
+    date: string;
+}
+
 function exec(args: string[], cwd: string): Promise<string> {
     const start = Date.now();
     let content: string = '';
@@ -60,6 +67,10 @@ function exec(args: string[], cwd: string): Promise<string> {
             Tracer.error(`git command failed: git ${args.join(' ')} (${Date.now() - start}ms)\r\n${err.message}`);
         });
     });
+}
+
+function singleLined(value: string): string {
+    return value.replace(/\r?\n|\r/g, ' ');
 }
 
 export class GitService {
@@ -263,7 +274,7 @@ export class GitService {
             entry.split(itemSeparator).forEach((value, index) => {
                 switch (index % 8) {
                     case 0:
-                        subject = value.replace(/\r?\n|\r/g, ' ');
+                        subject = singleLined(value);
                         break;
                     case 1:
                         hash = value;
@@ -336,6 +347,49 @@ export class GitService {
             const email: string = item.substring(start + 1, item.length - 1);
             return { name, email };
         });
+    }
+
+    async getBlameItem(file: Uri, line: number): Promise<GitBlameItem> {
+        const repo: GitRepo = await this.getGitRepo(file);
+        if (!repo) {
+            return null;
+        }
+
+        const filePath = file.fsPath;
+        const result = await exec(['blame', `${filePath}`, '-L', `${line},${line}`, '--incremental'], repo.root);
+        let hash: string;
+        let subject: string;
+        let author: string;
+        let date: string;
+        result.split(/\r?\n/g).forEach((line, index) => {
+            if (index == 0) {
+                hash = line.split(' ')[0];
+            } else {
+                const infoName = line.split(' ')[0];
+                const info = line.substr(infoName.length).trim();
+                if (!info) {
+                    return;
+                }
+                switch (infoName) {
+                    case 'author':
+                        author = info;
+                        break;
+                    case 'committer-time':
+                        date = (new Date(parseInt(info) * 1000)).toLocaleString();
+                        break;
+                    case 'summary':
+                        subject = singleLined(info);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
+        if ([hash, subject, author, date].some(v => !v)) {
+            Tracer.warning(`Blame info missed. ${filePath}:${line}\r\n${hash}  author: ${author}, date: ${date}, summary: ${subject}`);
+            return null;
+        }
+        return { hash, author, date, subject };
     }
 
     private _scanSubFolders(root: string): void {
