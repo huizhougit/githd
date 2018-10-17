@@ -5,6 +5,8 @@ import {
     TextEditorDecorationType, TextEditor, TextEditorSelectionChangeKind, workspace
 } from 'vscode';
 
+import { Tracer } from './tracer';
+
 export interface Clickable {
     readonly range: Range;
     readonly callback: () => any;
@@ -22,13 +24,13 @@ export class ClickableProvider implements HoverProvider {
         textDecoration: 'underline'
     });
 
-    constructor(scheme: string) {
-        this._disposables.push(languages.registerHoverProvider({scheme}, this));
+    constructor(private _scheme: string) {
+        this._disposables.push(languages.registerHoverProvider({ scheme: _scheme }, this));
         this._disposables.push(this._decoration);
 
         window.onDidChangeTextEditorSelection(event => {
             let editor = event.textEditor;
-            if (editor && editor.document.uri.scheme === scheme) {
+            if (editor && editor.document.uri.scheme === _scheme) {
                 if (event.kind === TextEditorSelectionChangeKind.Mouse) {
                     const pos: Position = event.selections[0].anchor;
                     const clickable: Clickable = this._clickables.find(e => { return e.range.contains(pos) });
@@ -40,14 +42,14 @@ export class ClickableProvider implements HoverProvider {
         }, null, this._disposables);
 
         window.onDidChangeActiveTextEditor(editor => {
-            if (editor && editor.document.uri.scheme === scheme) {
+            if (editor && editor.document.uri.scheme === _scheme) {
                 this._setDecorations(editor);
             }
         }, null, this._disposables);
 
         workspace.onDidChangeTextDocument(e => {
-            if (e.document.uri.scheme === scheme) {
-                this._setDecorations(window.activeTextEditor);
+            if (e.document.uri.scheme === _scheme) {
+                this._setDecorations(window.visibleTextEditors.find(editor => editor.document === e.document));
             }
         }, null, this._disposables);
     }
@@ -102,7 +104,8 @@ export class ClickableProvider implements HoverProvider {
     }
 
     private _setDecorations(editor: TextEditor): void {
-        if (!editor) {
+        if (!editor || editor.document.uri.scheme !== this._scheme) {
+            Tracer.warning(`Clickable: try to set decoration to wrong scheme: ${editor ? editor.document.uri.scheme : ''}`);
             return;
         }
         this._lastClickedItems.forEach(clickable => {
