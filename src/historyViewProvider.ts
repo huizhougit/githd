@@ -2,7 +2,7 @@
 
 import {
     TextDocumentContentProvider, Uri, Disposable, workspace, window, commands, Range, TextEditor,
-    languages, EventEmitter, Event, StatusBarItem, ThemeColor, OverviewRulerLane
+    EventEmitter, Event, StatusBarItem, ThemeColor, OverviewRulerLane, Selection
 } from 'vscode';
 import { Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
@@ -28,6 +28,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     private _loadingMore: boolean = false;
     private _loadAll: boolean = false;
     private _onDidChange = new EventEmitter<Uri>();
+    private _refreshed = false;
     private _disposables: Disposable[] = [];
 
     private _titleDecoration = window.createTextEditorDecorationType({
@@ -114,8 +115,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             this._reset();
             this._update();
             workspace.openTextDocument(HistoryViewProvider.defaultUri)
-                .then(doc => window.showTextDocument(doc, { preview: false, preserveFocus: true })
-                    .then(() => commands.executeCommand('cursorTop')));
+                .then(doc => window.showTextDocument(doc, { preview: false, preserveFocus: true }));
         });
 
         this._gitService.onDidChangeGitRepositories(repos => {
@@ -124,6 +124,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
 
         window.onDidChangeActiveTextEditor(editor => {
             if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
+                Tracer.verbose(`History view: onDidChangeActiveTextEditor`);
                 this._setDecorations(editor);
                 this.repo = this._model.historyViewContext.repo.root;
             } else {
@@ -133,7 +134,8 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
 
         workspace.onDidChangeTextDocument(e => {
             if (e.document.uri.scheme === HistoryViewProvider.scheme) {
-                this._setDecorations(window.activeTextEditor);
+                Tracer.verbose(`History view: onDidChangeTextDocument`);
+                this._setDecorations(window.visibleTextEditors.find(editor => editor.document === e.document));
             }
         }, null, this._disposables);
 
@@ -188,7 +190,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     }
 
     dispose(): void {
-        this._disposables.forEach(d => d.dispose());
+        Disposable.from(...this._disposables).dispose();
     }
 
     private _updateExpressStatusBar(): void {
@@ -200,6 +202,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     }
 
     private _update(): void {
+        Tracer.info(`Update history view`);
         this._onDidChange.fire(HistoryViewProvider.defaultUri);
     }
 
@@ -379,13 +382,20 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
     }
 
     private _setDecorations(editor: TextEditor): void {
-        if (!editor) {
+        if (!editor || editor.document.uri.scheme !== HistoryViewProvider.scheme) {
+            Tracer.warning(`History view: try to set decoration to wrong scheme: ${editor ? editor.document.uri.scheme : ''}`);
             return;
         }
         if (!this._content) {
             editor.setDecorations(this._loadingDecoration, [new Range(0, 0, 0, 1)]);
             return;
         }
+
+        if (this._refreshed) {
+            this._refreshed = false;
+            editor.selection = new Selection(0, 0, 0, 0);
+        }
+
         editor.setDecorations(this._loadingDecoration, []);
 
         editor.setDecorations(this._titleDecoration, this._titleDecorationOptions);
@@ -417,9 +427,10 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this._authorDecorationOptions = [];
         this._emailDecorationOptions = [];
         this._dateDecorationOptions = [];
-        let editor: TextEditor = window.activeTextEditor;
-        if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
+        let editor: TextEditor = window.visibleTextEditors.find(e => e.document.uri.scheme === HistoryViewProvider.scheme);
+        if (editor) {
             editor.setDecorations(this._selectedHashDecoration, []);
         }
+        this._refreshed = true;
     }
 }
