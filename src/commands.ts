@@ -275,8 +275,14 @@ export class CommandCenter {
                 return;
             }
             window.showInputBox({ placeHolder: `Input a ref(sha1) to see it's committed files` })
-                .then(ref => this._model.filesViewContext = { leftRef: null, rightRef: ref.trim(), specifiedPath: null, repo });
+                .then(ref => this._model.filesViewContext = { rightRef: ref.trim(), specifiedPath: null, repo });
         });
+    }
+
+    @command('githd.openCommit')
+    async openCommit(repo: GitRepo, ref: string): Promise<void> {
+        Tracer.verbose('Command: githd.openCommit');
+        this._model.filesViewContext = { rightRef: ref, repo };
     }
 
     @command('githd.openCommittedFile')

@@ -161,6 +161,11 @@
                 "title": "GitHD: View Folder Diff"
             },
             {
+                "command": "githd.openCommit",
+                "title": "Open commit with the given sha",
+                "category": "GitHD"
+            },
+            {
                 "command": "githd.openCommittedFile",
                 "title": "Open the change of the committed file",
                 "category": "GitHD"
@@ -258,7 +263,7 @@
                     "when": "false"
                 },
                 {
-                    "command": "githd.openCommittedFile",
+                    "command": "githd.openCommit",
                     "when": "false"
                 },
                 {

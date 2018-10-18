@@ -61,7 +61,7 @@ export class ClickableProvider implements HoverProvider {
         let content: string;
         if (clickable && clickable.getHoverMessage) {
             content = await clickable.getHoverMessage();
-            return new Hover('\`\`\`\`\r\n' + content + '\r\n\`\`\`\`', clickable.range);
+            return new Hover(`\`\`\`\r\n${content}\r\n\`\`\``);
         }
     }
 
