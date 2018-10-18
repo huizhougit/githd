@@ -44,10 +44,15 @@ export interface GitCommittedFile {
 }
 
 export interface GitBlameItem {
-    hash: string;
-    subject: string;
-    author: string;
-    date: string;
+    file: Uri;
+    line: number;
+    hash?: string;
+    subject?: string;
+    author?: string;
+    date?: string;
+    relativeDate?: string;
+    email?: string;
+    stat?: string
 }
 
 function exec(args: string[], cwd: string): Promise<string> {
@@ -312,6 +317,7 @@ export class GitService {
         if (!repo) {
             return null;
         }
+
         const format: string = isStash ?
 ` Stash:        %H
  Author:        %aN <%aE>
@@ -330,6 +336,20 @@ export class GitService {
         let details: string = await exec(['show', `--format=${format}`, '--no-patch', '--date=local', ref], repo.root);
         details += await exec(['show', '--format=', '--stat', ref], repo.root);
         return details;
+    }
+
+    async getCommitStats(repo: GitRepo, ref: string): Promise<string> {
+        if (!repo) {
+            return null;
+        }
+        return exec(['show', '--format=', '--stat', ref], repo.root);
+    }
+
+    async getShortRef(repo: GitRepo, ref: string): Promise<string> {
+        if (!repo) {
+            return null;
+        }
+        return (await exec(['rev-parse', '--short=', ref], repo.root)).trim();
     }
 
     async getAuthors(repo: GitRepo): Promise<{ name: string, email: string }[]> {
@@ -356,7 +376,7 @@ export class GitService {
         }
 
         const filePath = file.fsPath;
-        const result = await exec(['blame', `${filePath}`, '-L', `${line},${line}`, '--incremental'], repo.root);
+        const result = await exec(['blame', `${filePath}`, '-L', `${line + 1},${line + 1}`, '--incremental'], repo.root);
         let hash: string;
         let subject: string;
         let author: string;
@@ -375,7 +395,7 @@ export class GitService {
                         author = info;
                         break;
                     case 'committer-time':
-                        date = (new Date(parseInt(info) * 1000)).toLocaleString();
+                        date = (new Date(parseInt(info) * 1000)).toLocaleDateString();
                         break;
                     case 'summary':
                         subject = singleLined(info);
@@ -389,7 +409,16 @@ export class GitService {
             Tracer.warning(`Blame info missed. ${filePath}:${line}\r\n${hash}  author: ${author}, date: ${date}, summary: ${subject}`);
             return null;
         }
-        return { hash, author, date, subject };
+
+        // get additional info: abbrev hash, author email, relative date, stat
+        const addition: string = await exec(['show', `--format=%h %ae %cr`, '--stat', `${hash}`], repo.root);
+        const firstLine = addition.split(/\r?\n/g)[0];
+        const items = firstLine.split(' ');
+        hash = items[0];
+        const email = items[1];
+        const relativeDate = firstLine.substr(hash.length + email.length + 2).trim();
+        const stat = ` ${addition.substr(firstLine.length).trim()}`;
+        return { file, line, subject, hash, author, date, email, relativeDate, stat };
     }
 
     private _scanSubFolders(root: string): void {

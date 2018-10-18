@@ -1,14 +1,39 @@
 'use strict'
 
-import { window, Disposable, TextEditor, Range, ThemeColor, DecorationOptions } from "vscode";
+import { window, Disposable, TextEditor, Range, ThemeColor, DecorationOptions, HoverProvider, TextDocument, Position, Hover, languages, commands, MarkdownString, Uri } from "vscode";
 
 import { Model } from "./model";
-import { GitService, GitBlameItem } from "./gitService";
+import { GitService, GitBlameItem, GitRepo } from "./gitService";
 import { Tracer } from "./tracer";
 
-export class BlameViewProvider implements Disposable {
-    private _filePath: string;
-    private _line: number;
+
+class BlameViewStatsProvider implements Disposable, HoverProvider {
+    private _disposables: Disposable[] = [];
+    constructor(private _owner: BlameViewProvider) {
+        this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
+    }
+
+    dispose(): void {
+        Disposable.from(...this._disposables).dispose();
+    }
+
+    async provideHover(document: TextDocument, position: Position): Promise<Hover> {
+        if (!this._owner.isInRange(document, position)) {
+            return;
+        }
+        return new Hover(`
+_Committed Files_
+\`\`\`
+${this._owner.blame.stat}
+\`\`\`
+>
+`);
+    }
+}
+
+export class BlameViewProvider implements Disposable, HoverProvider {
+    private _blame: GitBlameItem;
+    private _statsProvider: BlameViewStatsProvider;
     private _decoration = window.createTextEditorDecorationType({
         after: {
             color: new ThemeColor('editorLineNumber.foreground'),
@@ -19,6 +44,9 @@ export class BlameViewProvider implements Disposable {
     private _disposables: Disposable[] = [];
 
     constructor(private _model: Model, private _gitService: GitService) {
+        this._statsProvider = new BlameViewStatsProvider(this);
+
+        this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
         window.onDidChangeTextEditorSelection(e => {
             try {
                 const file = e.textEditor.document.uri;
@@ -27,53 +55,86 @@ export class BlameViewProvider implements Disposable {
                 }
             } catch (err) {
                 Tracer.warning(`BlameViewProvider onDidChangeTextEditorSelection\r\n${err}`);
-                this._filePath = null;
-                this._line = null;
+                this._blame = null;
             }
         }, null, this._disposables);
+
+        this._disposables.push(this._statsProvider);
         this._disposables.push(this._decoration);
+    }
+
+    get blame(): GitBlameItem {
+        return this._blame;
     }
 
     dispose(): void {
         Disposable.from(...this._disposables).dispose();
     }
 
+    async provideHover(document: TextDocument, position: Position): Promise<Hover> {
+        if (!this.isInRange(document, position)) {
+            return;
+        }
+
+        const repo: GitRepo = await this._gitService.getGitRepo(this._blame.file);
+        const ref: string = this._blame.hash;
+        const args: string = encodeURIComponent(JSON.stringify([ repo, ref ]));
+        const cmd: string = `[${ref}](command:githd.openCommit?${args} "Click to see commit details")`;
+        const content: string = `
+_${cmd}_
+_${this._blame.author}_
+_<<${this.blame.email}>>_
+(_${this._blame.date}_)
+
+_\`${this._blame.subject}\`_
+>
+`;
+        let markdown = new MarkdownString(content);
+        markdown.isTrusted = true;
+        return new Hover(markdown);
+    }
+    
     private async _onDidChangeSelection(editor: TextEditor) {
         const file = editor.document.uri;
         if (file.scheme !== 'file') {
             return;
         }
 
-        const line = editor.selection.active.line + 1;
-        if (file.fsPath !== this._filePath || line != this._line) {
-            this._filePath = file.fsPath;
-            this._line = line;
+        const line = editor.selection.active.line;
+        if (!this._blame || line != this._blame.line || file !== this._blame.file) {
+            this._blame = { file, line };
             this._clear(editor);
             clearTimeout(this._debouncing);
-            this._debouncing = setTimeout(() => {
-                this._update(editor);
-            }, 250);
+            this._debouncing = setTimeout(() => this._update(editor), 250);
         }
+    }
+
+    isInRange(doc: TextDocument, pos: Position): boolean {
+        if (!this._blame || pos.line != this._blame.line || pos.character < doc.lineAt(this._blame.line).range.end.character ||
+            doc.uri !== this._blame.file) {
+            return false;
+        }
+        return true;
     }
 
     private async _update(editor: TextEditor): Promise<void> {
         const file = editor.document.uri;
-        const filePath = file.fsPath;
-        const line = editor.selection.active.line + 1;
-        Tracer.verbose(`Try to update blame. ${filePath}: ${line}`);
-        const blame = await this._gitService.getBlameItem(file, line);
-        if (filePath !== editor.document.uri.fsPath || line != editor.selection.active.line + 1) {
+        const line = editor.selection.active.line;
+        Tracer.verbose(`Try to update blame. ${file.fsPath}: ${line}`);
+        this._blame = await this._gitService.getBlameItem(file, line);
+        if (file !== editor.document.uri || line != editor.selection.active.line) {
             // git blame could take long time and the active line has changed
-            Tracer.info(`This update is outdated. ${filePath}: ${line}`);
+            Tracer.info(`This update is outdated. ${file.fsPath}: ${line}`);
+            this._blame = null;
             return;
         }
 
-        Tracer.verbose(`Update blame view. ${filePath} ${line}\r\n${JSON.stringify(blame)}`);
+        Tracer.verbose(`Update blame view. ${file.fsPath}: ${line}`);
         const options: DecorationOptions = {
-            range: new Range(line - 1, Number.MAX_SAFE_INTEGER, line - 1, Number.MAX_SAFE_INTEGER),
+            range: new Range(line, Number.MAX_SAFE_INTEGER, line, Number.MAX_SAFE_INTEGER),
             renderOptions: {
                 after: {
-                    contentText: `\u00a0\u00a0\u00a0\u00a0${blame.author} [${blame.date}]\u00a0\u2022\u00a0${blame.subject}`
+                    contentText: `\u00a0\u00a0\u00a0\u00a0${this._blame.author} [${this._blame.relativeDate}]\u00a0\u2022\u00a0${this._blame.subject}`
                 }
             }
         };

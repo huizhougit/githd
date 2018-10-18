@@ -87,6 +87,8 @@ export class Model {
         return this._filesViewContext;
     }
     set filesViewContext(context: FilesViewContext) {
+        Tracer.info(`Model: set filesViewContext - ${JSON.stringify(context)}`);
+
         if (!this._filesViewContext) {
             this._filesViewContext = context;
             this._onDidChangeFilesViewContext.fire(this._filesViewContext);
@@ -105,6 +107,8 @@ export class Model {
         return this._historyViewContext;
     }
     async setHistoryViewContext(context: HistoryViewContext) {
+        Tracer.info(`Model: set historyViewContext - ${JSON.stringify(context)}`);
+
         this._historyViewContext = context;
         if (!this._historyViewContext.branch) {
             this._historyViewContext.branch = await this._gitService.getCurrentBranch(context.repo);
