@@ -10,6 +10,7 @@ export interface Configuration {
     readonly expressMode?: boolean;
     readonly displayExpress?: boolean;
     readonly traceLevel?: string;
+    readonly blameEnabled?: boolean;
     withFolder?: boolean;
 }
 
@@ -37,6 +38,7 @@ function getConfiguration(): Configuration {
         commitsCount: <number>workspace.getConfiguration('githd.logView').get('commitsCount'),
         expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode'),
         displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressStatus'),
+        blameEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('enabled'),
         traceLevel: <string>workspace.getConfiguration('githd').get('traceLevel')
     };
 }
@@ -63,8 +65,10 @@ export class Model {
                 newConfig.commitsCount !== this._config.commitsCount ||
                 newConfig.expressMode !== this._config.expressMode ||
                 newConfig.displayExpress !== this._config.displayExpress ||
+                newConfig.blameEnabled !== this._config.blameEnabled ||
                 newConfig.traceLevel !== this._config.traceLevel) {
 
+                Tracer.info(`Model: configuration updated ${JSON.stringify(newConfig)}`);
                 this._config = newConfig;
                 this._onDidChangeConfiguratoin.fire(newConfig);
                 Tracer.level = newConfig.traceLevel;

@@ -41,11 +41,12 @@ export class BlameViewProvider implements Disposable, HoverProvider {
         }        
     });
     private _debouncing: NodeJS.Timer;
+    private _enabled : boolean;
     private _disposables: Disposable[] = [];
 
-    constructor(private _model: Model, private _gitService: GitService) {
+    constructor(model: Model, private _gitService: GitService) {
+        this.enabled = model.configuration.blameEnabled;
         this._statsProvider = new BlameViewStatsProvider(this);
-
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
         window.onDidChangeTextEditorSelection(e => {
             try {
@@ -54,13 +55,24 @@ export class BlameViewProvider implements Disposable, HoverProvider {
                     this._onDidChangeSelection(e.textEditor);
                 }
             } catch (err) {
-                Tracer.warning(`BlameViewProvider onDidChangeTextEditorSelection\r\n${err}`);
+                Tracer.warning(`BlameViewProvider onDidChangeTextEditorSelection ${err}`);
                 this._blame = null;
             }
         }, null, this._disposables);
 
+        model.onDidChangeConfiguration(config => {
+            this.enabled = config.blameEnabled;
+        }, null, this._disposables);
+
         this._disposables.push(this._statsProvider);
         this._disposables.push(this._decoration);
+    }
+
+    private set enabled(value: boolean) {
+        if (this._enabled !== value) {
+            Tracer.info(`Blame view: set enabled ${value}`);
+            this._enabled = value;
+        }
     }
 
     get blame(): GitBlameItem {
@@ -96,7 +108,7 @@ _\`${this._blame.subject}\`_
     
     private async _onDidChangeSelection(editor: TextEditor) {
         const file = editor.document.uri;
-        if (file.scheme !== 'file') {
+        if (!this._enabled || file.scheme !== 'file') {
             return;
         }
 
@@ -110,8 +122,9 @@ _\`${this._blame.subject}\`_
     }
 
     isInRange(doc: TextDocument, pos: Position): boolean {
-        if (!this._blame || pos.line != this._blame.line || pos.character < doc.lineAt(this._blame.line).range.end.character ||
-            doc.uri !== this._blame.file) {
+        if (!this._enabled || !this._blame || pos.line != this._blame.line
+            || pos.character < doc.lineAt(this._blame.line).range.end.character
+            || doc.uri !== this._blame.file) {
             return false;
         }
         return true;
