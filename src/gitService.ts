@@ -69,7 +69,7 @@ function exec(args: string[], cwd: string): Promise<string> {
         });
         out.on('error', err => {
             reject(err);
-            Tracer.error(`git command failed: git ${args.join(' ')} (${Date.now() - start}ms)\r\n${err.message}`);
+            Tracer.error(`git command failed: git ${args.join(' ')} (${Date.now() - start}ms) ${err.message}`);
         });
     });
 }
@@ -100,7 +100,7 @@ export class GitService {
         this._onDidChangeGitRepositories.fire([]);
 
         if (wsFolders) {
-            wsFolders.forEach(async (wsFolder, index) => {
+            wsFolders.forEach(wsFolder => {
                 this.getGitRepo(wsFolder.uri);
                 const root = wsFolder.uri.fsPath;
                 this._scanSubFolders(root);
@@ -126,7 +126,7 @@ export class GitService {
                 this._onDidChangeGitRepositories.fire(this.getGitRepos());
             }
         }
-        return { root };
+        return root ? { root } : null;
     }
 
     async getGitRelativePath(file: Uri) {
@@ -406,7 +406,7 @@ export class GitService {
             }
         });
         if ([hash, subject, author, date].some(v => !v)) {
-            Tracer.warning(`Blame info missed. ${filePath}:${line}\r\n${hash}  author: ${author}, date: ${date}, summary: ${subject}`);
+            Tracer.warning(`Blame info missed. repo ${repo.root} file ${filePath}:${line} ${hash} author: ${author}, date: ${date}, summary: ${subject}`);
             return null;
         }
 

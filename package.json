@@ -70,6 +70,11 @@
                     "default": true,
                     "description": "Display the express mode setting on the status bar"
                 },
+                "githd.blameView.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show git blame information for each line"
+                },
                 "githd.traceLevel": {
                     "type": "string",
                     "default": "silent",
