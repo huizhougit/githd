@@ -280,9 +280,9 @@ export class CommandCenter {
     }
 
     @command('githd.openCommit')
-    async openCommit(repo: GitRepo, ref: string): Promise<void> {
+    async openCommit(repo: GitRepo, ref: string, specifiedPath: Uri): Promise<void> {
         Tracer.verbose('Command: githd.openCommit');
-        this._model.filesViewContext = { rightRef: ref, repo };
+        this._model.filesViewContext = { rightRef: ref, repo, specifiedPath };
     }
 
     @command('githd.openCommittedFile')

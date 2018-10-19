@@ -90,12 +90,12 @@ export class BlameViewProvider implements Disposable, HoverProvider {
 
         const repo: GitRepo = await this._gitService.getGitRepo(this._blame.file);
         const ref: string = this._blame.hash;
-        const args: string = encodeURIComponent(JSON.stringify([ repo, ref ]));
+        const args: string = encodeURIComponent(JSON.stringify([ repo, ref, this._blame.file ]));
         const cmd: string = `[${ref}](command:githd.openCommit?${args} "Click to see commit details")`;
         const content: string = `
 _${cmd}_
 _${this._blame.author}_
-_<<${this.blame.email}>>_
+_<${this.blame.email}>_
 (_${this._blame.date}_)
 
 _\`${this._blame.subject}\`_
