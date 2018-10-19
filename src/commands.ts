@@ -39,6 +39,24 @@ async function selectBranch(gitService: GitService, repo: GitRepo, allowEnterSha
     return items;
 }
 
+async function branchCombination(gitService: GitService, repo: GitRepo): Promise<QuickPickItem[]> {
+    const refs = (await gitService.getRefs(repo)).filter(ref => {
+        return ref.type != GitRefType.Tag
+    });
+    const localRefs = refs.filter(ref => {
+        return ref.type != GitRefType.RemoteHead
+    })
+    let items: QuickPickItem[] = []
+    localRefs.forEach(source => {
+        refs.forEach(target => {
+            if (source.name != target.name && source.commit != target.commit) {
+                items.push({label: `${source.name || source.commit}..${target.name || target.commit}`})
+            }
+        })
+    })
+    return items;
+}
+
 interface RepoPickItem extends QuickPickItem {
     repo: GitRepo;
 }
@@ -238,20 +256,32 @@ export class CommandCenter {
             if (!repo) {
                 return;
             }
-            const currentRef: string = await this._gitService.getCurrentBranch(repo);
-            window.showQuickPick(selectBranch(this._gitService, repo, true), { placeHolder: `Select a ref to see it's diff with ${currentRef} (${repo.root})` })
-                .then(async item => {
-                    if (item) {
-                        const leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef}`);
-                        if (!leftRef) return;
-                        this._model.filesViewContext = {
-                            repo,
-                            leftRef,
-                            rightRef: currentRef,
-                            specifiedPath: null
-                        };
-                    }
-                });
+            const branchs: QuickPickItem[] = await selectBranch(this._gitService, repo, true)
+            const branchWithCombination: QuickPickItem[] = await branchCombination(this._gitService, repo)
+            const items: QuickPickItem[] = [...branchs, ...branchWithCombination]
+            const placeHolder: string = 'Select a branch to compare...'
+            window.showQuickPick(items, { placeHolder: placeHolder }).then(async item => {
+                if (!item) {
+                    return;
+                }
+                const currentRef: string = await this._gitService.getCurrentBranch(repo);
+                let leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef} or 'ref(sha1)..ref(sha2)'`);
+                let rightRef = currentRef;
+                if (!leftRef) return;
+
+                if (leftRef.indexOf('..') != -1) {
+                    const diffBranch = leftRef.split('..');
+                    leftRef = diffBranch[0];
+                    rightRef = diffBranch[1];
+                }
+
+                this._model.filesViewContext = {
+                    repo,
+                    leftRef,
+                    rightRef,
+                    specifiedPath: null
+                };
+            });
         });
     }
 
