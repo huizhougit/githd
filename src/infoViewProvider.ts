@@ -4,7 +4,7 @@ import { TextDocumentContentProvider, Uri, Event, EventEmitter, TextEditor, Rang
 
 import { Model } from './model';
 import { GitService } from './gitService';
-import { decorateWithoutWhitspace } from './utils';
+import { decorateWithoutWhitspace, getTextEditor } from './utils';
 
 export class InfoViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-line';
@@ -39,7 +39,7 @@ export class InfoViewProvider implements TextDocumentContentProvider {
 
         workspace.onDidChangeTextDocument(e => {
             if (e.document.uri.scheme === InfoViewProvider.scheme) {
-                this._decorate(window.activeTextEditor);
+                this._decorate(getTextEditor(e.document));
             }
         }, null, this._disposables);
 
