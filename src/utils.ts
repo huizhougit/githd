@@ -1,6 +1,6 @@
 'use strict'
 
-import { Range } from 'vscode';
+import { Range, TextEditor, window, TextDocument } from 'vscode';
 
 export function decorateWithoutWhitspace(ranges: Range[], target: string, line: number, offset: number): void {
     let start = 0;
@@ -22,4 +22,8 @@ export function decorateWithoutWhitspace(ranges: Range[], target: string, line: 
     if (!newWord) {
         ranges.push(new Range(line, offset + start, line, offset + i));
     }
+}
+
+export function getTextEditor(document: TextDocument): TextEditor {
+    return window.visibleTextEditors.find(editor => editor.document === document);
 }

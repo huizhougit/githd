@@ -1,13 +1,17 @@
 'use strict'
 
-import { window, Disposable, TextEditor, Range, ThemeColor, DecorationOptions, HoverProvider, TextDocument, Position, Hover, languages, commands, MarkdownString, Uri } from "vscode";
+import {
+    window, Disposable, TextEditor, Range, ThemeColor, DecorationOptions, HoverProvider, TextDocument,
+    Position, Hover, languages, MarkdownString, workspace, TextDocumentContentChangeEvent } from "vscode";
 
 import { Model } from "./model";
 import { GitService, GitBlameItem, GitRepo } from "./gitService";
 import { Tracer } from "./tracer";
+import { getTextEditor } from "./utils";
 
+const NotCommitted = `Not committed yet`;
 
-class BlameViewStatsProvider implements Disposable, HoverProvider {
+class BlameViewStatProvider implements Disposable, HoverProvider {
     private _disposables: Disposable[] = [];
     constructor(private _owner: BlameViewProvider) {
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
@@ -18,11 +22,11 @@ class BlameViewStatsProvider implements Disposable, HoverProvider {
     }
 
     async provideHover(document: TextDocument, position: Position): Promise<Hover> {
-        if (!this._owner.isInRange(document, position)) {
+        if (!this._owner.isAvailable(document, position)) {
             return;
         }
         return new Hover(`
-_Committed Files_
+*\`Committed Files\`*
 \`\`\`
 ${this._owner.blame.stat}
 \`\`\`
@@ -33,29 +37,44 @@ ${this._owner.blame.stat}
 
 export class BlameViewProvider implements Disposable, HoverProvider {
     private _blame: GitBlameItem;
-    private _statsProvider: BlameViewStatsProvider;
+    private _statProvider: BlameViewStatProvider;
+    private _debouncing: NodeJS.Timer;
+    private _enabled : boolean;
     private _decoration = window.createTextEditorDecorationType({
         after: {
             color: new ThemeColor('editorLineNumber.foreground'),
             fontStyle: 'italic'
         }        
     });
-    private _debouncing: NodeJS.Timer;
-    private _enabled : boolean;
     private _disposables: Disposable[] = [];
 
     constructor(model: Model, private _gitService: GitService) {
         this.enabled = model.configuration.blameEnabled;
-        this._statsProvider = new BlameViewStatsProvider(this);
+        this._statProvider = new BlameViewStatProvider(this);
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
         window.onDidChangeTextEditorSelection(e => {
             try {
-                const file = e.textEditor.document.uri;
-                if (file.scheme === 'file') {
-                    this._onDidChangeSelection(e.textEditor);
-                }
+                this._onDidChangeSelection(e.textEditor);
             } catch (err) {
                 Tracer.warning(`BlameViewProvider onDidChangeTextEditorSelection ${err}`);
+                this._blame = null;
+            }
+        }, null, this._disposables);
+
+        window.onDidChangeActiveTextEditor(editor => {
+            try {
+                this._onDidChangeActiveTextEditor(editor);
+            } catch (err) {
+                Tracer.warning(`BlameViewProvider onDidChangeActiveTextEditor ${err}`);
+                this._blame = null;
+            }
+        }, null, this._disposables);
+
+        workspace.onDidChangeTextDocument(e => {
+            try {
+                this._onDidChangeTextDocument(getTextEditor(e.document), e.contentChanges);
+            } catch (err) {
+                Tracer.warning(`BlameViewProvider onDidChangeTextDocument ${err}`);
                 this._blame = null;
             }
         }, null, this._disposables);
@@ -64,7 +83,7 @@ export class BlameViewProvider implements Disposable, HoverProvider {
             this.enabled = config.blameEnabled;
         }, null, this._disposables);
 
-        this._disposables.push(this._statsProvider);
+        this._disposables.push(this._statProvider);
         this._disposables.push(this._decoration);
     }
 
@@ -84,33 +103,43 @@ export class BlameViewProvider implements Disposable, HoverProvider {
     }
 
     async provideHover(document: TextDocument, position: Position): Promise<Hover> {
-        if (!this.isInRange(document, position)) {
+        if (!this.isAvailable(document, position)) {
             return;
         }
 
         const repo: GitRepo = await this._gitService.getGitRepo(this._blame.file);
         const ref: string = this._blame.hash;
-        const args: string = encodeURIComponent(JSON.stringify([ repo, ref ]));
-        const cmd: string = `[${ref}](command:githd.openCommit?${args} "Click to see commit details")`;
+        const args: string = encodeURIComponent(JSON.stringify([ repo, ref, this._blame.file ]));
+        const cmd: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
+        Tracer.verbose(`Blame view: ${cmd}`);
         const content: string = `
-_${cmd}_
-_${this._blame.author}_
-_<<${this.blame.email}>>_
-(_${this._blame.date}_)
+${cmd}
+*\`${this._blame.author}\`*
+*\`${this.blame.email}\`*
+*\`(${this._blame.date})\`*
+>`;
 
-_\`${this._blame.subject}\`_
->
-`;
         let markdown = new MarkdownString(content);
+        markdown.appendText(`${this._blame.subject}\r\n`);
+        markdown.appendMarkdown('>');
         markdown.isTrusted = true;
         return new Hover(markdown);
     }
-    
+
+    isAvailable(doc: TextDocument, pos: Position): boolean {
+        if (!this._enabled || !this._blame || !this._blame.hash || doc.isDirty || pos.line != this._blame.line
+            || pos.character < doc.lineAt(this._blame.line).range.end.character || doc.uri !== this._blame.file) {
+            return false;
+        }
+        return true;
+    }
+
     private async _onDidChangeSelection(editor: TextEditor) {
         const file = editor.document.uri;
-        if (!this._enabled || file.scheme !== 'file') {
+        if (!this._enabled || file.scheme !== 'file' || editor.document.isDirty) {
             return;
         }
+        Tracer.verbose('Blame view: onDidChangeSelection');
 
         const line = editor.selection.active.line;
         if (!this._blame || line != this._blame.line || file !== this._blame.file) {
@@ -121,13 +150,29 @@ _\`${this._blame.subject}\`_
         }
     }
 
-    isInRange(doc: TextDocument, pos: Position): boolean {
-        if (!this._enabled || !this._blame || pos.line != this._blame.line
-            || pos.character < doc.lineAt(this._blame.line).range.end.character
-            || doc.uri !== this._blame.file) {
-            return false;
+    private async _onDidChangeActiveTextEditor(editor: TextEditor) {
+        const file = editor.document.uri;
+        if (!this._enabled || file.scheme !== 'file' || editor.document.isDirty) {
+            return;
         }
-        return true;
+        Tracer.verbose('Blame view: onDidChangeActiveTextEditor');
+        this._blame = null;
+        this._clear(editor);
+        this._update(editor);
+    }
+
+    private async _onDidChangeTextDocument(editor: TextEditor, contentChanges: TextDocumentContentChangeEvent[]) {
+        const file = editor.document.uri;
+        if (!this._enabled || file.scheme !== 'file') {
+            return;
+        }
+        Tracer.verbose(`Blame view: onDidChangeTextDocument. isDirty ${editor.document.isDirty}`);
+
+        this._blame = null;
+        this._clear(editor);
+        if (!editor.document.isDirty) {
+            this._update(editor);
+        }
     }
 
     private async _update(editor: TextEditor): Promise<void> {
@@ -143,13 +188,15 @@ _\`${this._blame.subject}\`_
         }
 
         Tracer.verbose(`Update blame view. ${file.fsPath}: ${line}`);
+        let contentText = '\u00a0\u00a0\u00a0\u00a0';
+        if (this._blame.hash) {
+            contentText += `${this._blame.author} [${this._blame.relativeDate}]\u00a0\u2022\u00a0${this._blame.subject}`;
+        } else {
+            contentText += NotCommitted;
+        }
         const options: DecorationOptions = {
             range: new Range(line, Number.MAX_SAFE_INTEGER, line, Number.MAX_SAFE_INTEGER),
-            renderOptions: {
-                after: {
-                    contentText: `\u00a0\u00a0\u00a0\u00a0${this._blame.author} [${this._blame.relativeDate}]\u00a0\u2022\u00a0${this._blame.subject}`
-                }
-            }
+            renderOptions: { after: { contentText } }
         };
         editor.setDecorations(this._decoration, [options]);
     }

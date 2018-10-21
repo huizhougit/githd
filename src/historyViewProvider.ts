@@ -8,7 +8,7 @@ import { Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
-import { decorateWithoutWhitspace } from './utils';
+import { decorateWithoutWhitspace, getTextEditor } from './utils';
 import { Tracer } from './tracer';
 
 export class HistoryViewProvider implements TextDocumentContentProvider {
@@ -135,7 +135,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         workspace.onDidChangeTextDocument(e => {
             if (e.document.uri.scheme === HistoryViewProvider.scheme) {
                 Tracer.verbose(`History view: onDidChangeTextDocument`);
-                this._setDecorations(window.visibleTextEditors.find(editor => editor.document === e.document));
+                this._setDecorations(getTextEditor(e.document));
             }
         }, null, this._disposables);
 

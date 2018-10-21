@@ -6,6 +6,7 @@ import {
 } from 'vscode';
 
 import { Tracer } from './tracer';
+import { getTextEditor } from './utils';
 
 export interface Clickable {
     readonly range: Range;
@@ -49,7 +50,7 @@ export class ClickableProvider implements HoverProvider {
 
         workspace.onDidChangeTextDocument(e => {
             if (e.document.uri.scheme === _scheme) {
-                this._setDecorations(window.visibleTextEditors.find(editor => editor.document === e.document));
+                this._setDecorations(getTextEditor(e.document));
             }
         }, null, this._disposables);
     }
