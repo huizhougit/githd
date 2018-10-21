@@ -117,6 +117,10 @@ export class GitService {
         if (fs.statSync(fsPath).isFile()) {
             fsPath = path.dirname(fsPath);
         }
+        const repo: GitRepo = this._gitRepos.find(r => fsPath.startsWith(r.root));
+        if (repo) {
+            return repo;
+        }
         let root: string = (await exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
         if (root) {
             root = path.normalize(root);
@@ -376,11 +380,12 @@ export class GitService {
         }
 
         const filePath = file.fsPath;
-        const result = await exec(['blame', `${filePath}`, '-L', `${line + 1},${line + 1}`, '--incremental'], repo.root);
+        const result = await exec(['blame', `${filePath}`, '-L', `${line + 1},${line + 1}`, '--incremental', '--root'], repo.root);
         let hash: string;
         let subject: string;
         let author: string;
         let date: string;
+        let email: string;
         result.split(/\r?\n/g).forEach((line, index) => {
             if (index == 0) {
                 hash = line.split(' ')[0];
@@ -397,6 +402,9 @@ export class GitService {
                     case 'committer-time':
                         date = (new Date(parseInt(info) * 1000)).toLocaleDateString();
                         break;
+                    case 'author-mail':
+                        email = info;
+                        break;
                     case 'summary':
                         subject = singleLined(info);
                         break;
@@ -405,18 +413,18 @@ export class GitService {
                 }
             }
         });
-        if ([hash, subject, author, date].some(v => !v)) {
-            Tracer.warning(`Blame info missed. repo ${repo.root} file ${filePath}:${line} ${hash} author: ${author}, date: ${date}, summary: ${subject}`);
+        if ([hash, subject, author, email, date].some(v => !v)) {
+            Tracer.warning(`Blame info missed. repo ${repo.root} file ${filePath}:${line} ${hash}` +
+                ` author: ${author}, mail: ${email}, date: ${date}, summary: ${subject}`);
             return null;
         }
 
-        // get additional info: abbrev hash, author email, relative date, stat
-        const addition: string = await exec(['show', `--format=%h %ae %cr`, '--stat', `${hash}`], repo.root);
+        // get additional info: abbrev hash, relative date, stat
+        const addition: string = await exec(['show', `--format=%h %cr`, '--stat', `${hash}`], repo.root);
         const firstLine = addition.split(/\r?\n/g)[0];
         const items = firstLine.split(' ');
         hash = items[0];
-        const email = items[1];
-        const relativeDate = firstLine.substr(hash.length + email.length + 2).trim();
+        const relativeDate = firstLine.substr(hash.length).trim();
         const stat = ` ${addition.substr(firstLine.length).trim()}`;
         return { file, line, subject, hash, author, date, email, relativeDate, stat };
     }
