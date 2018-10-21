@@ -180,14 +180,13 @@ ${cmd}
         const line = editor.selection.active.line;
         Tracer.verbose(`Try to update blame. ${file.fsPath}: ${line}`);
         this._blame = await this._gitService.getBlameItem(file, line);
-        if (file !== editor.document.uri || line != editor.selection.active.line) {
+        if (file !== editor.document.uri || line != editor.selection.active.line || editor.document.isDirty) {
             // git blame could take long time and the active line has changed
-            Tracer.info(`This update is outdated. ${file.fsPath}: ${line}`);
+            Tracer.info(`This update is outdated. ${file.fsPath}: ${line}, dirty ${editor.document.isDirty}`);
             this._blame = null;
             return;
         }
 
-        Tracer.verbose(`Update blame view. ${file.fsPath}: ${line}`);
         let contentText = '\u00a0\u00a0\u00a0\u00a0';
         if (this._blame.hash) {
             contentText += `${this._blame.author} [${this._blame.relativeDate}]\u00a0\u2022\u00a0${this._blame.subject}`;
