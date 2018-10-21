@@ -324,6 +324,25 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             folder.collapsibleState = state;
             folder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
         }
-        this._onDidChange.fire(parent);
+
+        // HACK: workaround of vscode regression. 
+        // seems vscode people are planing to add new API https://github.com/Microsoft/vscode/issues/55879
+        if (parent) {
+            const temp = parent.subFolders;
+            parent.subFolders = [];
+            this._onDidChange.fire(parent);
+            setTimeout(() => {
+                parent.subFolders = temp;
+                this._onDidChange.fire(parent);
+            }, 250);
+        } else {
+            const root = this._treeRoot;
+            this._treeRoot = null;
+            this._onDidChange.fire();
+            setTimeout(() => {
+                this._treeRoot = root;
+                this._onDidChange.fire();
+            }, 250);
+        }
     }
 }
