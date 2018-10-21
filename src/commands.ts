@@ -256,32 +256,7 @@ export class CommandCenter {
             if (!repo) {
                 return;
             }
-            const branchs: QuickPickItem[] = await selectBranch(this._gitService, repo, true)
-            const branchWithCombination: QuickPickItem[] = await branchCombination(this._gitService, repo)
-            const items: QuickPickItem[] = [...branchs, ...branchWithCombination]
-            const placeHolder: string = 'Select a branch to compare...'
-            window.showQuickPick(items, { placeHolder: placeHolder }).then(async item => {
-                if (!item) {
-                    return;
-                }
-                const currentRef: string = await this._gitService.getCurrentBranch(repo);
-                let leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef} or 'ref(sha1)..ref(sha2)' to compare with two commits`);
-                let rightRef = currentRef;
-                if (!leftRef) return;
-
-                if (leftRef.indexOf('..') != -1) {
-                    const diffBranch = leftRef.split('..');
-                    leftRef = diffBranch[0].trim();
-                    rightRef = diffBranch[1].trim();
-                }
-
-                this._model.filesViewContext = {
-                    repo,
-                    leftRef,
-                    rightRef,
-                    specifiedPath: null
-                };
-            });
+            this._diffSelections(repo);
         });
     }
 
@@ -352,21 +327,39 @@ export class CommandCenter {
     private async _diffPath(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
             const repo: GitRepo = await this._gitService.getGitRepo(specifiedPath);
-            window.showQuickPick(selectBranch(this._gitService, repo, true),
-                { placeHolder: `Select a ref to see the diff of ${path.basename(specifiedPath.path)}` })
-                .then(async item => {
-                    if (item) {
-                        const currentRef: string = await this._gitService.getCurrentBranch(repo);
-                        const leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef}`);
-                        if (!leftRef) return;
-                        this._model.filesViewContext = {
-                            repo,
-                            leftRef,
-                            rightRef: currentRef,
-                            specifiedPath
-                        };
-                    }
-                });
+            return this._diffSelections(repo, specifiedPath);
         }
+    }
+
+    private async _diffSelections(repo: GitRepo, specifiedPath?: Uri): Promise<void> {
+        const branchs: QuickPickItem[] = await selectBranch(this._gitService, repo, true);
+        const branchWithCombination: QuickPickItem[] = await branchCombination(this._gitService, repo);
+        const items: QuickPickItem[] = [...branchs, ...branchWithCombination];
+        const currentRef: string = await this._gitService.getCurrentBranch(repo);
+        const placeHolder: string = `Select a ref to see it's diff with ${currentRef} or select two refs to see their diffs`;
+        window.showQuickPick(items, { placeHolder: placeHolder }).then(async item => {
+            if (!item) {
+                return;
+            }
+            let leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef} or ` +
+                `'ref(sha1) .. ref(sha2)' to compare with two commits`);
+            let rightRef = currentRef;
+            if (!leftRef) {
+                return;
+            }
+
+            if (leftRef.indexOf('..') != -1) {
+                const diffBranch = leftRef.split('..');
+                leftRef = diffBranch[0].trim();
+                rightRef = diffBranch[1].trim();
+            }
+
+            this._model.filesViewContext = {
+                repo,
+                leftRef,
+                rightRef,
+                specifiedPath
+            };
+        });
     }
 }
