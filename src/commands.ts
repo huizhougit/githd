@@ -50,7 +50,7 @@ async function branchCombination(gitService: GitService, repo: GitRepo): Promise
     localRefs.forEach(source => {
         refs.forEach(target => {
             if (source.name != target.name && source.commit != target.commit) {
-                items.push({label: `${source.name || source.commit}..${target.name || target.commit}`})
+                items.push({label: `${source.name || source.commit} .. ${target.name || target.commit}`})
             }
         })
     })
@@ -265,14 +265,14 @@ export class CommandCenter {
                     return;
                 }
                 const currentRef: string = await this._gitService.getCurrentBranch(repo);
-                let leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef} or 'ref(sha1)..ref(sha2)'`);
+                let leftRef = await getRefFromQuickPickItem(item, `Input a ref(sha1) to compare with ${currentRef} or 'ref(sha1)..ref(sha2)' to compare with two commits`);
                 let rightRef = currentRef;
                 if (!leftRef) return;
 
                 if (leftRef.indexOf('..') != -1) {
                     const diffBranch = leftRef.split('..');
-                    leftRef = diffBranch[0];
-                    rightRef = diffBranch[1];
+                    leftRef = diffBranch[0].trim();
+                    rightRef = diffBranch[1].trim();
                 }
 
                 this._model.filesViewContext = {
