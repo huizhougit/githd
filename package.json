@@ -181,6 +181,10 @@
                 "category": "GitHD"
             },
             {
+                "command": "githd.diffUncommittedFile",
+                "title": "GitHD: View Un-committed File Diff"
+            },
+            {
                 "command": "githd.setExpressMode",
                 "title": "set Express Mode",
                 "category": "GitHD"
@@ -281,6 +285,10 @@
                 },
                 {
                     "command": "githd.viewLineHistory",
+                    "when": "hasGitRepo && editorIsOpen"
+                },
+                {
+                    "command": "githd.diffUncommittedFile",
                     "when": "hasGitRepo && editorIsOpen"
                 },
                 {
@@ -402,6 +410,11 @@
                     "command": "githd.diffFolder",
                     "when": "explorerResourceIsFolder",
                     "group": "githd@2"
+                },
+                {
+                    "command": "githd.diffUncommittedFile",
+                    "when": "!explorerResourceIsFolder",
+                    "group": "githd@3"
                 }
             ],
             "editor/context": [
@@ -416,6 +429,10 @@
                 {
                     "command": "githd.diffFile",
                     "group": "githd@2"
+                },
+                {
+                    "command": "githd.diffUncommittedFile",
+                    "group": "githd@3"
                 }
             ],
             "editor/title": [

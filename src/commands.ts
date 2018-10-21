@@ -313,6 +313,25 @@ export class CommandCenter {
                 .then(() => commands.executeCommand('cursorTop')));
     }
 
+    @command('githd.diffUncommittedFile')
+    async diffUncommittedFile(file: Uri | undefined = window.activeTextEditor ? window.activeTextEditor.document.uri : undefined)
+        : Promise<void> {
+        if (!file) {
+            return;
+        }
+        Tracer.verbose('Command: githd.diffUncommittedFile');
+
+        const repo: GitRepo = await this._gitService.getGitRepo(file);
+        window.showQuickPick(selectBranch(this._gitService, repo),
+            { placeHolder: `Select a ref to see the diff with local copy of ${path.basename(file.path)}` })
+            .then(async item => {
+                if (item) {
+                    return await commands.executeCommand<void>('vscode.diff', toGitUri(file, item.label), file,
+                    `${item.label} .. Uncommitted (${path.basename(file.path)})`, { preview: true });
+                }
+            });
+    }
+
     @command('githd.setExpressMode')
     async setExpressMode(): Promise<void> {
         Tracer.verbose('Command: githd.setExpressMode');
