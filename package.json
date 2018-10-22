@@ -1,8 +1,8 @@
 {
     "name": "githd",
     "displayName": "Git History Diff",
-    "description": "View git history. View commit details. View diff of committed files. Multi-root workspaces supported.",
-    "version": "1.2.2",
+    "description": "View git history. View diff of committed files. View git blame info. View stash details.",
+    "version": "2.0.0",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
@@ -559,6 +559,15 @@
                     "light": "#09885A",
                     "dark": "#B5CEA8",
                     "highContrast": "#B5CEA8"
+                }
+            },
+            {
+                "id": "githd.blameView.info",
+                "description": "The color of blame info at the end of each line.",
+                "defaults": {
+                    "light": "#237893",
+                    "dark": "#858585",
+                    "highContrast": "#858585"
                 }
             }
         ]

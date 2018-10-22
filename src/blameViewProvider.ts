@@ -42,7 +42,7 @@ export class BlameViewProvider implements Disposable, HoverProvider {
     private _enabled : boolean;
     private _decoration = window.createTextEditorDecorationType({
         after: {
-            color: new ThemeColor('editorLineNumber.foreground'),
+            color: new ThemeColor('githd.blameView.info'),
             fontStyle: 'italic'
         }        
     });
