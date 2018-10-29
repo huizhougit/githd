@@ -188,13 +188,15 @@ export class GitService {
             .filter(ref => !!ref) as GitRef[];
     }
 
-    async getCommittedFiles(repo: GitRepo, leftRef: string, rightRef: string): Promise<GitCommittedFile[]> {
+    async getCommittedFiles(repo: GitRepo, leftRef: string, rightRef: string, isStash: boolean): Promise<GitCommittedFile[]> {
         if (!repo) {
             return [];
         }
         let args = ['show', '--format=%h', '--name-status', rightRef];
         if (leftRef) {
             args = ['diff', '--name-status', `${leftRef}..${rightRef}`];
+        } else if (isStash) {
+            args.unshift('stash');
         }
         const result = await exec(args, repo.root);
         let files: GitCommittedFile[] = [];

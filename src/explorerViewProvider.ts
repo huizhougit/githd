@@ -221,7 +221,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             return;
         }
 
-        const committedFiles: GitCommittedFile[] = await this._gitService.getCommittedFiles(this._context.repo, leftRef, rightRef);
+        const committedFiles: GitCommittedFile[] = await this._gitService.getCommittedFiles(this._context.repo, leftRef, rightRef, this._context.isStash);
         if (!leftRef) {
             await this._buildCommitInfo(rightRef);
         }

@@ -300,7 +300,7 @@ export class CommandCenter {
             leftRef = this._model.filesViewContext.leftRef;
             title = `${leftRef} .. ${rightRef}`;
         }
-        return await commands.executeCommand<void>('vscode.diff', toGitUri(file.uri, leftRef), toGitUri(file.uri, rightRef),
+        commands.executeCommand<void>('vscode.diff', toGitUri(file.uri, leftRef), toGitUri(file.uri, rightRef),
             title + ' | ' + path.basename(file.gitRelativePath), { preview: true });
     }
 
