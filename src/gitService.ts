@@ -55,10 +55,13 @@ export interface GitBlameItem {
     stat?: string
 }
 
-function exec(args: string[], cwd: string): Promise<string> {
+function exec(gitPath: string, args: string[], cwd: string): Promise<string> {
     const start = Date.now();
     let content: string = '';
-    let gitShow = spawn('git', args, { cwd });
+    if (!gitPath) {
+        gitPath = 'git';
+    }
+    let gitShow = spawn(gitPath, args, { cwd });
     let out = gitShow.stdout;
     out.setEncoding('utf8');
     return new Promise<string>((resolve, reject) => {
@@ -82,6 +85,7 @@ export class GitService {
     private _gitRepos: GitRepo[] = [];
     private _onDidChangeGitRepositories = new EventEmitter<GitRepo[]>();
     private _disposables: Disposable[] = [];
+    private _gitPath: string = workspace.getConfiguration('git').get('path');
     
     constructor() {
         this._disposables.push(this._onDidChangeGitRepositories);
@@ -121,7 +125,7 @@ export class GitService {
         if (repo) {
             return repo;
         }
-        let root: string = (await exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
+        let root: string = (await exec(this._gitPath, ['rev-parse', '--show-toplevel'], fsPath)).trim();
         if (root) {
             root = path.normalize(root);
             if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == root; }) === -1) {
@@ -146,7 +150,7 @@ export class GitService {
         if (!repo) {
             return null;
         }
-        return (await exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
+        return (await exec(this._gitPath, ['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
     }
 
     async getCommitsCount(repo: GitRepo, file?: Uri, author?: string): Promise<number> {
@@ -160,14 +164,14 @@ export class GitService {
         if (file) {
             args.push(await this.getGitRelativePath(file));
         }
-        return parseInt(await exec(args, repo.root));
+        return parseInt(await exec(this._gitPath, args, repo.root));
     }
 
     async getRefs(repo: GitRepo): Promise<GitRef[]> {
         if (!repo) {
             return [];
         }
-        const result = await exec(['for-each-ref', '--format', '%(refname) %(objectname:short)'], repo.root);
+        const result = await exec(this._gitPath, ['for-each-ref', '--format', '%(refname) %(objectname:short)'], repo.root);
         const fn = (line): GitRef | null => {
             let match: RegExpExecArray | null;
 
@@ -198,7 +202,7 @@ export class GitService {
         } else if (isStash) {
             args.unshift('stash');
         }
-        const result = await exec(args, repo.root);
+        const result = await exec(this._gitPath, args, repo.root);
         let files: GitCommittedFile[] = [];
         result.split(/\r?\n/g).forEach((value, index) => {
             if (value) {
@@ -267,7 +271,7 @@ export class GitService {
             }
         }
 
-        const result = await exec(args, repo.root);
+        const result = await exec(this._gitPath, args, repo.root);
         let entries: GitLogEntry[] = [];
 
         result.split(entrySeparator).forEach(entry => {
@@ -339,8 +343,8 @@ export class GitService {
 
  %s
 `;
-        let details: string = await exec(['show', `--format=${format}`, '--no-patch', '--date=local', ref], repo.root);
-        details += await exec(['show', '--format=', '--stat', ref], repo.root);
+        let details: string = await exec(this._gitPath, ['show', `--format=${format}`, '--no-patch', '--date=local', ref], repo.root);
+        details += await exec(this._gitPath, ['show', '--format=', '--stat', ref], repo.root);
         return details;
     }
 
@@ -348,21 +352,21 @@ export class GitService {
         if (!repo) {
             return null;
         }
-        return exec(['show', '--format=', '--stat', ref], repo.root);
+        return exec(this._gitPath, ['show', '--format=', '--stat', ref], repo.root);
     }
 
     async getShortRef(repo: GitRepo, ref: string): Promise<string> {
         if (!repo) {
             return null;
         }
-        return (await exec(['rev-parse', '--short=', ref], repo.root)).trim();
+        return (await exec(this._gitPath, ['rev-parse', '--short=', ref], repo.root)).trim();
     }
 
     async getAuthors(repo: GitRepo): Promise<{ name: string, email: string }[]> {
         if (!repo) {
             return null;
         }
-        const result: string = (await exec(['shortlog', '-se', 'HEAD'], repo.root)).trim();
+        const result: string = (await exec(this._gitPath, ['shortlog', '-se', 'HEAD'], repo.root)).trim();
         return result.split(/\r?\n/g).map(item => {
             item = item.trim();
             let start: number = item.search(/ |\t/);
@@ -382,7 +386,7 @@ export class GitService {
         }
 
         const filePath = file.fsPath;
-        const result = await exec(['blame', `${filePath}`, '-L', `${line + 1},${line + 1}`, '--incremental', '--root'], repo.root);
+        const result = await exec(this._gitPath, ['blame', `${filePath}`, '-L', `${line + 1},${line + 1}`, '--incremental', '--root'], repo.root);
         let hash: string;
         let subject: string;
         let author: string;
@@ -422,7 +426,7 @@ export class GitService {
         }
 
         // get additional info: abbrev hash, relative date, stat
-        const addition: string = await exec(['show', `--format=%h %cr`, '--stat', `${hash}`], repo.root);
+        const addition: string = await exec(this._gitPath, ['show', `--format=%h %cr`, '--stat', `${hash}`], repo.root);
         const firstLine = addition.split(/\r?\n/g)[0];
         const items = firstLine.split(' ');
         hash = items[0];
@@ -436,7 +440,7 @@ export class GitService {
         children.filter(child => child !== '.git').forEach(async (child) => {
             const fullPath = path.join(root, child);
             if (fs.statSync(fullPath).isDirectory()) {
-                let gitRoot: string = (await exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
+                let gitRoot: string = (await exec(this._gitPath, ['rev-parse', '--show-toplevel'], fullPath)).trim();
                 if (gitRoot) {
                     gitRoot = path.normalize(gitRoot);
                     if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == gitRoot; }) === -1) {
