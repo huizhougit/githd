@@ -53,30 +53,15 @@ export class BlameViewProvider implements Disposable, HoverProvider {
         this._statProvider = new BlameViewStatProvider(this);
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
         window.onDidChangeTextEditorSelection(e => {
-            try {
-                this._onDidChangeSelection(e.textEditor);
-            } catch (err) {
-                Tracer.warning(`BlameViewProvider onDidChangeTextEditorSelection ${err}`);
-                this._blame = null;
-            }
+            this._onDidChangeSelection(e.textEditor);
         }, null, this._disposables);
 
         window.onDidChangeActiveTextEditor(editor => {
-            try {
-                this._onDidChangeActiveTextEditor(editor);
-            } catch (err) {
-                Tracer.warning(`BlameViewProvider onDidChangeActiveTextEditor ${err}`);
-                this._blame = null;
-            }
+            this._onDidChangeActiveTextEditor(editor);
         }, null, this._disposables);
 
         workspace.onDidChangeTextDocument(e => {
-            try {
-                this._onDidChangeTextDocument(getTextEditor(e.document), e.contentChanges);
-            } catch (err) {
-                Tracer.warning(`BlameViewProvider onDidChangeTextDocument ${err}`);
-                this._blame = null;
-            }
+            this._onDidChangeTextDocument(getTextEditor(e.document));
         }, null, this._disposables);
 
         model.onDidChangeConfiguration(config => {
@@ -135,6 +120,10 @@ ${cmd}
     }
 
     private async _onDidChangeSelection(editor: TextEditor) {
+        if (!editor) {
+            Tracer.info('_onDidChangeSelection with null or undefined editor');
+            return;
+        }
         const file = editor.document.uri;
         if (!this._enabled || file.scheme !== 'file' || editor.document.isDirty) {
             return;
@@ -151,6 +140,10 @@ ${cmd}
     }
 
     private async _onDidChangeActiveTextEditor(editor: TextEditor) {
+        if (!editor) {
+            Tracer.info('_onDidChangeActiveTextEditor with null or undefined editor');
+            return;
+        }
         const file = editor.document.uri;
         if (!this._enabled || file.scheme !== 'file' || editor.document.isDirty) {
             return;
@@ -161,7 +154,11 @@ ${cmd}
         this._update(editor);
     }
 
-    private async _onDidChangeTextDocument(editor: TextEditor, contentChanges: TextDocumentContentChangeEvent[]) {
+    private async _onDidChangeTextDocument(editor: TextEditor) {
+        if (!editor) {
+            Tracer.info('_onDidChangeTextDocument with null or undefined editor');
+            return;
+        }
         const file = editor.document.uri;
         if (!this._enabled || file.scheme !== 'file') {
             return;
