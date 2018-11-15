@@ -7,6 +7,9 @@ import { workspace, Uri, commands, WorkspaceFolder, Event, EventEmitter, Disposa
 import { spawn } from 'child_process';
 import { Tracer } from './tracer';
 
+const EntrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
+const FormatSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
+
 function formatDate(timestamp: number): string {
     return (new Date(timestamp * 1000)).toDateString();
 }
@@ -48,33 +51,12 @@ export interface GitBlameItem {
     line: number;
     hash?: string;
     subject?: string;
+    body?: string;
     author?: string;
     date?: string;
     relativeDate?: string;
     email?: string;
     stat?: string
-}
-
-function exec(gitPath: string, args: string[], cwd: string): Promise<string> {
-    const start = Date.now();
-    let content: string = '';
-    if (!gitPath) {
-        gitPath = 'git';
-    }
-    let gitShow = spawn(gitPath, args, { cwd });
-    let out = gitShow.stdout;
-    out.setEncoding('utf8');
-    return new Promise<string>((resolve, reject) => {
-        out.on('data', data => content += data);
-        out.on('end', () => {
-            resolve(content);
-            Tracer.verbose(`git command: git ${args.join(' ')} (${Date.now() - start}ms)`);
-        });
-        out.on('error', err => {
-            reject(err);
-            Tracer.error(`git command failed: git ${args.join(' ')} (${Date.now() - start}ms) ${err.message}`);
-        });
-    });
 }
 
 function singleLined(value: string): string {
@@ -125,7 +107,7 @@ export class GitService {
         if (repo) {
             return repo;
         }
-        let root: string = (await exec(this._gitPath, ['rev-parse', '--show-toplevel'], fsPath)).trim();
+        let root: string = (await this._exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
         if (root) {
             root = path.normalize(root);
             if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == root; }) === -1) {
@@ -150,7 +132,7 @@ export class GitService {
         if (!repo) {
             return null;
         }
-        return (await exec(this._gitPath, ['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
+        return (await this._exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
     }
 
     async getCommitsCount(repo: GitRepo, file?: Uri, author?: string): Promise<number> {
@@ -164,14 +146,14 @@ export class GitService {
         if (file) {
             args.push(await this.getGitRelativePath(file));
         }
-        return parseInt(await exec(this._gitPath, args, repo.root));
+        return parseInt(await this._exec(args, repo.root));
     }
 
     async getRefs(repo: GitRepo): Promise<GitRef[]> {
         if (!repo) {
             return [];
         }
-        const result = await exec(this._gitPath, ['for-each-ref', '--format', '%(refname) %(objectname:short)'], repo.root);
+        const result = await this._exec(['for-each-ref', '--format', '%(refname) %(objectname:short)'], repo.root);
         const fn = (line): GitRef | null => {
             let match: RegExpExecArray | null;
 
@@ -202,7 +184,7 @@ export class GitService {
         } else if (isStash) {
             args.unshift('stash');
         }
-        const result = await exec(this._gitPath, args, repo.root);
+        const result = await this._exec(args, repo.root);
         let files: GitCommittedFile[] = [];
         result.split(/\r?\n/g).forEach((value, index) => {
             if (value) {
@@ -243,13 +225,11 @@ export class GitService {
         if (!repo) {
             return [];
         }
-        const entrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
-        const itemSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
-        let format = `--format=${entrySeparator}`;
+        let format = `--format=${EntrySeparator}`;
         if (isStash) {
             format += '%gd: ';
         }
-        format += `%s${itemSeparator}%h${itemSeparator}%d${itemSeparator}%aN${itemSeparator}%ae${itemSeparator}%ct${itemSeparator}%cr${itemSeparator}`;
+        format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%ct${FormatSeparator}%cr${FormatSeparator}`;
         let args: string[] = [format];
         if (!express || !!line) {
             args.push('--shortstat');
@@ -271,10 +251,10 @@ export class GitService {
             }
         }
 
-        const result = await exec(this._gitPath, args, repo.root);
+        const result = await this._exec(args, repo.root);
         let entries: GitLogEntry[] = [];
 
-        result.split(entrySeparator).forEach(entry => {
+        result.split(EntrySeparator).forEach(entry => {
             if (!entry) {
                 return;
             }
@@ -286,7 +266,7 @@ export class GitService {
             let date: string;
             let stat: string;
             let lineInfo: string;
-            entry.split(itemSeparator).forEach((value, index) => {
+            entry.split(FormatSeparator).forEach((value, index) => {
                 switch (index % 8) {
                     case 0:
                         subject = singleLined(value);
@@ -329,44 +309,35 @@ export class GitService {
         }
 
         const format: string = isStash ?
-` Stash:        %H
- Author:        %aN <%aE>
- AuthorDate:    %ad
+`Stash:         %H
+Author:        %aN <%aE>
+AuthorDate:    %ad
 
- %s
- ` :
-` Commit:        %H
- Author:        %aN <%aE>
- AuthorDate:    %ad
- Commit:        %cN <%cE>
- CommitDate:    %cd
+%s
+` :
+`Commit:        %H
+Author:        %aN <%aE>
+AuthorDate:    %ad
+Commit:        %cN <%cE>
+CommitDate:    %cd
 
- %s
+%s
 `;
-        let details: string = await exec(this._gitPath, ['show', `--format=${format}`, '--no-patch', '--date=local', ref], repo.root);
-        details += await exec(this._gitPath, ['show', '--format=', '--stat', ref], repo.root);
+        let details: string = await this._exec(['show', `--format=${format}`, '--no-patch', '--date=local', ref], repo.root);
+        const body = (await this._exec(['show', '--format=%b', '--no-patch', ref], repo.root)).trim();
+        if (body) {
+            details += body + '\r\n\r\n';
+        }
+        details += '-----------------------------\r\n\r\n'
+        details += await this._exec(['show', '--format=', '--stat', ref], repo.root);
         return details;
-    }
-
-    async getCommitStats(repo: GitRepo, ref: string): Promise<string> {
-        if (!repo) {
-            return null;
-        }
-        return exec(this._gitPath, ['show', '--format=', '--stat', ref], repo.root);
-    }
-
-    async getShortRef(repo: GitRepo, ref: string): Promise<string> {
-        if (!repo) {
-            return null;
-        }
-        return (await exec(this._gitPath, ['rev-parse', '--short=', ref], repo.root)).trim();
     }
 
     async getAuthors(repo: GitRepo): Promise<{ name: string, email: string }[]> {
         if (!repo) {
             return null;
         }
-        const result: string = (await exec(this._gitPath, ['shortlog', '-se', 'HEAD'], repo.root)).trim();
+        const result: string = (await this._exec(['shortlog', '-se', 'HEAD'], repo.root)).trim();
         return result.split(/\r?\n/g).map(item => {
             item = item.trim();
             let start: number = item.search(/ |\t/);
@@ -386,7 +357,7 @@ export class GitService {
         }
 
         const filePath = file.fsPath;
-        const result = await exec(this._gitPath, ['blame', `${filePath}`, '-L', `${line + 1},${line + 1}`, '--incremental', '--root'], repo.root);
+        const result = await this._exec(['blame', `${filePath}`, '-L', `${line + 1},${line + 1}`, '--incremental', '--root'], repo.root);
         let hash: string;
         let subject: string;
         let author: string;
@@ -425,14 +396,15 @@ export class GitService {
             return null;
         }
 
-        // get additional info: abbrev hash, relative date, stat
-        const addition: string = await exec(this._gitPath, ['show', `--format=%h %cr`, '--stat', `${hash}`], repo.root);
-        const firstLine = addition.split(/\r?\n/g)[0];
-        const items = firstLine.split(' ');
+        // get additional info: abbrev hash, relative date, body, stat
+        const addition: string = await this._exec(['show', `--format=%h${FormatSeparator}%cr${FormatSeparator}%b${FormatSeparator}`, '--stat', `${hash}`], repo.root);
+        //const firstLine = addition.split(/\r?\n/g)[0];
+        const items = addition.split(FormatSeparator);
         hash = items[0];
-        const relativeDate = firstLine.substr(hash.length).trim();
-        const stat = ` ${addition.substr(firstLine.length).trim()}`;
-        return { file, line, subject, hash, author, date, email, relativeDate, stat };
+        const relativeDate = items[1];
+        const body = items[2].trim();
+        const stat = ` ${items[3].trim()}`;
+        return { file, line, subject, body, hash, author, date, email, relativeDate, stat };
     }
 
     private _scanSubFolders(root: string): void {
@@ -440,7 +412,7 @@ export class GitService {
         children.filter(child => child !== '.git').forEach(async (child) => {
             const fullPath = path.join(root, child);
             if (fs.statSync(fullPath).isDirectory()) {
-                let gitRoot: string = (await exec(this._gitPath, ['rev-parse', '--show-toplevel'], fullPath)).trim();
+                let gitRoot: string = (await this._exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
                 if (gitRoot) {
                     gitRoot = path.normalize(gitRoot);
                     if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == gitRoot; }) === -1) {
@@ -451,6 +423,29 @@ export class GitService {
                 }
                 //this._scanSubFolders(fullPath);
             }
+        });
+    }
+
+    private async _exec(args: string[], cwd: string): Promise<string> {
+        const start = Date.now();
+        let content: string = '';
+        let gitPath = this._gitPath;
+        if (!gitPath) {
+            gitPath = 'git';
+        }
+        let gitShow = spawn(gitPath, args, { cwd });
+        let out = gitShow.stdout;
+        out.setEncoding('utf8');
+        return new Promise<string>((resolve, reject) => {
+            out.on('data', data => content += data);
+            out.on('end', () => {
+                resolve(content);
+                Tracer.verbose(`git command: git ${args.join(' ')} (${Date.now() - start}ms)`);
+            });
+            out.on('error', err => {
+                reject(err);
+                Tracer.error(`git command failed: git ${args.join(' ')} (${Date.now() - start}ms) ${err.message}`);
+            });
         });
     }
 }

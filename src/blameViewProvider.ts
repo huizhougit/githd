@@ -25,13 +25,10 @@ class BlameViewStatProvider implements Disposable, HoverProvider {
         if (!this._owner.isAvailable(document, position)) {
             return;
         }
-        return new Hover(`
-*\`Committed Files\`*
-\`\`\`
-${this._owner.blame.stat}
-\`\`\`
->
-`);
+        let markdown = new MarkdownString(`*\`Committed Files\`*\r\n>\r\n`);
+        markdown.appendCodeblock(this._owner.blame.stat, 'txt');
+        markdown.appendMarkdown('>');
+        return new Hover(markdown);
     }
 }
 
@@ -92,21 +89,26 @@ export class BlameViewProvider implements Disposable, HoverProvider {
             return;
         }
 
-        const repo: GitRepo = await this._gitService.getGitRepo(this._blame.file);
-        const ref: string = this._blame.hash;
-        const args: string = encodeURIComponent(JSON.stringify([ repo, ref, this._blame.file ]));
+        const blame = this._blame;
+        const repo: GitRepo = await this._gitService.getGitRepo(blame.file);
+        const ref: string = blame.hash;
+        const args: string = encodeURIComponent(JSON.stringify([ repo, ref, blame.file ]));
         const cmd: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
         Tracer.verbose(`Blame view: ${cmd}`);
         const content: string = `
 ${cmd}
-*\`${this._blame.author}\`*
-*\`${this.blame.email}\`*
-*\`(${this._blame.date})\`*
->`;
+*\`${blame.author}\`*
+*\`${blame.email}\`*
+*\`(${blame.date})\`*
+>>`;
 
         let markdown = new MarkdownString(content);
-        markdown.appendText(`${this._blame.subject}\r\n`);
-        markdown.appendMarkdown('>');
+        markdown.appendCodeblock(blame.subject, 'txt');
+        markdown.appendMarkdown('>>');
+        if (blame.body) {
+            markdown.appendCodeblock(blame.body, 'txt');
+            markdown.appendMarkdown('>');
+        }
         markdown.isTrusted = true;
         return new Hover(markdown);
     }
