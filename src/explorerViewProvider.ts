@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Event, EventEmitter,
-    Disposable, commands } from 'vscode';
+    Disposable, commands, TreeView } from 'vscode';
 import { GitService, GitCommittedFile } from './gitService';
 import { Model, FilesViewContext } from './model'
 import { Icons, getIconUri } from './icons';
@@ -24,10 +24,12 @@ class InfoItem extends TreeItem {
         };
         this.iconPath = getIconUri('info', '');
     };
+
+    readonly parent =  null;
 }
 
 class CommittedFile extends TreeItem implements GitCommittedFile {
-    constructor(private _uri: Uri, private _gitRelativePath: string, private _status: string, label: string) {
+    constructor(private _parent: FolderItem, private _uri: Uri, private _gitRelativePath: string, private _status: string, label: string) {
         super(label);
         this.command = {
             title: '',
@@ -39,6 +41,7 @@ class CommittedFile extends TreeItem implements GitCommittedFile {
         }
     };
 
+    readonly parent =  this._parent;
     readonly uri: Uri = this._uri;
     readonly gitRelativePath: string = this._gitRelativePath;
     readonly status: string = this._status;
@@ -86,8 +89,8 @@ function getFormatedLabel(relativePath: string): string {
     return name + ' \u00a0\u2022\u00a0 ' + dir;
 }
 
-function createCommittedFile(file: GitCommittedFile): CommittedFile {
-    return new CommittedFile(file.uri, file.gitRelativePath, file.status, getFormatedLabel(file.gitRelativePath));
+function createCommittedFile(rootFolder: FolderItem, file: GitCommittedFile): CommittedFile {
+    return new CommittedFile(rootFolder, file.uri, file.gitRelativePath, file.status, getFormatedLabel(file.gitRelativePath));
 }
 
 function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relateivePath: string = ''): void {
@@ -105,14 +108,14 @@ function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, 
         }
         parent = folder;
     }
-    parent.files.push(new CommittedFile(file.uri, file.gitRelativePath, file.status, segments[i]));
+    parent.files.push(new CommittedFile(parent, file.uri, file.gitRelativePath, file.status, segments[i]));
 }
 
 function buildFileTree(rootFolder: FolderItem, files: GitCommittedFile[], withFolder: boolean): void {
     if (withFolder) {
         files.forEach(file => buildOneFileWithFolder(rootFolder, file));
     } else {
-        rootFolder.files.push(...(files.map(file => { return createCommittedFile(file); })));
+        rootFolder.files.push(...(files.map(file => { return createCommittedFile(rootFolder, file); })));
     }
 }
 
@@ -201,6 +204,10 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         return [];
     }
 
+    getParent(element: CommittedTreeItem): CommittedTreeItem {
+        return element.parent;
+    }
+
     private get commitOrStashString(): string {
         return this._context.isStash ? 'Stash' : 'Commit';
     }
@@ -274,13 +281,13 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             }
             let file = committedFiles.find(value => { return value.gitRelativePath === relativePath; });
             if (file) {
-                folder.files.push(createCommittedFile(file));
+                folder.files.push(createCommittedFile(folder, file));
             }
         } else {
             let focus: GitCommittedFile[] = [];
             committedFiles.forEach(file => {
                 if (file.gitRelativePath.search(relativePath) === 0) {
-                    focus.push(createCommittedFile(file));
+                    focus.push(file);
                 }
             });
             buildFileTree(folder, focus, this._withFolder);
