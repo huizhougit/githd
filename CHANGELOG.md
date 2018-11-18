@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.1.0
+* Add messge body in the commit info.
+* Prefer git path set in the settings.
+* Fix staged stash files not showing issue.
+
 ## 2.0.0
 * Git blame view.
 * Git stash view.
