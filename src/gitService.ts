@@ -411,7 +411,7 @@ CommitDate:    %cd
         const children = fs.readdirSync(root);
         children.filter(child => child !== '.git').forEach(async (child) => {
             const fullPath = path.join(root, child);
-            if (fs.statSync(fullPath).isDirectory()) {
+            if (fs.statSync(fullPath).isDirectory() && fs.readdirSync(fullPath).find(v => v === '.git')) {
                 let gitRoot: string = (await this._exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
                 if (gitRoot) {
                     gitRoot = path.normalize(gitRoot);
