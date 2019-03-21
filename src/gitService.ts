@@ -402,7 +402,7 @@ CommitDate:    %cd
         const items = addition.split(FormatSeparator);
         hash = items[0];
         const relativeDate = items[1];
-        const body = items[2].trim();
+        const body = items[2] ? items[2].trim() : null;
         const stat = ` ${items[3].trim()}`;
         return { file, line, subject, body, hash, author, date, email, relativeDate, stat };
     }
@@ -411,14 +411,16 @@ CommitDate:    %cd
         const children = fs.readdirSync(root);
         children.filter(child => child !== '.git').forEach(async (child) => {
             const fullPath = path.join(root, child);
-            if (fs.statSync(fullPath).isDirectory() && fs.readdirSync(fullPath).find(v => v === '.git')) {
-                let gitRoot: string = (await this._exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
-                if (gitRoot) {
-                    gitRoot = path.normalize(gitRoot);
-                    if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == gitRoot; }) === -1) {
-                        this._gitRepos.push({ root: gitRoot });
-                        commands.executeCommand('setContext', 'hasGitRepo', true);
-                        this._onDidChangeGitRepositories.fire(this.getGitRepos());
+            if (fs.statSync(fullPath).isDirectory()) {
+                if (fs.readdirSync(fullPath).find(v => v === '.git')) {
+                    let gitRoot: string = (await this._exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
+                    if (gitRoot) {
+                        gitRoot = path.normalize(gitRoot);
+                        if (this._gitRepos.findIndex((value: GitRepo) => { return value.root == gitRoot; }) === -1) {
+                            this._gitRepos.push({ root: gitRoot });
+                            commands.executeCommand('setContext', 'hasGitRepo', true);
+                            this._onDidChangeGitRepositories.fire(this.getGitRepos());
+                        }
                     }
                 }
                 //this._scanSubFolders(fullPath);
