@@ -126,8 +126,8 @@
                 "command": "githd.viewHistory",
                 "title": "GitHD: View History",
                 "icon": {
-                    "light": "resources/icons/light/git-compare.svg",
-                    "dark": "resources/icons/dark/git-compare.svg"
+                    "light": "resources/icons/githd.svg",
+                    "dark": "resources/icons/githd.svg"
                 }
             },
             {
