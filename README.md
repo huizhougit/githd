@@ -94,7 +94,6 @@ _Press F1_ and type or select `Preferences: Open Workspace Settings` or `Prefere
 ## Unofficial Author's Words
 >This is the tool I wanted but could not find so wrote myself.
 >
->Many things happened in my life during this year but little to the GitHD although I played with it almost everyday. Finally I could spend some time to make it better. I really need to thank my family, my wife, my little kid, my parents. Quote a lyric, you raise me up to more than I can be. THANK YOU!
 >
 >我会说中文。
 >

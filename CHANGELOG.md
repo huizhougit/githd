@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.2.0
+* Fix diff view break introduced by vscode 1.41.0 upgrade
+* Change the icon on the editor title
+
 ## 2.1.0
 * Add messge body in the commit info.
 * Prefer git path set in the settings.

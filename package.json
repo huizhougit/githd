@@ -2,14 +2,14 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View git history. View diff of committed files. View git blame info. View stash details.",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
         "email": "zhou_hui@outlook.com"
     },
     "engines": {
-        "vscode": "^1.23.0"
+        "vscode": "^1.41.0"
     },
     "license": "MIT",
     "repository": {
