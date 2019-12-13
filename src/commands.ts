@@ -2,6 +2,7 @@
 
 import * as path from 'path';
 import * as assert from 'assert';
+import * as qs from 'querystring';
 
 import { Uri, commands, Disposable, workspace, window, QuickPickItem } from 'vscode';
 
@@ -13,9 +14,9 @@ import { Tracer } from './tracer';
 
 function toGitUri(uri: Uri, ref: string): Uri {
     return uri.with({
-        scheme: 'git',
+        scheme: 'gitfs',
         path: uri.path,
-        query: JSON.stringify({
+        query: qs.stringify({
             path: uri.fsPath,
             ref
         })
@@ -108,7 +109,7 @@ interface Command {
 const Commands: Command[] = [];
 
 function command(id: string) {
-    return function (target: any, key: string, descriptor: PropertyDescriptor) {
+    return function (_target: any, _key: string, descriptor: PropertyDescriptor) {
         if (!(typeof descriptor.value === 'function')) {
             throw new Error('not supported');
         }
@@ -256,7 +257,7 @@ export class CommandCenter {
             if (!repo) {
                 return;
             }
-            this._diffSelections(repo);
+            this._diffSelections({ repo });
         });
     }
 
@@ -346,11 +347,11 @@ export class CommandCenter {
     private async _diffPath(specifiedPath: Uri): Promise<void> {
         if (specifiedPath) {
             const repo: GitRepo = await this._gitService.getGitRepo(specifiedPath);
-            return this._diffSelections(repo, specifiedPath);
+            return this._diffSelections({ repo, specifiedPath });
         }
     }
 
-    private async _diffSelections(repo: GitRepo, specifiedPath?: Uri): Promise<void> {
+    private async _diffSelections({ repo, specifiedPath }: { repo: GitRepo; specifiedPath?: Uri; }): Promise<void> {
         const branchs: QuickPickItem[] = await selectBranch(this._gitService, repo, true);
         const branchWithCombination: QuickPickItem[] = await branchCombination(this._gitService, repo);
         const items: QuickPickItem[] = [...branchs, ...branchWithCombination];
