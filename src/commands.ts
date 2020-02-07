@@ -2,7 +2,6 @@
 
 import * as path from 'path';
 import * as assert from 'assert';
-import * as qs from 'querystring';
 
 import { Uri, commands, Disposable, workspace, window, QuickPickItem } from 'vscode';
 
@@ -14,9 +13,9 @@ import { Tracer } from './tracer';
 
 function toGitUri(uri: Uri, ref: string): Uri {
     return uri.with({
-        scheme: 'gitfs',
+        scheme: 'git',
         path: uri.path,
-        query: qs.stringify({
+        query: JSON.stringify({
             path: uri.fsPath,
             ref
         })
