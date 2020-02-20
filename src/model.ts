@@ -60,6 +60,7 @@ export class Model {
     constructor(private _gitService: GitService) {
         this._config = getConfiguration();
         Tracer.level = this._config.traceLevel;
+        commands.executeCommand('setContext', 'disableInEditor', this._config.disabledInEditor);
 
         workspace.onDidChangeConfiguration(() => {
             let newConfig = getConfiguration();
