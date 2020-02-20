@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.2.2
+* Add configuration to allow disabling githd shortcut in editor
+
+## 2.2.1
+* Fix diff view break introduced by vscode 1.42.0 update
+
 ## 2.2.0
 * Fix diff view break introduced by vscode 1.41.0 upgrade
 * Change the icon on the editor title
