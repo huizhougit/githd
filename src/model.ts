@@ -11,6 +11,7 @@ export interface Configuration {
     readonly displayExpress?: boolean;
     readonly traceLevel?: string;
     readonly blameEnabled?: boolean;
+    readonly disabledInEditor?: boolean;
     withFolder?: boolean;
 }
 
@@ -39,6 +40,7 @@ function getConfiguration(): Configuration {
         expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode'),
         displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressStatus'),
         blameEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('enabled'),
+        disabledInEditor: <boolean>workspace.getConfiguration('githd.editor').get('disabled'),
         traceLevel: <string>workspace.getConfiguration('githd').get('traceLevel')
     };
 }
@@ -66,12 +68,14 @@ export class Model {
                 newConfig.expressMode !== this._config.expressMode ||
                 newConfig.displayExpress !== this._config.displayExpress ||
                 newConfig.blameEnabled !== this._config.blameEnabled ||
+                newConfig.disabledInEditor !== this._config.disabledInEditor ||
                 newConfig.traceLevel !== this._config.traceLevel) {
 
                 Tracer.info(`Model: configuration updated ${JSON.stringify(newConfig)}`);
                 this._config = newConfig;
                 this._onDidChangeConfiguratoin.fire(newConfig);
                 Tracer.level = newConfig.traceLevel;
+                commands.executeCommand('setContext', 'disableInEditor', newConfig.disabledInEditor);
             }
         }, null, this._disposables);
 
