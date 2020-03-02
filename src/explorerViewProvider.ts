@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, window, Event, EventEmitter,
-    Disposable, commands, TreeView } from 'vscode';
+    Disposable, commands } from 'vscode';
 import { GitService, GitCommittedFile } from './gitService';
 import { Model, FilesViewContext } from './model'
 import { Icons, getIconUri } from './icons';
@@ -28,26 +28,22 @@ class InfoItem extends TreeItem {
     readonly parent =  null;
 }
 
-class CommittedFile extends TreeItem implements GitCommittedFile {
-    constructor(private _parent: FolderItem, private _uri: Uri, private _gitRelativePath: string, private _status: string, label: string) {
+class CommittedFileItem extends TreeItem {
+
+    constructor(readonly parent: FolderItem, readonly file: GitCommittedFile, label: string) {
         super(label);
         this.command = {
             title: '',
             command: 'githd.openCommittedFile',
-            arguments: [this]
+            arguments: [this.file]
         };
-        if (this._status) {
+        if (this.file.status) {
             this.iconPath = { light: this._getIconPath('light'), dark: this._getIconPath('dark') };
         }
     };
 
-    readonly parent =  this._parent;
-    readonly uri: Uri = this._uri;
-    readonly gitRelativePath: string = this._gitRelativePath;
-    readonly status: string = this._status;
-
     private _getIconPath(theme: string): Uri | undefined {
-        switch (this._status[0].toUpperCase()) {
+        switch (this.file.status[0].toUpperCase()) {
             case 'M': return Icons[theme].Modified;
             case 'A': return Icons[theme].Added;
             case 'D': return Icons[theme].Deleted;
@@ -60,7 +56,7 @@ class CommittedFile extends TreeItem implements GitCommittedFile {
 
 class FolderItem extends TreeItem {
     private _subFolders: FolderItem[] = [];
-    private _files: CommittedFile[] = [];
+    private _files: CommittedFileItem[] = [];
     private _infoItem: InfoItem;
 
     constructor(private _parent: FolderItem, private _gitRelativePath: string, label: string, iconPath?: { light: Uri; dark: Uri }) {
@@ -74,8 +70,8 @@ class FolderItem extends TreeItem {
     readonly gitRelativePath: string = this._gitRelativePath;
     get subFolders(): FolderItem[] { return this._subFolders; }
     set subFolders(value: FolderItem[]) { this._subFolders = value; }
-    get files(): CommittedFile[] { return this._files; }
-    set files(value: CommittedFile[]) { this._files = value; }
+    get files(): CommittedFileItem[] { return this._files; }
+    set files(value: CommittedFileItem[]) { this._files = value; }
     get infoItem(): InfoItem { return this._infoItem; }
     set infoItem(value: InfoItem) { this._infoItem = value; }
 }
@@ -89,8 +85,8 @@ function getFormattedLabel(relativePath: string): string {
     return name + ' \u00a0\u2022\u00a0 ' + dir;
 }
 
-function createCommittedFile(rootFolder: FolderItem, file: GitCommittedFile): CommittedFile {
-    return new CommittedFile(rootFolder, file.uri, file.gitRelativePath, file.status, getFormattedLabel(file.gitRelativePath));
+function createCommittedFileItem(rootFolder: FolderItem, file: GitCommittedFile): CommittedFileItem {
+    return new CommittedFileItem(rootFolder, file, getFormattedLabel(file.gitRelativePath));
 }
 
 function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relativePath: string = ''): void {
@@ -108,21 +104,21 @@ function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, 
         }
         parent = folder;
     }
-    parent.files.push(new CommittedFile(parent, file.uri, file.gitRelativePath, file.status, segments[i]));
+    parent.files.push(new CommittedFileItem(parent, file, segments[i]));
 }
 
 function buildFileTree(rootFolder: FolderItem, files: GitCommittedFile[], withFolder: boolean): void {
     if (withFolder) {
         files.forEach(file => buildOneFileWithFolder(rootFolder, file));
     } else {
-        rootFolder.files.push(...(files.map(file => { return createCommittedFile(rootFolder, file); })));
+        rootFolder.files.push(...(files.map(file => { return createCommittedFileItem(rootFolder, file); })));
     }
 }
 
 function buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem): void {
-    rootFolder.files.push(...(folder.files.map(file => {
-        file.label = getFormattedLabel(path.relative(rootFolder.gitRelativePath, file.gitRelativePath).replace(/\\/g, '/'));
-        return file;
+    rootFolder.files.push(...(folder.files.map(item => {
+        item.label = getFormattedLabel(path.relative(rootFolder.gitRelativePath, item.file.gitRelativePath).replace(/\\/g, '/'));
+        return item;
     })));
     folder.subFolders.forEach(f => buildFilesWithoutFolder(rootFolder, f));
     folder.files = [];
@@ -131,9 +127,9 @@ function buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem): vo
 
 function buildFilesWithFolder(rootFolder: FolderItem): void {
     rootFolder.subFolders.forEach(folder => buildFilesWithFolder(folder));
-    const files: CommittedFile[] = rootFolder.files;
+    const files: CommittedFileItem[] = rootFolder.files;
     rootFolder.files = [];
-    files.forEach(file => buildOneFileWithFolder(rootFolder, file, rootFolder.gitRelativePath));
+    files.forEach(fileItem => buildOneFileWithFolder(rootFolder, fileItem.file, rootFolder.gitRelativePath));
 }
 
 function setCollapsibleStateOnAll(rootFolder: FolderItem, state: TreeItemCollapsibleState): void {
@@ -143,7 +139,7 @@ function setCollapsibleStateOnAll(rootFolder: FolderItem, state: TreeItemCollaps
     }
 }
 
-type CommittedTreeItem = CommittedFile | FolderItem | InfoItem;
+type CommittedTreeItem = CommittedFileItem | FolderItem | InfoItem;
 
 export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem> {
     private _disposables: Disposable[] = [];
@@ -164,7 +160,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
         this._disposables.push(commands.registerCommand('githd.expandFolder',
             (folder: FolderItem) => this._setCollapsibleStateOnAll(folder, TreeItemCollapsibleState.Expanded)));
         this._disposables.push(commands.registerCommand('githd.viewFileHistoryFromTree',
-            (file: CommittedFile) => model.setHistoryViewContext({ repo: this._context.repo, specifiedPath: file.uri })));
+            (fileItem: CommittedFileItem) => model.setHistoryViewContext({ repo: this._context.repo, specifiedPath: fileItem.file.fileUri })));
         this._disposables.push(commands.registerCommand('githd.viewFolderHistoryFromTree',
             (folder: FolderItem) => model.setHistoryViewContext({
                 repo: this._context.repo,
@@ -281,7 +277,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             }
             let file = committedFiles.find(value => { return value.gitRelativePath === relativePath; });
             if (file) {
-                folder.files.push(createCommittedFile(folder, file));
+                folder.files.push(createCommittedFileItem(folder, file));
             }
         } else {
             let focus: GitCommittedFile[] = [];

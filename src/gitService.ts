@@ -41,9 +41,25 @@ export interface GitLogEntry {
 }
 
 export interface GitCommittedFile {
-    uri: Uri;
+    fileUri: Uri;
+    oldFileUri: Uri;
     gitRelativePath: string;
+    gitRelativeOldPath: string;
     status: string;
+}
+
+class GitCommittedFileImpl implements GitCommittedFile {
+    constructor(private _repo: GitRepo, readonly gitRelativePath: string, readonly gitRelativeOldPath: string, readonly status: string) {
+
+    }
+
+    get fileUri(): Uri {
+        return Uri.file(path.join(this._repo.root, this.gitRelativePath));
+    }
+
+    get oldFileUri(): Uri {
+        return Uri.file(path.join(this._repo.root, this.gitRelativeOldPath));
+    }
 }
 
 export interface GitBlameItem {
@@ -68,7 +84,7 @@ export class GitService {
     private _onDidChangeGitRepositories = new EventEmitter<GitRepo[]>();
     private _disposables: Disposable[] = [];
     private _gitPath: string = workspace.getConfiguration('git').get('path');
-    
+
     constructor() {
         this._disposables.push(this._onDidChangeGitRepositories);
     }
@@ -193,6 +209,7 @@ export class GitService {
                     return;
                 }
                 let gitRelativePath: string;
+                let gitRelativeOldPath: string;
                 const status: string = info[0][0].toLocaleUpperCase();
                 // A    filename
                 // M    filename
@@ -203,16 +220,18 @@ export class GitService {
                     case 'M':
                     case 'A':
                     case 'D':
+                        gitRelativeOldPath = info[1];
                         gitRelativePath = info[1];
                         break;
                     case 'R':
                     case 'C':
+                        gitRelativeOldPath = info[1];
                         gitRelativePath = info[2];
                         break;
                     default:
                         throw new Error('Cannot parse ' + info);
                 }
-                files.push({ gitRelativePath, status, uri: Uri.file(path.join(repo.root, gitRelativePath)) });
+                files.push(new GitCommittedFileImpl(repo, gitRelativePath, gitRelativeOldPath, status));
             }
         });
         return files;
