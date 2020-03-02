@@ -62,7 +62,7 @@ class FolderItem extends TreeItem {
     private _subFolders: FolderItem[] = [];
     private _files: CommittedFile[] = [];
     private _infoItem: InfoItem;
-    
+
     constructor(private _parent: FolderItem, private _gitRelativePath: string, label: string, iconPath?: { light: Uri; dark: Uri }) {
         super(label);
         this.contextValue = 'folder';
@@ -80,7 +80,7 @@ class FolderItem extends TreeItem {
     set infoItem(value: InfoItem) { this._infoItem = value; }
 }
 
-function getFormatedLabel(relativePath: string): string {
+function getFormattedLabel(relativePath: string): string {
     const name: string = path.basename(relativePath);
     let dir: string = path.dirname(relativePath);
     if (dir === '.') {
@@ -90,13 +90,13 @@ function getFormatedLabel(relativePath: string): string {
 }
 
 function createCommittedFile(rootFolder: FolderItem, file: GitCommittedFile): CommittedFile {
-    return new CommittedFile(rootFolder, file.uri, file.gitRelativePath, file.status, getFormatedLabel(file.gitRelativePath));
+    return new CommittedFile(rootFolder, file.uri, file.gitRelativePath, file.status, getFormattedLabel(file.gitRelativePath));
 }
 
-function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relateivePath: string = ''): void {
-    const segments: string[] = relateivePath ? path.relative(relateivePath, file.gitRelativePath).split(/\\|\//) :
+function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relativePath: string = ''): void {
+    const segments: string[] = relativePath ? path.relative(relativePath, file.gitRelativePath).split(/\\|\//) :
         file.gitRelativePath.split('/');
-    let gitRelativePath: string = relateivePath;
+    let gitRelativePath: string = relativePath;
     let parent: FolderItem = rootFolder;
     let i = 0;
     for (; i < segments.length - 1; ++i) {
@@ -121,7 +121,7 @@ function buildFileTree(rootFolder: FolderItem, files: GitCommittedFile[], withFo
 
 function buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem): void {
     rootFolder.files.push(...(folder.files.map(file => {
-        file.label = getFormatedLabel(path.relative(rootFolder.gitRelativePath, file.gitRelativePath).replace(/\\/g, '/'));
+        file.label = getFormattedLabel(path.relative(rootFolder.gitRelativePath, file.gitRelativePath).replace(/\\/g, '/'));
         return file;
     })));
     folder.subFolders.forEach(f => buildFilesWithoutFolder(rootFolder, f));
@@ -332,7 +332,7 @@ export class ExplorerViewProvider implements TreeDataProvider<CommittedTreeItem>
             folder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
         }
 
-        // HACK: workaround of vscode regression. 
+        // HACK: workaround of vscode regression.
         // seems vscode people are planing to add new API https://github.com/Microsoft/vscode/issues/55879
         if (parent) {
             const temp = parent.subFolders;

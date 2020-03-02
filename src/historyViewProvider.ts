@@ -8,7 +8,7 @@ import { Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
-import { decorateWithoutWhitspace, getTextEditor } from './utils';
+import { decorateWithoutWhitespace, getTextEditor } from './utils';
 import { Tracer } from './tracer';
 
 export class HistoryViewProvider implements TextDocumentContentProvider {
@@ -248,7 +248,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         if (!loadingMore) {
             this._reset();
             this._content = isStash ? HistoryViewProvider._stashTitleLabel : HistoryViewProvider._titleLabel;
-            decorateWithoutWhitspace(this._titleDecorationOptions, this._content, 0, 0);
+            decorateWithoutWhitespace(this._titleDecorationOptions, this._content, 0, 0);
 
             if (!isStash) { // TODO: need to refine
                 if (context.specifiedPath) {
@@ -295,7 +295,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         const hasMore: boolean = !isStash && commitsCount > logCount + this._logCount;
         entries.forEach(entry => {
             ++this._logCount;
-            decorateWithoutWhitspace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);
+            decorateWithoutWhitespace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);
             this._content += entry.subject + '\n';
             ++this._currentLine;
 
@@ -321,13 +321,13 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
             if (entry.ref) {
                 let start: number = info.length;
                 info += entry.ref;
-                decorateWithoutWhitspace(this._refDecorationOptions, entry.ref, this._currentLine, start);
+                decorateWithoutWhitespace(this._refDecorationOptions, entry.ref, this._currentLine, start);
             }
             if (entry.author) {
                 info += ' by ';
                 let start: number = info.length;
                 info += entry.author;
-                decorateWithoutWhitspace(this._authorDecorationOptions, entry.author, this._currentLine, start);
+                decorateWithoutWhitespace(this._authorDecorationOptions, entry.author, this._currentLine, start);
             }
             if (entry.email) {
                 info += ' <';
@@ -341,7 +341,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
                 info += ', ';
                 let start: number = info.length;
                 info += entry.date;
-                decorateWithoutWhitspace(this._dateDecorationOptions, entry.date, this._currentLine, start);
+                decorateWithoutWhitespace(this._dateDecorationOptions, entry.date, this._currentLine, start);
             }
             this._content += info + '\n';
             ++this._currentLine;
@@ -401,7 +401,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         editor.setDecorations(this._titleDecoration, this._titleDecorationOptions);
         editor.setDecorations(this._fileDecoration, this._fileDecorationRange ? [this._fileDecorationRange] : []);
         editor.setDecorations(this._branchDecoration, this._branchDecorationRange ? [this._branchDecorationRange] : []);
-        
+
         editor.setDecorations(this._subjectDecoration, this._subjectDecorationOptions);
         editor.setDecorations(this._hashDecoration, this._hashDecorationOptions);
         editor.setDecorations(this._refDecoration, this._refDecorationOptions);

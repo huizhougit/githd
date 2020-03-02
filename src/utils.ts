@@ -2,7 +2,7 @@
 
 import { Range, TextEditor, window, TextDocument } from 'vscode';
 
-export function decorateWithoutWhitspace(ranges: Range[], target: string, line: number, offset: number): void {
+export function decorateWithoutWhitespace(ranges: Range[], target: string, line: number, offset: number): void {
     let start = 0;
     let newWord = true;
     let i = 0;

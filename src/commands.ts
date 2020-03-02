@@ -351,9 +351,9 @@ export class CommandCenter {
     }
 
     private async _diffSelections({ repo, specifiedPath }: { repo: GitRepo; specifiedPath?: Uri; }): Promise<void> {
-        const branchs: QuickPickItem[] = await selectBranch(this._gitService, repo, true);
+        const branches: QuickPickItem[] = await selectBranch(this._gitService, repo, true);
         const branchWithCombination: QuickPickItem[] = await branchCombination(this._gitService, repo);
-        const items: QuickPickItem[] = [...branchs, ...branchWithCombination];
+        const items: QuickPickItem[] = [...branches, ...branchWithCombination];
         const currentRef: string = await this._gitService.getCurrentBranch(repo);
         const placeHolder: string = `Select a ref to see it's diff with ${currentRef} or select two refs to see their diffs`;
         window.showQuickPick(items, { placeHolder: placeHolder }).then(async item => {

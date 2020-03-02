@@ -51,7 +51,7 @@ export class Model {
     private _historyViewContext: HistoryViewContext;
     private _filesViewContext: FilesViewContext;
 
-    private _onDidChangeConfiguratoin = new EventEmitter<Configuration>();
+    private _onDidChangeConfiguration = new EventEmitter<Configuration>();
     private _onDidChangeFilesViewContext = new EventEmitter<FilesViewContext>();
     private _onDidChangeHistoryViewContext = new EventEmitter<HistoryViewContext>();
 
@@ -74,7 +74,7 @@ export class Model {
 
                 Tracer.info(`Model: configuration updated ${JSON.stringify(newConfig)}`);
                 this._config = newConfig;
-                this._onDidChangeConfiguratoin.fire(newConfig);
+                this._onDidChangeConfiguration.fire(newConfig);
                 Tracer.level = newConfig.traceLevel;
                 commands.executeCommand('setContext', 'disableInEditor', newConfig.disabledInEditor);
             }
@@ -85,7 +85,7 @@ export class Model {
         }, null, this._disposables);
         this._gitService.updateGitRoots(workspace.workspaceFolders);
 
-        this._disposables.push(this._onDidChangeConfiguratoin);
+        this._disposables.push(this._onDidChangeConfiguration);
         this._disposables.push(this._onDidChangeFilesViewContext);
         this._disposables.push(this._onDidChangeHistoryViewContext);
     }
@@ -125,7 +125,7 @@ export class Model {
         this._onDidChangeHistoryViewContext.fire(this._historyViewContext);
     }
 
-    get onDidChangeConfiguration(): Event<Configuration> { return this._onDidChangeConfiguratoin.event; }
+    get onDidChangeConfiguration(): Event<Configuration> { return this._onDidChangeConfiguration.event; }
     get onDidChangeFilesViewContext(): Event<FilesViewContext> { return this._onDidChangeFilesViewContext.event; }
     get onDidChangeHistoryViewContext(): Event<HistoryViewContext> { return this._onDidChangeHistoryViewContext.event; }
 

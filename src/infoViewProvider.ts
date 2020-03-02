@@ -4,7 +4,7 @@ import { TextDocumentContentProvider, Uri, Event, EventEmitter, TextEditor, Rang
 
 import { Model } from './model';
 import { GitService } from './gitService';
-import { decorateWithoutWhitspace, getTextEditor } from './utils';
+import { decorateWithoutWhitespace, getTextEditor } from './utils';
 
 export class InfoViewProvider implements TextDocumentContentProvider {
     static scheme: string = 'githd-line';
@@ -55,7 +55,7 @@ export class InfoViewProvider implements TextDocumentContentProvider {
     }
 
     get onDidChange(): Event<Uri> { return this._onDidChange.event; }
-    
+
     provideTextDocumentContent(uri: Uri): string {
         return this._content;
     }
@@ -81,17 +81,17 @@ export class InfoViewProvider implements TextDocumentContentProvider {
             this._content.split(/\r?\n/g).forEach(line => {
                 if (line.substr(0, 7) == 'diff --') {
                     diffStarted = true;
-                    decorateWithoutWhitspace(pathRanges, line, i, 0);
+                    decorateWithoutWhitespace(pathRanges, line, i, 0);
                 } else if (line.substr(0, 4) == '--- ') {
-                    decorateWithoutWhitspace(pathRanges, line, i, 0);
+                    decorateWithoutWhitespace(pathRanges, line, i, 0);
                 } else if (line.substr(0, 4) == '+++ ') {
-                    decorateWithoutWhitspace(pathRanges, line, i, 0);
+                    decorateWithoutWhitespace(pathRanges, line, i, 0);
                 } else if (line[0] == '-') {
-                    decorateWithoutWhitspace(oldLineRange, line, i, 0);
+                    decorateWithoutWhitespace(oldLineRange, line, i, 0);
                 } else if (line[0] == '+') {
-                    decorateWithoutWhitspace(newLineRange, line, i, 0);
+                    decorateWithoutWhitespace(newLineRange, line, i, 0);
                 } else if (!diffStarted) {
-                    decorateWithoutWhitspace(infoRanges, line, i, 0);
+                    decorateWithoutWhitespace(infoRanges, line, i, 0);
                 }
                 ++i;
             });
