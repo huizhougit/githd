@@ -1,5 +1,8 @@
 # Change Log
 
+## 2.2.4
+* Display old file in compare view for renames
+
 ## 2.2.2
 * Add configuration to allow disabling githd shortcut in editor
 

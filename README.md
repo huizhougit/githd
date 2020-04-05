@@ -89,7 +89,7 @@ _Press F1_ and type or select `Preferences: Open Workspace Settings` or `Prefere
 [MIT](https://raw.githubusercontent.com/huizhougit/githd/master/LICENSE)
 
 ## Thanks
-**Big thanks** to the contributions of **_Thomas Müller_**, **_Eugene Voynov_** and **_yigger_**!
+**Big thanks** to the contributions of **_Thomas Müller_**, **_Eugene Voynov_**, **_yigger_** and **_Ralf Sternberg_**!
 
 ## Unofficial Author's Words
 >This is the tool I wanted but could not find so wrote myself.
