@@ -98,7 +98,7 @@ export class HistoryViewProvider implements TextDocumentContentProvider {
         this._disposables.push(disposable);
 
         this._expressStatusBar.command = 'githd.setExpressMode';
-        this._expressStatusBar.tooltip = 'Turn on or off of the history vew Express mode';
+        this._expressStatusBar.tooltip = 'Turn on or off of the history view Express mode';
         this.express = this._model.configuration.expressMode;
         this._disposables.push(this._expressStatusBar);
 
