@@ -41,7 +41,7 @@ function getConfiguration(): Configuration {
         expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode'),
         displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressStatus'),
         blameEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('enabled'),
-        blameCommittedFilesEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('blameCommittedFilesEnabled'),
+        blameCommittedFilesEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('committedFilesEnabled'),
         disabledInEditor: <boolean>workspace.getConfiguration('githd.editor').get('disabled'),
         traceLevel: <string>workspace.getConfiguration('githd').get('traceLevel')
     };

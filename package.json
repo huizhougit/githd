@@ -1,592 +1,592 @@
 {
-  "name": "githd",
-  "displayName": "Git History Diff",
-  "description": "View git history. View diff of committed files. View git blame info. View stash details.",
-  "version": "2.2.4",
-  "publisher": "huizhou",
-  "author": {
-    "name": "Hui Zhou",
-    "email": "zhou_hui@outlook.com"
-  },
-  "engines": {
-    "vscode": "^1.42.0"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/huizhougit/githd.git"
-  },
-  "icon": "resources/icons/icon.png",
-  "categories": [
-    "Other"
-  ],
-  "keywords": [
-    "git",
-    "diff",
-    "git diff",
-    "git log",
-    "git history"
-  ],
-  "activationEvents": [
-    "*"
-  ],
-  "main": "./out/src/extension",
-  "scripts": {
-    "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "node ./node_modules/vscode/bin/test"
-  },
-  "contributes": {
-    "configuration": {
-      "type": "object",
-      "title": "Git History Diff configuration",
-      "properties": {
-        "githd.explorerView.withFolder": {
-          "type": "boolean",
-          "default": true,
-          "description": "List committed files with the folders."
-        },
-        "githd.logView.commitsCount": {
-          "type": "number",
-          "default": 300,
-          "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking ... or load the entire log with command.",
-          "enum": [
-            100,
-            200,
-            300,
-            400,
-            500,
-            1000
-          ]
-        },
-        "githd.logView.expressMode": {
-          "type": "boolean",
-          "default": false,
-          "description": "The Express Mode will load the history view much faster. But the change stat will not be present."
-        },
-        "githd.logView.displayExpressStatus": {
-          "type": "boolean",
-          "default": true,
-          "description": "Display the express mode setting on the status bar"
-        },
-        "githd.blameView.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show git blame information for each line"
-        },
-        "githd.blameView.committedFilesEnabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show committed files in git blame window"
-        },
-        "githd.editor.disabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable GitHD shortcut in editor"
-        },
-        "githd.traceLevel": {
-          "type": "string",
-          "default": "silent",
-          "description": "The trace level set to see githd logs from output window.",
-          "enum": [
-            "silent",
-            "error",
-            "warning",
-            "info",
-            "verbose"
-          ]
-        }
-      }
+    "name": "githd",
+    "displayName": "Git History Diff",
+    "description": "View git history. View diff of committed files. View git blame info. View stash details.",
+    "version": "2.2.4",
+    "publisher": "huizhou",
+    "author": {
+        "name": "Hui Zhou",
+        "email": "zhou_hui@outlook.com"
     },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "githd-explorer",
-          "title": "GitHD",
-          "icon": "resources/icons/githd.svg"
-        }
-      ]
+    "engines": {
+        "vscode": "^1.42.0"
     },
-    "views": {
-      "githd-explorer": [
-        {
-          "id": "committedFiles",
-          "name": "Committed Files",
-          "when": "hasGitRepo"
-        }
-      ]
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/huizhougit/githd.git"
     },
-    "commands": [
-      {
-        "command": "githd.clear",
-        "title": "Clear",
-        "category": "GitHD",
-        "icon": {
-          "light": "resources/icons/light/clear.svg",
-          "dark": "resources/icons/dark/clear.svg"
-        }
-      },
-      {
-        "command": "githd.inputRef",
-        "title": "Input Ref",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.viewHistory",
-        "title": "GitHD: View History",
-        "icon": {
-          "light": "resources/icons/githd.svg",
-          "dark": "resources/icons/githd.svg"
-        }
-      },
-      {
-        "command": "githd.viewBranchHistory",
-        "title": "View Branch History",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.viewAllHistory",
-        "title": "View Entire History (it may take a long time if the history is long)",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.diffBranch",
-        "title": "View Branch Diff",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.viewFileHistory",
-        "title": "GitHD: View File History"
-      },
-      {
-        "command": "githd.viewLineHistory",
-        "title": "GitHD: View Line History"
-      },
-      {
-        "command": "githd.viewFolderHistory",
-        "title": "GitHD: View Folder History"
-      },
-      {
-        "command": "githd.diffFile",
-        "title": "GitHD: View File Diff"
-      },
-      {
-        "command": "githd.diffFolder",
-        "title": "GitHD: View Folder Diff"
-      },
-      {
-        "command": "githd.openCommit",
-        "title": "Open commit with the given sha",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.openCommittedFile",
-        "title": "Open the change of the committed file",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.openCommitInfo",
-        "title": "Open the diff of the specified line",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.diffUncommittedFile",
-        "title": "GitHD: View Un-committed File Diff"
-      },
-      {
-        "command": "githd.setExpressMode",
-        "title": "set Express Mode",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.showFilesWithFolder",
-        "title": "Folder View",
-        "category": "GitHD",
-        "icon": {
-          "light": "resources/icons/light/folder.svg",
-          "dark": "resources/icons/dark/folder.svg"
-        }
-      },
-      {
-        "command": "githd.showFilesWithoutFolder",
-        "title": "List View",
-        "category": "GitHD",
-        "icon": {
-          "light": "resources/icons/light/list-unordered.svg",
-          "dark": "resources/icons/dark/list-unordered.svg"
-        }
-      },
-      {
-        "command": "githd.collapseFolder",
-        "title": "Collapse All",
-        "category": "GitHD",
-        "icon": {
-          "light": "resources/icons/light/collapse-all.svg",
-          "dark": "resources/icons/dark/collapse-all.svg"
-        }
-      },
-      {
-        "command": "githd.expandFolder",
-        "title": "Expand All",
-        "category": "GitHD",
-        "icon": {
-          "light": "resources/icons/light/collapse-all.svg",
-          "dark": "resources/icons/dark/collapse-all.svg"
-        }
-      },
-      {
-        "command": "githd.viewFileHistoryFromTree",
-        "title": "View File History",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.viewFolderHistoryFromTree",
-        "title": "View Folder History",
-        "category": "GitHD"
-      },
-      {
-        "command": "githd.viewStashes",
-        "title": "View Stashes",
-        "category": "GitHD"
-      }
+    "icon": "resources/icons/icon.png",
+    "categories": [
+        "Other"
     ],
-    "menus": {
-      "commandPalette": [
-        {
-          "command": "githd.viewHistory",
-          "when": "hasGitRepo"
-        },
-        {
-          "command": "githd.viewAllHistory",
-          "when": "hasGitRepo"
-        },
-        {
-          "command": "githd.viewBranchHistory",
-          "when": "hasGitRepo"
-        },
-        {
-          "command": "githd.diffBranch",
-          "when": "hasGitRepo"
-        },
-        {
-          "command": "githd.inputRef",
-          "when": "hasGitRepo"
-        },
-        {
-          "command": "githd.viewStashes",
-          "when": "hasGitRepo"
-        },
-        {
-          "command": "githd.clear",
-          "when": "false"
-        },
-        {
-          "command": "githd.openCommit",
-          "when": "false"
-        },
-        {
-          "command": "githd.openCommittedFile",
-          "when": "false"
-        },
-        {
-          "command": "githd.viewFileHistory",
-          "when": "hasGitRepo && editorIsOpen"
-        },
-        {
-          "command": "githd.viewLineHistory",
-          "when": "hasGitRepo && editorIsOpen"
-        },
-        {
-          "command": "githd.diffUncommittedFile",
-          "when": "hasGitRepo && editorIsOpen"
-        },
-        {
-          "command": "githd.viewFolderHistory",
-          "when": "false"
-        },
-        {
-          "command": "githd.diffFile",
-          "when": "false"
-        },
-        {
-          "command": "githd.diffFolder",
-          "when": "false"
-        },
-        {
-          "command": "githd.setExpressMode",
-          "when": "false"
-        },
-        {
-          "command": "githd.showFilesWithFolder",
-          "when": "false"
-        },
-        {
-          "command": "githd.showFilesWithoutFolder",
-          "when": "false"
-        },
-        {
-          "command": "githd.collapseFolder",
-          "when": "false"
-        },
-        {
-          "command": "githd.expandFolder",
-          "when": "false"
-        },
-        {
-          "command": "githd.viewFileHistoryFromTree",
-          "when": "false"
-        },
-        {
-          "command": "githd.viewFolderHistoryFromTree",
-          "when": "false"
-        },
-        {
-          "command": "githd.openCommitInfo",
-          "when": "false"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "githd.showFilesWithFolder",
-          "when": "view == committedFiles && hasGitRepo",
-          "group": "navigation@1"
-        },
-        {
-          "command": "githd.showFilesWithoutFolder",
-          "when": "view == committedFiles && hasGitRepo",
-          "group": "navigation@2"
-        },
-        {
-          "command": "githd.collapseFolder",
-          "when": "view == committedFiles && hasGitRepo",
-          "group": "navigation@3"
-        },
-        {
-          "command": "githd.clear",
-          "when": "view == committedFiles && hasGitRepo",
-          "group": "navigation@9"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "githd.showFilesWithFolder",
-          "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-          "group": "githd_2"
-        },
-        {
-          "command": "githd.showFilesWithoutFolder",
-          "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-          "group": "githd_2"
-        },
-        {
-          "command": "githd.collapseFolder",
-          "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-          "group": "githd_3"
-        },
-        {
-          "command": "githd.expandFolder",
-          "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-          "group": "githd_3"
-        },
-        {
-          "command": "githd.viewFileHistoryFromTree",
-          "when": "view == committedFiles && viewItem != folder && hasGitRepo",
-          "group": "githd_1"
-        },
-        {
-          "command": "githd.viewFolderHistoryFromTree",
-          "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-          "group": "githd_1"
-        }
-      ],
-      "explorer/context": [
-        {
-          "command": "githd.viewFileHistory",
-          "when": "!explorerResourceIsFolder",
-          "group": "githd@1"
-        },
-        {
-          "command": "githd.viewFolderHistory",
-          "when": "explorerResourceIsFolder",
-          "group": "githd@1"
-        },
-        {
-          "command": "githd.diffFile",
-          "when": "!explorerResourceIsFolder",
-          "group": "githd@2"
-        },
-        {
-          "command": "githd.diffFolder",
-          "when": "explorerResourceIsFolder",
-          "group": "githd@2"
-        },
-        {
-          "command": "githd.diffUncommittedFile",
-          "when": "!explorerResourceIsFolder",
-          "group": "githd@3"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "githd.viewFileHistory",
-          "group": "githd@1"
-        },
-        {
-          "command": "githd.viewLineHistory",
-          "group": "githd@1"
-        },
-        {
-          "command": "githd.diffFile",
-          "group": "githd@2"
-        },
-        {
-          "command": "githd.diffUncommittedFile",
-          "group": "githd@3"
-        }
-      ],
-      "editor/title": [
-        {
-          "command": "githd.viewHistory",
-          "when": "hasGitRepo && !disableInEditor",
-          "group": "navigation"
-        }
-      ]
+    "keywords": [
+        "git",
+        "diff",
+        "git diff",
+        "git log",
+        "git history"
+    ],
+    "activationEvents": [
+        "*"
+    ],
+    "main": "./out/src/extension",
+    "scripts": {
+        "vscode:prepublish": "tsc -p ./",
+        "compile": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "node ./node_modules/vscode/bin/test"
     },
-    "colors": [
-      {
-        "id": "githd.historyView.title",
-        "description": "The color of history view title.",
-        "defaults": {
-          "light": "#267F99",
-          "dark": "#4EC9B0",
-          "highContrast": "#4EC9B0"
-        }
-      },
-      {
-        "id": "githd.historyView.branch",
-        "description": "The color of branch in history view.",
-        "defaults": {
-          "light": "#AF00DB",
-          "dark": "#C586C0",
-          "highContrast": "#C586C0"
-        }
-      },
-      {
-        "id": "githd.historyView.filePath",
-        "description": "The color of specified file path in history view.",
-        "defaults": {
-          "light": "#811F3F",
-          "dark": "#D16969",
-          "highContrast": "#D16969"
-        }
-      },
-      {
-        "id": "githd.historyView.subject",
-        "description": "The color of commit subject in history view.",
-        "defaults": {
-          "light": "#0000FF",
-          "dark": "#569CD6",
-          "highContrast": "#569CD6"
-        }
-      },
-      {
-        "id": "githd.historyView.hash",
-        "description": "The color of commit hash code in history view.",
-        "defaults": {
-          "light": "#A31515",
-          "dark": "#CE9178",
-          "highContrast": "#CE9178"
-        }
-      },
-      {
-        "id": "githd.historyView.ref",
-        "description": "The color of commit ref in history view.",
-        "defaults": {
-          "light": "#008000",
-          "dark": "#608B4E",
-          "highContrast": "#608B4E"
-        }
-      },
-      {
-        "id": "githd.historyView.author",
-        "description": "The color of commit author in history view.",
-        "defaults": {
-          "light": "#001080",
-          "dark": "#9CDCFE",
-          "highContrast": "#9CDCFE"
-        }
-      },
-      {
-        "id": "githd.historyView.email",
-        "description": "The color of commit email in history view.",
-        "defaults": {
-          "light": "#795E26",
-          "dark": "#DCDCAA",
-          "highContrast": "#DCDCAA"
-        }
-      },
-      {
-        "id": "githd.historyView.more",
-        "description": "The color of history view 'more commits'.",
-        "defaults": {
-          "light": "#001080",
-          "dark": "#9CDCFE",
-          "highContrast": "#9CDCFE"
-        }
-      },
-      {
-        "id": "githd.infoView.content",
-        "description": "The color of info view content.",
-        "defaults": {
-          "light": "#008000",
-          "dark": "#608B4E",
-          "highContrast": "#608B4E"
-        }
-      },
-      {
-        "id": "githd.infoView.path",
-        "description": "The color of file path in info view.",
-        "defaults": {
-          "light": "#000080",
-          "dark": "#569CD6",
-          "highContrast": "#569CD6"
-        }
-      },
-      {
-        "id": "githd.infoView.old",
-        "description": "The color of old content before the change in info view.",
-        "defaults": {
-          "light": "#A31515",
-          "dark": "#CE9178",
-          "highContrast": "#CE9178"
-        }
-      },
-      {
-        "id": "githd.infoView.new",
-        "description": "The color of new content after the change in info view.",
-        "defaults": {
-          "light": "#09885A",
-          "dark": "#B5CEA8",
-          "highContrast": "#B5CEA8"
-        }
-      },
-      {
-        "id": "githd.blameView.info",
-        "description": "The color of blame info at the end of each line.",
-        "defaults": {
-          "light": "#237893",
-          "dark": "#858585",
-          "highContrast": "#858585"
-        }
-      }
-    ]
-  },
-  "devDependencies": {
-    "@types/mocha": "^2.2.32",
-    "@types/node": "17.0.21",
-    "mocha": "^2.3.3",
-    "typescript": "4.6.2",
-    "vscode": "^1.1.37"
-  }
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Git History Diff configuration",
+            "properties": {
+                "githd.explorerView.withFolder": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "List committed files with the folders."
+                },
+                "githd.logView.commitsCount": {
+                    "type": "number",
+                    "default": 300,
+                    "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking ... or load the entire log with command.",
+                    "enum": [
+                        100,
+                        200,
+                        300,
+                        400,
+                        500,
+                        1000
+                    ]
+                },
+                "githd.logView.expressMode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "The Express Mode will load the history view much faster. But the change stat will not be present."
+                },
+                "githd.logView.displayExpressStatus": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Display the express mode setting on the status bar"
+                },
+                "githd.blameView.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show git blame information for each line"
+                },
+                "githd.blameView.committedFilesEnabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show committed files in git blame window"
+                },
+                "githd.editor.disabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Disable GitHD shortcut in editor"
+                },
+                "githd.traceLevel": {
+                    "type": "string",
+                    "default": "silent",
+                    "description": "The trace level set to see githd logs from output window.",
+                    "enum": [
+                        "silent",
+                        "error",
+                        "warning",
+                        "info",
+                        "verbose"
+                    ]
+                }
+            }
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "githd-explorer",
+                    "title": "GitHD",
+                    "icon": "resources/icons/githd.svg"
+                }
+            ]
+        },
+        "views": {
+            "githd-explorer": [
+                {
+                    "id": "committedFiles",
+                    "name": "Committed Files",
+                    "when": "hasGitRepo"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "githd.clear",
+                "title": "Clear",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/clear.svg",
+                    "dark": "resources/icons/dark/clear.svg"
+                }
+            },
+            {
+                "command": "githd.inputRef",
+                "title": "Input Ref",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.viewHistory",
+                "title": "GitHD: View History",
+                "icon": {
+                    "light": "resources/icons/githd.svg",
+                    "dark": "resources/icons/githd.svg"
+                }
+            },
+            {
+                "command": "githd.viewBranchHistory",
+                "title": "View Branch History",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.viewAllHistory",
+                "title": "View Entire History (it may take a long time if the history is long)",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.diffBranch",
+                "title": "View Branch Diff",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.viewFileHistory",
+                "title": "GitHD: View File History"
+            },
+            {
+                "command": "githd.viewLineHistory",
+                "title": "GitHD: View Line History"
+            },
+            {
+                "command": "githd.viewFolderHistory",
+                "title": "GitHD: View Folder History"
+            },
+            {
+                "command": "githd.diffFile",
+                "title": "GitHD: View File Diff"
+            },
+            {
+                "command": "githd.diffFolder",
+                "title": "GitHD: View Folder Diff"
+            },
+            {
+                "command": "githd.openCommit",
+                "title": "Open commit with the given sha",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.openCommittedFile",
+                "title": "Open the change of the committed file",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.openCommitInfo",
+                "title": "Open the diff of the specified line",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.diffUncommittedFile",
+                "title": "GitHD: View Un-committed File Diff"
+            },
+            {
+                "command": "githd.setExpressMode",
+                "title": "set Express Mode",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.showFilesWithFolder",
+                "title": "Folder View",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/folder.svg",
+                    "dark": "resources/icons/dark/folder.svg"
+                }
+            },
+            {
+                "command": "githd.showFilesWithoutFolder",
+                "title": "List View",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/list-unordered.svg",
+                    "dark": "resources/icons/dark/list-unordered.svg"
+                }
+            },
+            {
+                "command": "githd.collapseFolder",
+                "title": "Collapse All",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/collapse-all.svg",
+                    "dark": "resources/icons/dark/collapse-all.svg"
+                }
+            },
+            {
+                "command": "githd.expandFolder",
+                "title": "Expand All",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/collapse-all.svg",
+                    "dark": "resources/icons/dark/collapse-all.svg"
+                }
+            },
+            {
+                "command": "githd.viewFileHistoryFromTree",
+                "title": "View File History",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.viewFolderHistoryFromTree",
+                "title": "View Folder History",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.viewStashes",
+                "title": "View Stashes",
+                "category": "GitHD"
+            }
+        ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "githd.viewHistory",
+                    "when": "hasGitRepo"
+                },
+                {
+                    "command": "githd.viewAllHistory",
+                    "when": "hasGitRepo"
+                },
+                {
+                    "command": "githd.viewBranchHistory",
+                    "when": "hasGitRepo"
+                },
+                {
+                    "command": "githd.diffBranch",
+                    "when": "hasGitRepo"
+                },
+                {
+                    "command": "githd.inputRef",
+                    "when": "hasGitRepo"
+                },
+                {
+                    "command": "githd.viewStashes",
+                    "when": "hasGitRepo"
+                },
+                {
+                    "command": "githd.clear",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.openCommit",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.openCommittedFile",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.viewFileHistory",
+                    "when": "hasGitRepo && editorIsOpen"
+                },
+                {
+                    "command": "githd.viewLineHistory",
+                    "when": "hasGitRepo && editorIsOpen"
+                },
+                {
+                    "command": "githd.diffUncommittedFile",
+                    "when": "hasGitRepo && editorIsOpen"
+                },
+                {
+                    "command": "githd.viewFolderHistory",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.diffFile",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.diffFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.setExpressMode",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.showFilesWithFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.showFilesWithoutFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.collapseFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.expandFolder",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.viewFileHistoryFromTree",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.viewFolderHistoryFromTree",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.openCommitInfo",
+                    "when": "false"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "githd.showFilesWithFolder",
+                    "when": "view == committedFiles && hasGitRepo",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "githd.showFilesWithoutFolder",
+                    "when": "view == committedFiles && hasGitRepo",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "githd.collapseFolder",
+                    "when": "view == committedFiles && hasGitRepo",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "githd.clear",
+                    "when": "view == committedFiles && hasGitRepo",
+                    "group": "navigation@9"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "githd.showFilesWithFolder",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
+                    "group": "githd_2"
+                },
+                {
+                    "command": "githd.showFilesWithoutFolder",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
+                    "group": "githd_2"
+                },
+                {
+                    "command": "githd.collapseFolder",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
+                    "group": "githd_3"
+                },
+                {
+                    "command": "githd.expandFolder",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
+                    "group": "githd_3"
+                },
+                {
+                    "command": "githd.viewFileHistoryFromTree",
+                    "when": "view == committedFiles && viewItem != folder && hasGitRepo",
+                    "group": "githd_1"
+                },
+                {
+                    "command": "githd.viewFolderHistoryFromTree",
+                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
+                    "group": "githd_1"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "githd.viewFileHistory",
+                    "when": "!explorerResourceIsFolder",
+                    "group": "githd@1"
+                },
+                {
+                    "command": "githd.viewFolderHistory",
+                    "when": "explorerResourceIsFolder",
+                    "group": "githd@1"
+                },
+                {
+                    "command": "githd.diffFile",
+                    "when": "!explorerResourceIsFolder",
+                    "group": "githd@2"
+                },
+                {
+                    "command": "githd.diffFolder",
+                    "when": "explorerResourceIsFolder",
+                    "group": "githd@2"
+                },
+                {
+                    "command": "githd.diffUncommittedFile",
+                    "when": "!explorerResourceIsFolder",
+                    "group": "githd@3"
+                }
+            ],
+            "editor/context": [
+                {
+                    "command": "githd.viewFileHistory",
+                    "group": "githd@1"
+                },
+                {
+                    "command": "githd.viewLineHistory",
+                    "group": "githd@1"
+                },
+                {
+                    "command": "githd.diffFile",
+                    "group": "githd@2"
+                },
+                {
+                    "command": "githd.diffUncommittedFile",
+                    "group": "githd@3"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "githd.viewHistory",
+                    "when": "hasGitRepo && !disableInEditor",
+                    "group": "navigation"
+                }
+            ]
+        },
+        "colors": [
+            {
+                "id": "githd.historyView.title",
+                "description": "The color of history view title.",
+                "defaults": {
+                    "light": "#267F99",
+                    "dark": "#4EC9B0",
+                    "highContrast": "#4EC9B0"
+                }
+            },
+            {
+                "id": "githd.historyView.branch",
+                "description": "The color of branch in history view.",
+                "defaults": {
+                    "light": "#AF00DB",
+                    "dark": "#C586C0",
+                    "highContrast": "#C586C0"
+                }
+            },
+            {
+                "id": "githd.historyView.filePath",
+                "description": "The color of specified file path in history view.",
+                "defaults": {
+                    "light": "#811F3F",
+                    "dark": "#D16969",
+                    "highContrast": "#D16969"
+                }
+            },
+            {
+                "id": "githd.historyView.subject",
+                "description": "The color of commit subject in history view.",
+                "defaults": {
+                    "light": "#0000FF",
+                    "dark": "#569CD6",
+                    "highContrast": "#569CD6"
+                }
+            },
+            {
+                "id": "githd.historyView.hash",
+                "description": "The color of commit hash code in history view.",
+                "defaults": {
+                    "light": "#A31515",
+                    "dark": "#CE9178",
+                    "highContrast": "#CE9178"
+                }
+            },
+            {
+                "id": "githd.historyView.ref",
+                "description": "The color of commit ref in history view.",
+                "defaults": {
+                    "light": "#008000",
+                    "dark": "#608B4E",
+                    "highContrast": "#608B4E"
+                }
+            },
+            {
+                "id": "githd.historyView.author",
+                "description": "The color of commit author in history view.",
+                "defaults": {
+                    "light": "#001080",
+                    "dark": "#9CDCFE",
+                    "highContrast": "#9CDCFE"
+                }
+            },
+            {
+                "id": "githd.historyView.email",
+                "description": "The color of commit email in history view.",
+                "defaults": {
+                    "light": "#795E26",
+                    "dark": "#DCDCAA",
+                    "highContrast": "#DCDCAA"
+                }
+            },
+            {
+                "id": "githd.historyView.more",
+                "description": "The color of history view 'more commits'.",
+                "defaults": {
+                    "light": "#001080",
+                    "dark": "#9CDCFE",
+                    "highContrast": "#9CDCFE"
+                }
+            },
+            {
+                "id": "githd.infoView.content",
+                "description": "The color of info view content.",
+                "defaults": {
+                    "light": "#008000",
+                    "dark": "#608B4E",
+                    "highContrast": "#608B4E"
+                }
+            },
+            {
+                "id": "githd.infoView.path",
+                "description": "The color of file path in info view.",
+                "defaults": {
+                    "light": "#000080",
+                    "dark": "#569CD6",
+                    "highContrast": "#569CD6"
+                }
+            },
+            {
+                "id": "githd.infoView.old",
+                "description": "The color of old content before the change in info view.",
+                "defaults": {
+                    "light": "#A31515",
+                    "dark": "#CE9178",
+                    "highContrast": "#CE9178"
+                }
+            },
+            {
+                "id": "githd.infoView.new",
+                "description": "The color of new content after the change in info view.",
+                "defaults": {
+                    "light": "#09885A",
+                    "dark": "#B5CEA8",
+                    "highContrast": "#B5CEA8"
+                }
+            },
+            {
+                "id": "githd.blameView.info",
+                "description": "The color of blame info at the end of each line.",
+                "defaults": {
+                    "light": "#237893",
+                    "dark": "#858585",
+                    "highContrast": "#858585"
+                }
+            }
+        ]
+    },
+    "devDependencies": {
+        "@types/mocha": "^2.2.32",
+        "@types/node": "^17.0.21",
+        "mocha": "^2.3.3",
+        "typescript": "^4.6.2",
+        "vscode": "^1.0.0"
+    }
 }
