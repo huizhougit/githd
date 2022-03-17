@@ -13,16 +13,31 @@ const NotCommitted = `Not committed yet`;
 
 class BlameViewStatProvider implements Disposable, HoverProvider {
     private _disposables: Disposable[] = [];
-    constructor(private _owner: BlameViewProvider) {
+    private _committedFilesEnabled : boolean;
+
+    constructor(model: Model, private _owner: BlameViewProvider) {
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
+        this.committedFilesEnabled = model.configuration.blameCommittedFilesEnabled;
+
+        model.onDidChangeConfiguration(config => {
+            this.committedFilesEnabled = config.blameCommittedFilesEnabled;
+        }, null, this._disposables);
+
     }
 
     dispose(): void {
         Disposable.from(...this._disposables).dispose();
     }
 
+    private set committedFilesEnabled(value: boolean) {
+        if (this._committedFilesEnabled !== value) {
+            Tracer.info(`Blame view: set committed files enabled ${value}`);
+            this._committedFilesEnabled = value;
+        }
+    }
+
     async provideHover(document: TextDocument, position: Position): Promise<Hover> {
-        if (!this._owner.isAvailable(document, position)) {
+        if (!this._owner.isAvailable(document, position) || !this._committedFilesEnabled) {
             return;
         }
         let markdown = new MarkdownString(`*\`Committed Files\`*\r\n>\r\n`);
@@ -47,7 +62,7 @@ export class BlameViewProvider implements Disposable, HoverProvider {
 
     constructor(model: Model, private _gitService: GitService) {
         this.enabled = model.configuration.blameEnabled;
-        this._statProvider = new BlameViewStatProvider(this);
+        this._statProvider = new BlameViewStatProvider(model, this);
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
         window.onDidChangeTextEditorSelection(e => {
             this._onDidChangeSelection(e.textEditor);
