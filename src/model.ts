@@ -11,6 +11,8 @@ export interface Configuration {
     readonly displayExpress?: boolean;
     readonly traceLevel?: string;
     readonly blameEnabled?: boolean;
+    readonly blameCommittedFilesEnabled?: boolean;
+    readonly blameHoverEnabled?: boolean;
     readonly disabledInEditor?: boolean;
     withFolder?: boolean;
 }
@@ -40,6 +42,8 @@ function getConfiguration(): Configuration {
         expressMode: <boolean>workspace.getConfiguration('githd.logView').get('expressMode'),
         displayExpress: <boolean>workspace.getConfiguration('githd.logView').get('displayExpressStatus'),
         blameEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('enabled'),
+        blameCommittedFilesEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('committedFilesEnabled'),
+        blameHoverEnabled: <boolean>workspace.getConfiguration('githd.blameView').get('hoverEnabled'),
         disabledInEditor: <boolean>workspace.getConfiguration('githd.editor').get('disabled'),
         traceLevel: <string>workspace.getConfiguration('githd').get('traceLevel')
     };
@@ -69,6 +73,8 @@ export class Model {
                 newConfig.expressMode !== this._config.expressMode ||
                 newConfig.displayExpress !== this._config.displayExpress ||
                 newConfig.blameEnabled !== this._config.blameEnabled ||
+                newConfig.blameCommittedFilesEnabled !== this._config.blameCommittedFilesEnabled ||
+                newConfig.blameHoverEnabled !== this._config.blameHoverEnabled ||
                 newConfig.disabledInEditor !== this._config.disabledInEditor ||
                 newConfig.traceLevel !== this._config.traceLevel) {
 

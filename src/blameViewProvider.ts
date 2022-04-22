@@ -13,16 +13,41 @@ const NotCommitted = `Not committed yet`;
 
 class BlameViewStatProvider implements Disposable, HoverProvider {
     private _disposables: Disposable[] = [];
-    constructor(private _owner: BlameViewProvider) {
+    private _committedFilesEnabled : boolean;
+    private _hoverEnabled : boolean;
+
+
+    constructor(model: Model, private _owner: BlameViewProvider) {
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
+        this.committedFilesEnabled = model.configuration.blameCommittedFilesEnabled;
+        this.hoverEnabled = model.configuration.blameHoverEnabled;
+
+        model.onDidChangeConfiguration(config => {
+            this.committedFilesEnabled = config.blameCommittedFilesEnabled;
+            this.hoverEnabled = config.blameHoverEnabled;
+        }, null, this._disposables);
+
     }
 
     dispose(): void {
         Disposable.from(...this._disposables).dispose();
     }
 
+    private set committedFilesEnabled(value: boolean) {
+        if (this._committedFilesEnabled !== value) {
+            Tracer.info(`Blame view: set committed files enabled ${value}`);
+            this._committedFilesEnabled = value;
+        }
+    }
+
+    private set hoverEnabled(value: boolean) {
+        if (this._hoverEnabled !== value) {
+            this._hoverEnabled = value;
+        }
+    }
+
     async provideHover(document: TextDocument, position: Position): Promise<Hover> {
-        if (!this._owner.isAvailable(document, position)) {
+        if (!this._owner.isAvailable(document, position) || !this._committedFilesEnabled || !this._hoverEnabled) {
             return;
         }
         let markdown = new MarkdownString(`*\`Committed Files\`*\r\n>\r\n`);
@@ -37,6 +62,7 @@ export class BlameViewProvider implements Disposable, HoverProvider {
     private _statProvider: BlameViewStatProvider;
     private _debouncing: NodeJS.Timer;
     private _enabled : boolean;
+    private _hoverEnabled : boolean;
     private _decoration = window.createTextEditorDecorationType({
         after: {
             color: new ThemeColor('githd.blameView.info'),
@@ -47,7 +73,8 @@ export class BlameViewProvider implements Disposable, HoverProvider {
 
     constructor(model: Model, private _gitService: GitService) {
         this.enabled = model.configuration.blameEnabled;
-        this._statProvider = new BlameViewStatProvider(this);
+        this.hoverEnabled = model.configuration.blameHoverEnabled;
+        this._statProvider = new BlameViewStatProvider(model, this);
         this._disposables.push(languages.registerHoverProvider({ scheme: 'file' }, this));
         window.onDidChangeTextEditorSelection(e => {
             this._onDidChangeSelection(e.textEditor);
@@ -63,6 +90,7 @@ export class BlameViewProvider implements Disposable, HoverProvider {
 
         model.onDidChangeConfiguration(config => {
             this.enabled = config.blameEnabled;
+            this.hoverEnabled = config.blameHoverEnabled;
         }, null, this._disposables);
 
         this._disposables.push(this._statProvider);
@@ -76,6 +104,12 @@ export class BlameViewProvider implements Disposable, HoverProvider {
         }
     }
 
+    private set hoverEnabled(value: boolean) {
+        if (this._hoverEnabled !== value) {
+            this._hoverEnabled = value;
+            }
+        }
+
     get blame(): GitBlameItem {
         return this._blame;
     }
@@ -85,7 +119,7 @@ export class BlameViewProvider implements Disposable, HoverProvider {
     }
 
     async provideHover(document: TextDocument, position: Position): Promise<Hover> {
-        if (!this.isAvailable(document, position)) {
+        if (!this.isAvailable(document, position) || !this._hoverEnabled) {
             return;
         }
 

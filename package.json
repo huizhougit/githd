@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View git history. View diff of committed files. View git blame info. View stash details.",
-    "version": "2.2.4",
+    "version": "2.2.5",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
@@ -74,6 +74,16 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Show git blame information for each line"
+                },
+                "githd.blameView.hoverEnabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show hover for inline blame"
+                },
+                "githd.blameView.committedFilesEnabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show committed files in git blame window"
                 },
                 "githd.editor.disabled": {
                     "type": "boolean",
