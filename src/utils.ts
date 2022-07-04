@@ -1,29 +1,27 @@
-'use strict'
+import * as vs from 'vscode';
 
-import { Range, TextEditor, window, TextDocument } from 'vscode';
-
-export function decorateWithoutWhitespace(ranges: Range[], target: string, line: number, offset: number): void {
-    let start = 0;
-    let newWord = true;
-    let i = 0;
-    for (; i < target.length; ++i) {
-        if (target[i] === ' ' || target[i] === '\t' || target[i] === '\n') {
-            if (!newWord) {
-                newWord = true;
-                ranges.push(new Range(line, offset + start, line, offset + i));
-            }
-        } else {
-            if (newWord) {
-                newWord = false;
-                start = i;
-            }
-        }
+export function decorateWithoutWhitespace(ranges: vs.Range[], target: string, line: number, offset: number) {
+  let start = 0;
+  let newWord = true;
+  let i = 0;
+  for (; i < target.length; ++i) {
+    if (target[i] === ' ' || target[i] === '\t' || target[i] === '\n') {
+      if (!newWord) {
+        newWord = true;
+        ranges.push(new vs.Range(line, offset + start, line, offset + i));
+      }
+    } else {
+      if (newWord) {
+        newWord = false;
+        start = i;
+      }
     }
-    if (!newWord) {
-        ranges.push(new Range(line, offset + start, line, offset + i));
-    }
+  }
+  if (!newWord) {
+    ranges.push(new vs.Range(line, offset + start, line, offset + i));
+  }
 }
 
-export function getTextEditor(document: TextDocument): TextEditor {
-    return window.visibleTextEditors.find(editor => editor.document === document);
+export function getTextEditor(document: vs.TextDocument): vs.TextEditor | undefined {
+  return vs.window.visibleTextEditors.find(editor => editor.document === document);
 }
