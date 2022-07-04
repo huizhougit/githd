@@ -279,7 +279,7 @@ export class GitService {
     }
     format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%ct${FormatSeparator}%cr${FormatSeparator}`;
     let args: string[] = [format];
-    if (!express || !!line) {
+    if (!express && !line) {
       args.push('--shortstat');
     }
     if (isStash) {
