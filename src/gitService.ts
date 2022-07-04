@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 import * as vs from 'vscode';
-import { spawn } from 'child_process';
+import { exec } from 'child_process';
 import { Tracer } from './tracer';
 
 const EntrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
@@ -99,21 +99,22 @@ export class GitService {
     vs.commands.executeCommand('setContext', 'hasGitRepo', false);
     this._onDidChangeGitRepositories.fire([]);
 
+    const start = Date.now();
+    let count = 0;
     if (wsFolders) {
       wsFolders.forEach(wsFolder => {
-        this.getGitRepo(wsFolder.uri);
-        const root = wsFolder.uri.fsPath;
-        this._scanSubFolders(root);
+        count += this._scanFolder(wsFolder.uri.fsPath, true);
       });
     }
+
+    Tracer.info(`updateGitRoots: ${wsFolders?.length} wsFolders ${count} subFolders (${Date.now() - start}ms)`);
   }
 
   getGitRepos(): GitRepo[] {
     return this._gitRepos;
   }
 
-  async getGitRepo(uri: vs.Uri): Promise<GitRepo | undefined> {
-    let fsPath = uri.fsPath;
+  async getGitRepo(fsPath: string): Promise<GitRepo | undefined> {
     if (fs.statSync(fsPath).isFile()) {
       fsPath = path.dirname(fsPath);
     }
@@ -141,7 +142,7 @@ export class GitService {
     if (!file) {
       return;
     }
-    const repo = await this.getGitRepo(file);
+    const repo = await this.getGitRepo(file.fsPath);
     if (!repo) {
       return;
     }
@@ -175,7 +176,7 @@ export class GitService {
     if (!repo) {
       return [];
     }
-    const result = await this._exec(['for-each-ref', '--format', '%(refname) %(objectname:short)'], repo.root);
+    const result = await this._exec(['for-each-ref', '--format="%(refname) %(objectname:short)"'], repo.root);
     const fn = (line: string): GitRef | null => {
       let match: RegExpExecArray | null;
 
@@ -380,7 +381,7 @@ CommitDate:    %cd
 %s
 `;
     let details: string = await this._exec(
-      ['show', `--format=${format}`, '--no-patch', '--date=local', ref],
+      ['show', `--format="${format}"`, '--no-patch', '--date=local', ref],
       repo.root
     );
     const body = (await this._exec(['show', '--format=%b', '--no-patch', ref], repo.root)).trim();
@@ -410,7 +411,7 @@ CommitDate:    %cd
   }
 
   async getBlameItem(file: vs.Uri, line: number): Promise<GitBlameItem | undefined> {
-    const repo = await this.getGitRepo(file);
+    const repo = await this.getGitRepo(file.fsPath);
     if (!repo) {
       return;
     }
@@ -485,48 +486,33 @@ CommitDate:    %cd
     };
   }
 
-  private _scanSubFolders(root: string) {
-    const children = fs.readdirSync(root);
+  private _scanFolder(folder: string, includeSubFolders?: boolean): number {
+    let count = 0;
+    const children = fs.readdirSync(folder, { withFileTypes: true });
     children
-      .filter(child => child !== '.git')
+      .filter(child => child.isDirectory())
       .forEach(async child => {
-        const fullPath = path.join(root, child);
-        if (fs.statSync(fullPath).isDirectory()) {
-          if (fs.readdirSync(fullPath).find(v => v === '.git')) {
-            let gitRoot: string = (await this._exec(['rev-parse', '--show-toplevel'], fullPath)).trim();
-            if (gitRoot) {
-              gitRoot = path.normalize(gitRoot);
-              if (
-                this._gitRepos.findIndex((value: GitRepo) => {
-                  return value.root == gitRoot;
-                }) === -1
-              ) {
-                this._gitRepos.push({ root: gitRoot });
-                vs.commands.executeCommand('setContext', 'hasGitRepo', true);
-                this._onDidChangeGitRepositories.fire(this.getGitRepos());
-              }
-            }
-          }
-          //this._scanSubFolders(fullPath);
+        if (child.name === '.git') {
+          this.getGitRepo(folder);
+          count++;
+        } else if (includeSubFolders) {
+          count += this._scanFolder(path.join(folder, child.name));
         }
       });
+    return count;
   }
 
   private async _exec(args: string[], cwd: string): Promise<string> {
     const start = Date.now();
-    let content: string = '';
-    let gitShow = spawn(this._gitPath, args, { cwd });
-    let out = gitShow.stdout;
-    out.setEncoding('utf8');
-    return new Promise<string>((resolve, reject) => {
-      out.on('data', data => (content += data));
-      out.on('end', () => {
-        resolve(content);
-        Tracer.verbose(`git command: git ${args.join(' ')} (${Date.now() - start}ms)`);
-      });
-      out.on('error', err => {
-        reject(err);
-        Tracer.error(`git command failed: git ${args.join(' ')} (${Date.now() - start}ms) ${err.message}`);
+    const cmd = this._gitPath + ' ' + args.join(' ');
+    return new Promise(resolve => {
+      exec(cmd, { encoding: 'utf8', cwd }, (err, stdout) => {
+        if (err) {
+          Tracer.error(`git command failed: ${cmd} (${Date.now() - start}ms) ${cwd} ${err.message}`);
+        } else {
+          Tracer.verbose(`git command: ${cmd}. Output size: ${stdout.length} (${Date.now() - start}ms) ${cwd}`);
+          resolve(stdout);
+        }
       });
     });
   }

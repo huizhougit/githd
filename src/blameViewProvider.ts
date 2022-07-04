@@ -105,7 +105,7 @@ export class BlameViewProvider implements vs.HoverProvider {
     }
 
     return new Promise(async resolve => {
-      const repo = await this._gitService.getGitRepo(blame.file);
+      const repo = await this._gitService.getGitRepo(blame.file.fsPath);
       const ref: string = blame.hash;
       const args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
       const cmd: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
@@ -132,12 +132,11 @@ ${cmd}
   isAvailable(doc: vs.TextDocument, pos: vs.Position): boolean {
     if (
       !this._enabled ||
-      !this._blame ||
-      !this._blame.hash ||
+      !this._blame?.hash ||
       doc.isDirty ||
-      pos.line != this._blame.line ||
+      pos.line != this._blame?.line ||
       pos.character < doc.lineAt(this._blame.line).range.end.character ||
-      doc.uri !== this._blame.file
+      doc.uri !== this._blame?.file
     ) {
       return false;
     }

@@ -158,7 +158,7 @@ export class CommandCenter {
     if (!specifiedPath) {
       return;
     }
-    let repo = await this._gitService.getGitRepo(specifiedPath);
+    let repo = await this._gitService.getGitRepo(specifiedPath.fsPath);
     if (!repo) {
       return;
     }
@@ -178,7 +178,7 @@ export class CommandCenter {
       return;
     }
 
-    let repo = await this._gitService.getGitRepo(file);
+    let repo = await this._gitService.getGitRepo(file.fsPath);
     if (!repo) {
       return;
     }
@@ -344,7 +344,7 @@ export class CommandCenter {
     }
     Tracer.verbose('Command: githd.diffUncommittedFile');
 
-    const repo = await this._gitService.getGitRepo(file);
+    const repo = await this._gitService.getGitRepo(file.fsPath);
     if (!repo) {
       return;
     }
@@ -378,7 +378,7 @@ export class CommandCenter {
 
   private async _diffPath(specifiedPath: vs.Uri): Promise<void> {
     if (specifiedPath) {
-      const repo = await this._gitService.getGitRepo(specifiedPath);
+      const repo = await this._gitService.getGitRepo(specifiedPath.fsPath);
       if (repo) {
         this._diffSelections({ repo, specifiedPath });
       }
