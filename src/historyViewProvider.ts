@@ -4,7 +4,7 @@ import { Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
-import { decorateWithoutWhitespace, getTextEditor } from './utils';
+import { decorateWithoutWhitespace, getTextEditor, getPullRequest } from './utils';
 import { Tracer } from './tracer';
 
 export class HistoryViewProvider implements vs.TextDocumentContentProvider {
@@ -336,6 +336,17 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     const hasMore: boolean = !isStash && commitsCount > logCount + this._logCount;
     entries.forEach(entry => {
       ++this._logCount;
+      const [pr, start] = getPullRequest(entry.subject);
+      if (pr) {
+        const url = context.repo.remoteUrl + '/pull/' + pr.substring(1);
+        this._clickableProvider.addClickable({
+          range: new vs.Range(this._currentLine, start, this._currentLine, start + pr.length),
+          callback: () => {
+            vs.env.openExternal(vs.Uri.parse(url));
+          },
+          getHoverMessage: (): string => 'Click to see the PR'
+        });
+      }
       decorateWithoutWhitespace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);
       this._content += entry.subject + '\n';
       ++this._currentLine;

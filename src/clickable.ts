@@ -64,21 +64,6 @@ export class ClickableProvider implements vs.HoverProvider {
     );
   }
 
-  //   provideHover(
-  //     document: vs.TextDocument,
-  //     position: vs.Position,
-  //     token: vs.CancellationToken
-  //   ): vs.ProviderResult<vs.Hover> {
-  //     const clickable = this._clickables.find((e) => {
-  //       return e.range.contains(position);
-  //     });
-  //     // let content: string;
-  //     if (clickable && clickable.getHoverMessage) {
-  //       let content = clickable.getHoverMessage();
-  //       return new vs.Hover(`\`\`\`\r\n${content}\r\n\`\`\``);
-  //     }
-  //   }
-
   async provideHover(document: vs.TextDocument, position: vs.Position): Promise<vs.Hover | undefined> {
     const clickable = this._clickables.find(e => {
       return e.range.contains(position);

@@ -14,6 +14,7 @@ function formatDate(timestamp: number): string {
 
 export interface GitRepo {
   root: string;
+  remoteUrl: string;
 }
 
 export enum GitRefType {
@@ -118,11 +119,11 @@ export class GitService {
     if (fs.statSync(fsPath).isFile()) {
       fsPath = path.dirname(fsPath);
     }
-    const repo = this._gitRepos.find(r => fsPath.startsWith(r.root));
+    let repo = this._gitRepos.find(r => fsPath.startsWith(r.root));
     if (repo) {
       return repo;
     }
-    let root: string = (await this._exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
+    let root = (await this._exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
     if (root) {
       root = path.normalize(root);
       if (
@@ -130,12 +131,14 @@ export class GitService {
           return value.root == root;
         }) === -1
       ) {
-        this._gitRepos.push({ root });
+        const remoteUrl = await this._getRemoteUrl(fsPath);
+        repo = { root, remoteUrl };
+        this._gitRepos.push(repo);
         vs.commands.executeCommand('setContext', 'hasGitRepo', true);
         this._onDidChangeGitRepositories.fire(this.getGitRepos());
       }
     }
-    return root ? { root } : undefined;
+    return repo;
   }
 
   async getGitRelativePath(file?: vs.Uri): Promise<string | undefined> {
@@ -500,6 +503,14 @@ CommitDate:    %cd
         }
       });
     return count;
+  }
+
+  private async _getRemoteUrl(fsPath: string): Promise<string> {
+    let remote = (await this._exec(['remote', 'get-url', '--push', 'origin'], fsPath)).trim();
+    if (remote.startsWith('git@')) {
+      remote = remote.replace(':', '/').replace('git@', 'https://');
+    }
+    return remote.replace(/\.git$/g, '');
   }
 
   private async _exec(args: string[], cwd: string): Promise<string> {

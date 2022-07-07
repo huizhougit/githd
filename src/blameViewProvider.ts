@@ -3,7 +3,7 @@ import * as vs from 'vscode';
 import { Model } from './model';
 import { GitService, GitBlameItem } from './gitService';
 import { Tracer } from './tracer';
-import { getTextEditor } from './utils';
+import { getTextEditor, getPullRequest } from './utils';
 
 const NotCommitted = `Not committed yet`;
 
@@ -109,21 +109,28 @@ export class BlameViewProvider implements vs.HoverProvider {
       const ref: string = blame.hash;
       const args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
       const cmd: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
+      let subject = blame.subject;
+      const [pr, start] = getPullRequest(blame.subject);
+      if (pr) {
+        subject =
+          subject.substring(0, start) +
+          `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)} "Click to see the PR")` +
+          subject.substring(start + pr.length);
+      }
+
       Tracer.verbose(`Blame view: ${cmd}`);
       const content: string = `
 ${cmd}
 *\`${blame.author}\`*
 *\`${blame.email}\`*
 *\`(${blame.date})\`*
->>`;
+
+${subject}
+
+${blame.body}
+>`;
 
       let markdown = new vs.MarkdownString(content);
-      markdown.appendCodeblock(blame.subject, 'txt');
-      markdown.appendMarkdown('>>');
-      if (blame.body) {
-        markdown.appendCodeblock(blame.body, 'txt');
-        markdown.appendMarkdown('>');
-      }
       markdown.isTrusted = true;
       return resolve(new vs.Hover(markdown));
     });

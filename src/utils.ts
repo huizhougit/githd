@@ -25,3 +25,13 @@ export function decorateWithoutWhitespace(ranges: vs.Range[], target: string, li
 export function getTextEditor(document: vs.TextDocument): vs.TextEditor | undefined {
   return vs.window.visibleTextEditors.find(editor => editor.document === document);
 }
+
+// getRangeForPullRequest finds the pull request id and its start position in the content.
+// The assumption is the PR id is represented by #123 in the subject.
+export function getPullRequest(content: string): [string, number] {
+  const found = content.match(/#[0-9]+/g);
+  if (!found) {
+    return ['', 0];
+  }
+  return [found[0], content.indexOf(found[0])];
+}
