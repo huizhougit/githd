@@ -344,7 +344,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
           callback: () => {
             vs.env.openExternal(vs.Uri.parse(url));
           },
-          getHoverMessage: (): string => 'Click to see the PR'
+          getHoverMessage: (): string => 'Click to see the PR\n' + url
         });
       }
       decorateWithoutWhitespace(this._subjectDecorationOptions, entry.subject, this._currentLine, 0);

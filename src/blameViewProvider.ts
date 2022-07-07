@@ -114,7 +114,7 @@ export class BlameViewProvider implements vs.HoverProvider {
       if (pr) {
         subject =
           subject.substring(0, start) +
-          `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)} "Click to see the PR")` +
+          `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)})` +
           subject.substring(start + pr.length);
       }
 

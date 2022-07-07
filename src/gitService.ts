@@ -510,7 +510,16 @@ CommitDate:    %cd
     if (remote.startsWith('git@')) {
       remote = remote.replace(':', '/').replace('git@', 'https://');
     }
-    return remote.replace(/\.git$/g, '');
+    let url = remote.replace(/\.git$/g, '');
+    // Do a best guess if it's a valid git repository url. In case user configs
+    // the host name.
+    if (url.search(/\.(com|org|net|io|cloud)\//g) > 0) {
+      return url;
+    }
+
+    Tracer.info('Remote URL: ' + remote);
+    // If it's not considered as a valid one, we try to compose a github one.
+    return url.replace(/:\/\/.*?\//g, '://github.com/');
   }
 
   private async _exec(args: string[], cwd: string): Promise<string> {
