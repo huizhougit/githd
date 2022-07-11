@@ -186,7 +186,6 @@ ${blame.body}
 
   private async _onDidChangeTextDocument(editor?: vs.TextEditor) {
     if (!editor) {
-      Tracer.info('_onDidChange.TextDocument with null or undefined editor');
       return;
     }
     const file = editor.document.uri;

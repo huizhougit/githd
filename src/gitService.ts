@@ -5,8 +5,8 @@ import * as vs from 'vscode';
 import { exec } from 'child_process';
 import { Tracer } from './tracer';
 
-const EntrySeparator = '471a2a19-885e-47f8-bff3-db43a3cdfaed';
-const FormatSeparator = 'e69fde18-a303-4529-963d-f5b63b7b1664';
+const EntrySeparator = '[githd-es]';
+const FormatSeparator = '[githd-fs]';
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp * 1000).toDateString();
@@ -160,11 +160,11 @@ export class GitService {
     return (await this._exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
   }
 
-  async getCommitsCount(repo: GitRepo, file?: vs.Uri, author?: string): Promise<number> {
+  async getCommitsCount(repo: GitRepo, branch: string, file?: vs.Uri, author?: string): Promise<number> {
     if (!repo) {
       return 0;
     }
-    let args: string[] = ['rev-list', '--simplify-merges', '--count', 'HEAD'];
+    let args: string[] = ['rev-list', '--simplify-merges', '--count', branch];
     if (author) {
       args.push(`--author=${author}`);
     }
@@ -276,12 +276,12 @@ export class GitService {
     if (!repo) {
       return [];
     }
-    let format = `--format=${EntrySeparator}`;
+    let format = EntrySeparator;
     if (isStash) {
-      format += '%gd: ';
+      format += '%gd:';
     }
     format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%ct${FormatSeparator}%cr${FormatSeparator}`;
-    let args: string[] = [format];
+    let args: string[] = [`--format="${format}"`];
     if (!express && !line) {
       args.push('--shortstat');
     }
