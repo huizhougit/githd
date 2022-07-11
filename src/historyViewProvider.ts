@@ -400,16 +400,20 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   }
 
   private _updateSubject(subject: string, remoteUrl: string): string {
-    const [pr, start] = getPullRequest(subject);
-    if (pr) {
-      const url = remoteUrl + '/pull/' + pr.substring(1);
-      this._clickableProvider.addClickable({
-        range: new vs.Range(this._currentLine, start, this._currentLine, start + pr.length),
-        callback: () => {
-          vs.env.openExternal(vs.Uri.parse(url));
-        },
-        getHoverMessage: (): string => 'Click to see the PR\n' + url
-      });
+    // PR link only works for github for now.
+    if (remoteUrl.indexOf('github.com') > 0) {
+      const [pr, start] = getPullRequest(subject);
+      if (pr) {
+        // Only work for github PR url.
+        const url = remoteUrl + '/pull/' + pr.substring(1);
+        this._clickableProvider.addClickable({
+          range: new vs.Range(this._currentLine, start, this._currentLine, start + pr.length),
+          callback: () => {
+            vs.env.openExternal(vs.Uri.parse(url));
+          },
+          getHoverMessage: (): string => 'Click to see the PR\n' + url
+        });
+      }
     }
     decorateWithoutWhitespace(this._subjectDecorationOptions, subject, this._currentLine, 0);
     ++this._currentLine;
