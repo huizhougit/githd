@@ -7,7 +7,7 @@ export interface Clickable {
   readonly range: vs.Range;
   readonly callback: () => any;
   readonly clickedDecorationType?: vs.TextEditorDecorationType;
-  getHoverMessage?: () => string | Promise<string>;
+  getHoverMessage?: () => vs.MarkdownString | Promise<vs.MarkdownString>;
 }
 
 export class ClickableProvider implements vs.HoverProvider {
@@ -68,10 +68,9 @@ export class ClickableProvider implements vs.HoverProvider {
     const clickable = this._clickables.find(e => {
       return e.range.contains(position);
     });
-    let content: string;
     if (clickable && clickable.getHoverMessage) {
-      content = await clickable.getHoverMessage();
-      return new vs.Hover(`\`\`\`\r\n${content}\r\n\`\`\``);
+      const content = await clickable.getHoverMessage();
+      return new vs.Hover(content);
     }
   }
 

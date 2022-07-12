@@ -15,6 +15,11 @@ const titleLabel = 'Git History';
 const moreLabel = '\u00b7\u00b7\u00b7';
 const separatorLabel = '--------------------------------------------------------------';
 
+const branchHoverMessage = new vs.MarkdownString('Select a branch to see its history');
+const authorHoverMessage = new vs.MarkdownString('Select an author to see the commits');
+const loadMoreHoverMessage = new vs.MarkdownString('Load more commits');
+const prHoverMessage = new vs.MarkdownString('Click to see GitHub PR');
+
 function getHistoryViewEditor(): vs.TextEditor | undefined {
   return vs.window.visibleTextEditors.find(editor => editor.document.uri.scheme === HistoryViewProvider.scheme);
 }
@@ -371,9 +376,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._clickableProvider.addClickable({
       range: this._branchDecorationRange,
       callback: () => vs.commands.executeCommand('githd.viewBranchHistory', context),
-      getHoverMessage: (): string => {
-        return 'Select a branch to see its history';
-      }
+      getHoverMessage: () => branchHoverMessage
     });
     content += context.branch;
 
@@ -390,9 +393,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._clickableProvider.addClickable({
       range,
       callback: () => vs.commands.executeCommand('githd.viewAuthorHistory'),
-      getHoverMessage: (): string => {
-        return 'Select an author to see the commits';
-      }
+      getHoverMessage: () => authorHoverMessage
     });
 
     this._currentLine += 2;
@@ -411,7 +412,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
           callback: () => {
             vs.env.openExternal(vs.Uri.parse(url));
           },
-          getHoverMessage: (): string => 'Click to see the PR\n' + url
+          getHoverMessage: () => prHoverMessage
         });
       }
     }
@@ -437,8 +438,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         };
       },
       clickedDecorationType: this._selectedHashDecoration,
-      getHoverMessage: async (): Promise<string> => {
-        return await this._gitService.getCommitDetails(context.repo, entry.hash, isStash);
+      getHoverMessage: async () => {
+        const markdown = new vs.MarkdownString();
+        const details = await this._gitService.getCommitDetails(context.repo, entry.hash, isStash);
+        markdown.appendCodeblock(details, 'txt');
+        return markdown;
       }
     });
 
@@ -494,9 +498,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         this._loadMoreClicked = true;
         this._updateContent(true);
       },
-      getHoverMessage: (): string => {
-        return 'Load more commits';
-      }
+      getHoverMessage: () => loadMoreHoverMessage
     });
     return moreLabel + ' '; // Add a space to avoid user clicking on it by accident.
   }
