@@ -170,6 +170,13 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       context.subscriptions
     );
 
+    vs.workspace.onDidCloseTextDocument(doc => {
+      if (doc.uri.scheme === HistoryViewProvider.scheme) {
+        Tracer.verbose('HistoryView: onDidCloseTextDocument');
+        this._reset();
+      }
+    });
+
     this._updateExpressStatusBar();
 
     context.subscriptions.push(
