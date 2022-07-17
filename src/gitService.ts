@@ -119,13 +119,14 @@ export class GitService {
     if (fs.statSync(fsPath).isFile()) {
       fsPath = path.dirname(fsPath);
     }
+    fsPath = path.normalize(fsPath).toLocaleLowerCase();
     let repo = this._gitRepos.find(r => fsPath.startsWith(r.root));
     if (repo) {
       return repo;
     }
     let root = (await this._exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
     if (root) {
-      root = path.normalize(root);
+      root = path.normalize(root).toLocaleLowerCase();
       if (
         this._gitRepos.findIndex((value: GitRepo) => {
           return value.root == root;
