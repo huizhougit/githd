@@ -369,20 +369,8 @@ export class GitService {
     }
 
     const format: string = isStash
-      ? `Stash:         %H
-Author:        %aN <%aE>
-AuthorDate:    %ad
-
-%s
-`
-      : `Commit:        %H
-Author:        %aN <%aE>
-AuthorDate:    %ad
-Commit:        %cN <%cE>
-CommitDate:    %cd
-
-%s
-`;
+      ? `Stash:         %H %nAuthor:        %aN <%aE> %nAuthorDate:    %ad %n%n%s %n`
+      : 'Commit:        %H %nAuthor:        %aN <%aE> %nAuthorDate:    %ad %nCommit:        %cN <%cE> %nCommitDate:    %cd %n%n%s %n';
     let details: string = await this._exec(
       ['show', `--format="${format}"`, '--no-patch', '--date=local', ref],
       repo.root
