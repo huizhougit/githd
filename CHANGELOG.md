@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.3.1
+
+- Fix platform dependent bugs.
+
 ## 2.3.0
 
 - Add pagination for history view loading for better user experience.
