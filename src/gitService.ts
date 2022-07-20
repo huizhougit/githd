@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 import * as vs from 'vscode';
 import { exec } from 'child_process';
@@ -10,6 +11,14 @@ const FormatSeparator = '[githd-fs]';
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp * 1000).toDateString();
+}
+
+function normalizeFilePath(fsPath: string): string {
+  fsPath = path.normalize(fsPath);
+  if (os.platform() == 'win32') {
+    fsPath = fsPath.toLocaleLowerCase();
+  }
+  return fsPath;
 }
 
 export interface GitRepo {
@@ -119,14 +128,14 @@ export class GitService {
     if (fs.statSync(fsPath).isFile()) {
       fsPath = path.dirname(fsPath);
     }
-    fsPath = path.normalize(fsPath).toLocaleLowerCase();
+    fsPath = normalizeFilePath(fsPath);
     let repo = this._gitRepos.find(r => fsPath.startsWith(r.root));
     if (repo) {
       return repo;
     }
     let root = (await this._exec(['rev-parse', '--show-toplevel'], fsPath)).trim();
     if (root) {
-      root = path.normalize(root).toLocaleLowerCase();
+      root = normalizeFilePath(root);
       if (
         this._gitRepos.findIndex((value: GitRepo) => {
           return value.root == root;
