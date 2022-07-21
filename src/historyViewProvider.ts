@@ -281,16 +281,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         this._reset();
       }
 
-      // No pagination loading for statsh or line history.
-      if (isStash || (context.specifiedPath && context.line)) {
+      // No pagination loading for statsh, file history and line history.
+      if (isStash || context.specifiedPath) {
         logCount = Number.MAX_SAFE_INTEGER;
       } else {
-        const commitsCount = await this._gitService.getCommitsCount(
-          context.repo,
-          context.branch,
-          context.specifiedPath,
-          context.author
-        );
+        const commitsCount = await this._gitService.getCommitsCount(context.repo, context.branch, context.author);
         let loadingCount = Math.min(commitsCount - this._logCount, this._commitsCount);
         if (this._loadAll) {
           loadingCount = commitsCount - this._logCount;

@@ -170,17 +170,13 @@ export class GitService {
     return (await this._exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
   }
 
-  async getCommitsCount(repo: GitRepo, branch: string, file?: vs.Uri, author?: string): Promise<number> {
+  async getCommitsCount(repo: GitRepo, branch: string, author?: string): Promise<number> {
     if (!repo) {
       return 0;
     }
     let args: string[] = ['rev-list', '--simplify-merges', '--count', branch];
     if (author) {
       args.push(`--author=${author}`);
-    }
-    const relativePath = await this.getGitRelativePath(file);
-    if (relativePath) {
-      args.push(relativePath);
     }
     return parseInt(await this._exec(args, repo.root));
   }
