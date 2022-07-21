@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.3.3
+
+- Bug fix.
+
 ## 2.3.2
 
 - Bug fix.
