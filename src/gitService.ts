@@ -286,7 +286,7 @@ export class GitService {
     if (isStash) {
       format += '%gd:';
     }
-    format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%ct${FormatSeparator}%cr${FormatSeparator}`;
+    format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%at${FormatSeparator}%ar${FormatSeparator}`;
     let args: string[] = [`--format="${format}"`];
     if (!express && !line) {
       args.push('--shortstat');
@@ -436,7 +436,7 @@ export class GitService {
           case 'author':
             author = info;
             break;
-          case 'committer-time':
+          case 'author-time':
             date = new Date(parseInt(info) * 1000).toLocaleDateString();
             break;
           case 'author-mail':
@@ -460,7 +460,7 @@ export class GitService {
 
     // get additional info: abbrev hash, relative date, body, stat
     const addition: string = await this._exec(
-      ['show', `--format=%h${FormatSeparator}%cr${FormatSeparator}%b${FormatSeparator}`, '--stat', `${hash}`],
+      ['show', `--format=%h${FormatSeparator}%ar${FormatSeparator}%b${FormatSeparator}`, '--stat', `${hash}`],
       repo.root
     );
     //const firstLine = addition.split(/\r?\n/g)[0];
