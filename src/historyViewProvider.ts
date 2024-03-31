@@ -283,7 +283,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
       // No pagination loading for statsh, file history and line history.
       if (isStash || context.specifiedPath) {
-        logCount = Number.MAX_SAFE_INTEGER;
+        logCount = 10000; // Display at most 10k commits
       } else {
         const commitsCount = await this._gitService.getCommitsCount(context.repo, context.branch, context.author);
         let loadingCount = Math.min(commitsCount - this._logCount, this._commitsCount);
