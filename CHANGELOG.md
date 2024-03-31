@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.3.4
+
+- Fix git 2.44 breaking changes.
+
 ## 2.3.3
 
 - Bug fix.
