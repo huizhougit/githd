@@ -21,6 +21,11 @@ function normalizeFilePath(fsPath: string): string {
   return fsPath;
 }
 
+function isSubPath(parentPath: string, fsPath: string): boolean {
+  const rel = path.relative(parentPath, fsPath);
+  return rel == "" || !(rel.startsWith('..') || path.isAbsolute(rel));
+}
+
 export interface GitRepo {
   root: string;
   remoteUrl: string;
@@ -129,7 +134,7 @@ export class GitService {
       fsPath = path.dirname(fsPath);
     }
     fsPath = normalizeFilePath(fsPath);
-    let repo = this._gitRepos.find(r => fsPath.startsWith(r.root));
+    let repo = this._gitRepos.find(r => isSubPath(r.root, fsPath));
     if (repo) {
       return repo;
     }
