@@ -18,6 +18,9 @@ function normalizeFilePath(fsPath: string): string {
   if (os.platform() == 'win32') {
     fsPath = fsPath.toLocaleLowerCase();
   }
+  if (!fsPath.endsWith(path.sep)) {
+    fsPath = fsPath + path.sep;
+  }
   return fsPath;
 }
 
