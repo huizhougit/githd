@@ -11,6 +11,7 @@ export interface Configuration {
   readonly blameEnabled: boolean;
   readonly disabledInEditor: boolean;
   withFolder: boolean;
+  followEditor: boolean;
 }
 
 export interface FilesViewContext {
@@ -34,6 +35,7 @@ export interface HistoryViewContext {
 function getConfiguration(): Configuration {
   return {
     withFolder: <boolean>vs.workspace.getConfiguration('githd.explorerView').get('withFolder'),
+    followEditor: <boolean>vs.workspace.getConfiguration('githd.explorerView').get('followEditor'),
     commitsCount: <number>vs.workspace.getConfiguration('githd.logView').get('commitsCount'),
     expressMode: <boolean>vs.workspace.getConfiguration('githd.logView').get('expressMode'),
     displayExpress: <boolean>vs.workspace.getConfiguration('githd.logView').get('displayExpressStatus'),

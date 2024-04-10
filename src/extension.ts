@@ -22,7 +22,7 @@ export function activate(context: vs.ExtensionContext) {
   });
 
   vs.window.onDidChangeActiveTextEditor(async (editor: vs.TextEditor | undefined) => {
-    if (editor) {
+    if (editor && model.configuration.followEditor) {
       const item = await explorerViewProvider.findItemByPath(editor.document.fileName);
       if (item && explorerView.visible) {
         explorerView.reveal(item);

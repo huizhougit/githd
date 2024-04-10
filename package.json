@@ -50,6 +50,11 @@
                     "default": true,
                     "description": "List committed files with the folders."
                 },
+                "githd.explorerView.followEditor": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Follow the editing file in the explorer view."
+                },
                 "githd.logView.commitsCount": {
                     "type": "number",
                     "default": 200,
