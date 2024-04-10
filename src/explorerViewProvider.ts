@@ -6,6 +6,7 @@ import * as vs from 'vscode';
 import { GitService, GitCommittedFile } from './gitService';
 import { Model, FilesViewContext } from './model';
 import { Icons, getIconUri } from './icons';
+import { Tracer } from './tracer';
 
 const rootFolderIcon = {
   dark: getIconUri('structure', 'dark'),
@@ -417,6 +418,41 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       }
       vs.commands.executeCommand('revealInExplorer', url);
       this._onDidChange.fire(item);
+    }
+  }
+
+  async findItemByPath(fileName: string): Promise<CommittedFileItem | undefined> {
+    if (this._gitService) {
+      Tracer.info(fileName);
+      const activeFile = await this._gitService.getGitRelativePath(vs.Uri.file(fileName));
+      if (activeFile) {
+        Tracer.info(`active file: ${activeFile}`);
+        let foundFile;
+        this._treeRoot.find(element => {
+          if (element instanceof FolderItem) {
+            function findRecursive(rootFolder: FolderItem) {
+              if (rootFolder) {
+                foundFile = rootFolder.files.find(file => file.file.gitRelativePath == activeFile);
+                if (foundFile) {
+                  // rootFolder.collapsibleState = vs.TreeItemCollapsibleState.Expanded;
+                  return foundFile;
+                } else {
+                  if (rootFolder.subFolders.find(sub => (foundFile = findRecursive(sub)))) {
+                    // rootFolder.collapsibleState = vs.TreeItemCollapsibleState.Expanded;
+                    return foundFile;
+                  } else {
+                    return;
+                  }
+                }
+              }
+            }
+            return findRecursive(element);
+          }
+        });
+        if (foundFile) {
+          return foundFile;
+        }
+      }
     }
   }
 
