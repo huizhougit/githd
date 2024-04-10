@@ -219,6 +219,9 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
             : undefined
         )
       ),
+      vs.commands.registerCommand('githd.revealCommittedFileInEditor', (item: CommittedFileItem) =>
+        this._revealItemInEditor(item)
+      ),
       vs.commands.registerCommand('githd.revealCommittedItemInExplorer', (item: FolderItem | CommittedFileItem) =>
         this._revealItemInFileExplorer(item)
       ),
@@ -394,6 +397,13 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       parent.subFolders.forEach(folder => buildFilesWithoutFolder(parent, folder));
       parent.subFolders = [];
       this._onDidChange.fire(parent);
+    }
+  }
+
+  private _revealItemInEditor(file: CommittedFileItem) {
+    if (file && this._context) {
+      vs.commands.executeCommand('vscode.open', file.file.fileUri);
+      this._onDidChange.fire(file);
     }
   }
 
