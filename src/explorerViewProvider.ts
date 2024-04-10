@@ -219,6 +219,9 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
             : undefined
         )
       ),
+      vs.commands.registerCommand('githd.revealCommittedItemInExplorer', (item: FolderItem | CommittedFileItem) =>
+        this._revealItemInFileExplorer(item)
+      ),
       this._onDidChange
     );
 
@@ -391,6 +394,19 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       parent.subFolders.forEach(folder => buildFilesWithoutFolder(parent, folder));
       parent.subFolders = [];
       this._onDidChange.fire(parent);
+    }
+  }
+
+  private _revealItemInFileExplorer(item: FolderItem | CommittedFileItem) {
+    if (item && this._context) {
+      let url;
+      if (item instanceof FolderItem) {
+        url = vs.Uri.file(path.join(this._context.repo.root, item.gitRelativePath));
+      } else {
+        url = item.file.fileUri;
+      }
+      vs.commands.executeCommand('revealInExplorer', url);
+      this._onDidChange.fire(item);
     }
   }
 

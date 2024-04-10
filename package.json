@@ -247,6 +247,11 @@
                 "command": "githd.viewStashes",
                 "title": "View Stashes",
                 "category": "GitHD"
+            },
+            {
+                "command": "githd.revealCommittedItemInExplorer",
+                "title": "Reveal in Explorer",
+                "category": "GitHD"
             }
         ],
         "menus": {
@@ -342,6 +347,10 @@
                 {
                     "command": "githd.openCommitInfo",
                     "when": "false"
+                },
+                {
+                    "command": "githd.revealCommittedItemInExplorer",
+                    "when": "false"
                 }
             ],
             "view/title": [
@@ -395,6 +404,11 @@
                 {
                     "command": "githd.viewFolderHistoryFromTree",
                     "when": "view == committedFiles && viewItem == folder && hasGitRepo",
+                    "group": "githd_1"
+                },
+                {
+                    "command": "githd.revealCommittedItemInExplorer",
+                    "when": "view == committedFiles && hasGitRepo",
                     "group": "githd_1"
                 }
             ],
