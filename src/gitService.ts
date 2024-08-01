@@ -188,7 +188,7 @@ export class GitService {
     if (!repo) {
       return [];
     }
-    const result = await this._exec(['for-each-ref', '--format="%(refname) %(objectname:short)"'], repo.root);
+    const result = await this._exec(['for-each-ref', '--format="%(refname) %(objectname:short)"', '--count=100'], repo.root);
     const fn = (line: string): GitRef | null => {
       let match: RegExpExecArray | null;
 
