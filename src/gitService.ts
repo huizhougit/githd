@@ -521,16 +521,32 @@ export class GitService {
 
   private async _exec(args: string[], cwd: string): Promise<string> {
     const start = Date.now();
-    const cmd = this._gitPath + ' ' + args.join(' ');
-    return new Promise(resolve => {
-      exec(cmd, { encoding: 'utf8', cwd }, (err, stdout) => {
-        if (err) {
-          Tracer.error(`git command failed: ${cmd} (${Date.now() - start}ms) ${cwd} ${err.message}`);
-        } else {
-          Tracer.verbose(`git command: ${cmd}. Output size: ${stdout.length} (${Date.now() - start}ms) ${cwd}`);
-          resolve(stdout);
-        }
+    const cmd = this._gitPath;
+    try {
+      const result = await new Promise<string>((resolve, reject) => {
+        const childProcess = spawn(cmd, args, { cwd });
+        childProcess.stdout.setEncoding('utf8');
+        childProcess.stderr.setEncoding('utf8');
+        let stdout = '', stderr = '';
+        childProcess.stdout.on('data', chunk => { stdout += chunk; });
+        childProcess.stderr.on('data', chunk => { stderr += chunk; });
+        childProcess
+          .on('error', reject)
+          .on('close', code => {
+            if (code === 0) {
+              resolve(stdout);
+            } else {
+              reject(stderr);
+            }
+          });
       });
-    });
+
+      Tracer.verbose(`git command: ${cmd}. Output size: ${result.length} (${Date.now() - start}ms) ${cwd}`);
+      return result;
+    }
+    catch (err) {
+      Tracer.error(`git command failed: ${cmd} (${Date.now() - start}ms) ${cwd} ${err}`);
+      throw err;
+    }
   }
 }
