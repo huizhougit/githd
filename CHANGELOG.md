@@ -1,8 +1,12 @@
 # Change Log
 
+## 2.3.6
+
+- Bug fixes.
+
 ## 2.3.5
 
-- Bug fix.
+- Bug fixes.
 
 ## 2.3.4
 
@@ -10,11 +14,11 @@
 
 ## 2.3.3
 
-- Bug fix.
+- Bug fixes.
 
 ## 2.3.2
 
-- Bug fix.
+- Bug fixes.
 
 ## 2.3.1
 
