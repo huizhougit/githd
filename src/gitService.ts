@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 
 import * as vs from 'vscode';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import { Tracer } from './tracer';
 
 const EntrySeparator = '[githd-es]';
@@ -188,7 +188,7 @@ export class GitService {
     if (!repo) {
       return [];
     }
-    const result = await this._exec(['for-each-ref', '--format="%(refname) %(objectname:short)"'], repo.root);
+    const result = await this._exec(['for-each-ref', '--format=%(refname) %(objectname:short)'], repo.root);
     const fn = (line: string): GitRef | null => {
       let match: RegExpExecArray | null;
 
@@ -290,7 +290,7 @@ export class GitService {
       format += '%gd:';
     }
     format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%ct${FormatSeparator}%cr${FormatSeparator}`;
-    let args: string[] = [`--format="${format}"`];
+    let args: string[] = [`--format=${format}`];
     if (!express && !line) {
       args.push('--shortstat');
     }
@@ -381,7 +381,7 @@ export class GitService {
       ? `Stash:         %H %nAuthor:        %aN <%aE> %nAuthorDate:    %ad %n%n%s %n`
       : 'Commit:        %H %nAuthor:        %aN <%aE> %nAuthorDate:    %ad %nCommit:        %cN <%cE> %nCommitDate:    %cd %n%n%s %n';
     let details: string = await this._exec(
-      ['show', `--format="${format}"`, '--no-patch', '--date=local', ref],
+      ['show', `--format=${format}`, '--no-patch', '--date=local', ref],
       repo.root
     );
     const body = (await this._exec(['show', '--format=%b', '--no-patch', ref], repo.root)).trim();
@@ -471,7 +471,7 @@ export class GitService {
     hash = items[0] ?? '';
     const relativeDate = items[1] ?? '';
     const body = items[2]?.trim() ?? '';
-    const stat = ' ' + items[3]?.trim() ?? '';
+    const stat = ' ' + items[3]?.trim();
     return {
       file,
       line,
@@ -503,18 +503,24 @@ export class GitService {
   }
 
   private async _getRemoteUrl(fsPath: string): Promise<string> {
-    let remote = (await this._exec(['remote', 'get-url', '--push', 'origin'], fsPath)).trim();
-    if (remote.startsWith('git@')) {
-      remote = remote.replace(':', '/').replace('git@', 'https://');
+    let remotes = (await this._exec(['remote'], fsPath)).split(/\r?\n/g);
+    const remote = remotes.find(r => r === 'upstream') || remotes.find(r => r === 'origin');
+    if (!remote) {
+      return '';
     }
-    let url = remote.replace(/\.git$/g, '');
+
+    let remoteGit = (await this._exec(['remote', 'get-url', '--push', remote], fsPath)).trim();
+    if (remoteGit.startsWith('git@')) {
+      remoteGit = remoteGit.replace(':', '/').replace('git@', 'https://');
+    }
+    let url = remoteGit.replace(/\.git$/g, '');
     // Do a best guess if it's a valid git repository url. In case user configs
     // the host name.
     if (url.search(/\.(com|org|net|io|cloud)\//g) > 0) {
       return url;
     }
 
-    Tracer.info('Remote URL: ' + remote);
+    Tracer.info('Remote URL: ' + remoteGit);
     // If it's not considered as a valid one, we try to compose a github one.
     return url.replace(/:\/\/.*?\//g, '://github.com/');
   }
@@ -522,30 +528,33 @@ export class GitService {
   private async _exec(args: string[], cwd: string): Promise<string> {
     const start = Date.now();
     const cmd = this._gitPath;
+
     try {
       const result = await new Promise<string>((resolve, reject) => {
         const childProcess = spawn(cmd, args, { cwd });
         childProcess.stdout.setEncoding('utf8');
         childProcess.stderr.setEncoding('utf8');
-        let stdout = '', stderr = '';
-        childProcess.stdout.on('data', chunk => { stdout += chunk; });
-        childProcess.stderr.on('data', chunk => { stderr += chunk; });
-        childProcess
-          .on('error', reject)
-          .on('close', code => {
-            if (code === 0) {
-              resolve(stdout);
-            } else {
-              reject(stderr);
-            }
-          });
+        let stdout = '',
+          stderr = '';
+        childProcess.stdout.on('data', chunk => {
+          stdout += chunk;
+        });
+        childProcess.stderr.on('data', chunk => {
+          stderr += chunk;
+        });
+        childProcess.on('error', reject).on('close', code => {
+          if (code === 0) {
+            resolve(stdout);
+          } else {
+            reject(stderr);
+          }
+        });
       });
 
-      Tracer.verbose(`git command: ${cmd}. Output size: ${result.length} (${Date.now() - start}ms) ${cwd}`);
+      Tracer.verbose(`git command: ${cmd} ${args}. Output size: ${result.length} (${Date.now() - start}ms) ${cwd}`);
       return result;
-    }
-    catch (err) {
-      Tracer.error(`git command failed: ${cmd} (${Date.now() - start}ms) ${cwd} ${err}`);
+    } catch (err) {
+      Tracer.error(`git command failed: ${cmd} ${args} (${Date.now() - start}ms) ${cwd} ${err}`);
       throw err;
     }
   }
