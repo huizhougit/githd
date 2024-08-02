@@ -268,6 +268,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   private async _update(): Promise<void> {
     this._treeRoot = [];
     if (!this._context) {
+      this._onDidChange.fire(undefined);
       return;
     }
 
