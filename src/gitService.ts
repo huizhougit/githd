@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 
 import * as vs from 'vscode';
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { Tracer } from './tracer';
 
 const EntrySeparator = '[githd-es]';
@@ -96,10 +96,22 @@ function singleLined(value: string): string {
 export class GitService {
   private _gitRepos: GitRepo[] = [];
   private _onDidChangeGitRepositories = new vs.EventEmitter<GitRepo[]>();
-  private _gitPath: string = vs.workspace.getConfiguration('git').get('path') ?? 'git';
+  private _gitPath: string;
 
   constructor(context: vs.ExtensionContext) {
     context.subscriptions.push(this._onDidChangeGitRepositories);
+    let gitPath: string = vs.workspace.getConfiguration('git').get('path') ?? '';
+    if (gitPath) {
+      try {
+        execSync(gitPath);
+      } catch (err) {
+        // fallback to 'git' without the path
+        gitPath = 'git';
+      }
+    } else {
+      gitPath = 'git';
+    }
+    this._gitPath = gitPath;
   }
 
   get onDidChangeGitRepositories(): vs.Event<GitRepo[]> {
