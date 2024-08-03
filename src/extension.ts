@@ -13,9 +13,22 @@ export function activate(context: vs.ExtensionContext) {
   let model = new Model(context, gitService);
   let historyViewProvider = new HistoryViewProvider(context, model, gitService);
   let infoViewProvider = new InfoViewProvider(context, model, gitService);
-  new ExplorerViewProvider(context, model, gitService);
+  let explorerViewProvider = new ExplorerViewProvider(context, model, gitService);
   new BlameViewProvider(context, model, gitService);
   new CommandCenter(context, model, gitService, historyViewProvider, infoViewProvider);
+  let explorerView = vs.window.createTreeView('committedFiles', {
+    treeDataProvider: explorerViewProvider,
+    showCollapseAll: true
+  });
+
+  vs.window.onDidChangeActiveTextEditor(async (editor: vs.TextEditor | undefined) => {
+    if (editor && model.configuration.followEditor) {
+      const item = await explorerViewProvider.findItemByPath(editor.document.fileName);
+      if (item && explorerView.visible) {
+        explorerView.reveal(item);
+      }
+    }
+  });
 }
 
 export function deactivate() {}
