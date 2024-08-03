@@ -140,7 +140,25 @@ export class CommandCenter {
   @command('githd.clear')
   async clear(): Promise<void> {
     Tracer.verbose('Command: githd.clear');
-    this._model.filesViewContext = undefined;
+    this._model.clearFilesViewContexts();
+  }
+
+  @command('githd.goBack')
+  goBackFilesViewContext() {
+    this._model.goBackFilesViewContext();
+  }
+
+  @command('githd.goForward')
+  goForwardFilesViewContext() {
+    this._model.goForwardFilesViewContext();
+  }
+
+  @command('githd.goBackNoMore')
+  dummyForGoBackIcon() {
+  }
+
+  @command('githd.goForwardNoMore')
+  dummyForGoForwardIcon() {
   }
 
   @command('githd.viewHistory')
@@ -296,13 +314,13 @@ export class CommandCenter {
       .showInputBox({
         placeHolder: `Input a ref(sha1) to see it's committed files`
       })
-      .then(ref => (this._model.filesViewContext = { rightRef: ref?.trim(), repo }));
+      .then(ref => (this._model.setFilesViewContext({ rightRef: ref?.trim(), repo })));
   }
 
   @command('githd.openCommit')
   async openCommit(repo: GitRepo, ref: string, specifiedPath: vs.Uri): Promise<void> {
     Tracer.verbose('Command: githd.openCommit');
-    this._model.filesViewContext = { rightRef: ref, repo, specifiedPath };
+    this._model.setFilesViewContext({ rightRef: ref, repo, specifiedPath });
   }
 
   @command('githd.openCommittedFile')
@@ -410,12 +428,12 @@ export class CommandCenter {
         rightRef = diffBranch[1].trim();
       }
 
-      this._model.filesViewContext = {
+      this._model.setFilesViewContext({
         repo,
         leftRef,
         rightRef,
         specifiedPath
-      };
+      });
     });
   }
 }

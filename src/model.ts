@@ -47,7 +47,8 @@ export class Model {
   private _config: Configuration;
 
   private _historyViewContext: HistoryViewContext | undefined;
-  private _filesViewContext: FilesViewContext | undefined;
+  private _filesViewContextTracker: FilesViewContext[] = [];
+  private _nextFilesViewContextIndex: number = 0;
 
   private _onDidChangeConfiguration = new vs.EventEmitter<Configuration>();
   private _onDidChangeFilesViewContext = new vs.EventEmitter<FilesViewContext | undefined>();
@@ -102,24 +103,79 @@ export class Model {
   }
 
   get filesViewContext(): FilesViewContext | undefined {
-    return this._filesViewContext;
+    return this._nextFilesViewContextIndex > 0 ?
+      this._filesViewContextTracker[this._nextFilesViewContextIndex - 1] : undefined;
   }
-  set filesViewContext(context: FilesViewContext | undefined) {
+
+  setFilesViewContext(context: FilesViewContext) {
     Tracer.info(`Model: set filesViewContext - ${JSON.stringify(context)}`);
 
-    if (!this._filesViewContext) {
-      this._filesViewContext = context;
-      this._onDidChangeFilesViewContext.fire(this._filesViewContext);
-    } else if (
-      this._filesViewContext.leftRef != context?.leftRef ||
-      this._filesViewContext.rightRef != context?.rightRef ||
-      this._filesViewContext.specifiedPath != context?.specifiedPath ||
-      this._filesViewContext.focusedLineInfo != context?.focusedLineInfo
+    const maxTrackedCount = 100;
+    const currentContext = this.filesViewContext;
+    if (!currentContext ||
+      currentContext.leftRef != context?.leftRef ||
+      currentContext.rightRef != context?.rightRef ||
+      currentContext.specifiedPath != context?.specifiedPath ||
+      currentContext.focusedLineInfo != context?.focusedLineInfo
     ) {
-      this._filesViewContext = context;
-      this._onDidChangeFilesViewContext.fire(this._filesViewContext);
+      if (this._nextFilesViewContextIndex == 0) {
+        vs.commands.executeCommand('setContext', 'canGoBackFilesView', true);
+      }
+
+      if (this._nextFilesViewContextIndex == maxTrackedCount) {
+        this._filesViewContextTracker = this._filesViewContextTracker.slice(1, this._nextFilesViewContextIndex);
+      } else {
+        this._nextFilesViewContextIndex++
+        this._filesViewContextTracker = this._filesViewContextTracker.slice(0, this._nextFilesViewContextIndex);
+      }
+      this._filesViewContextTracker[this._nextFilesViewContextIndex-1] = context;
+      this._onDidChangeFilesViewContext.fire(context);
     }
     vs.commands.executeCommand('workbench.view.extension.githd-explorer');
+  }
+
+  goBackFilesViewContext() {
+    if (this._nextFilesViewContextIndex == 0) {
+      return;
+    }
+
+    if (this._nextFilesViewContextIndex == this._filesViewContextTracker.length) {
+      vs.commands.executeCommand('setContext', 'canGoForwardFilesView', true);
+    }
+
+    this._nextFilesViewContextIndex--;
+    if (this._nextFilesViewContextIndex == 0) {
+      vs.commands.executeCommand('setContext', 'canGoBackFilesView', false);
+    }
+    const goToContext = this.filesViewContext;
+    Tracer.verbose(`Model: go back files view context ${goToContext?.leftRef}..${goToContext?.rightRef}`);
+    this._onDidChangeFilesViewContext.fire(goToContext);
+  }
+
+  goForwardFilesViewContext() {
+    if (this._nextFilesViewContextIndex == this._filesViewContextTracker.length) {
+      return;
+    }
+
+    if (this._nextFilesViewContextIndex == 0) {
+      vs.commands.executeCommand('setContext', 'canGoBackFilesView', true);
+    }
+
+    this._nextFilesViewContextIndex++;
+    if (this._nextFilesViewContextIndex == this._filesViewContextTracker.length) {
+      vs.commands.executeCommand('setContext', 'canGoForwardFilesView', false);
+    }
+    const goToContext = this.filesViewContext;
+    Tracer.verbose(`Model: go forward files view context ${goToContext?.leftRef}..${goToContext?.rightRef}`);
+    this._onDidChangeFilesViewContext.fire(goToContext);
+  }
+
+  clearFilesViewContexts() {
+    this._filesViewContextTracker = [];
+    this._nextFilesViewContextIndex = 0;
+    vs.commands.executeCommand('setContext', 'canGoBackFilesView', false);
+    vs.commands.executeCommand('setContext', 'canGoForwardFilesView', false);
+    this._onDidChangeFilesViewContext.fire(undefined);
   }
 
   get historyViewContext(): HistoryViewContext | undefined {

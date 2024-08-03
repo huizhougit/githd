@@ -430,14 +430,14 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._clickableProvider.addClickable({
       range,
       callback: () => {
-        this._model.filesViewContext = {
+        this._model.setFilesViewContext({
           repo: context.repo,
           isStash,
           leftRef: undefined,
           rightRef: entry.hash,
           specifiedPath: context.specifiedPath,
           focusedLineInfo: entry.lineInfo
-        };
+        });
       },
       clickedDecorationType: this._selectedHashDecoration,
       getHoverMessage: async () => {

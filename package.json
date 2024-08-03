@@ -117,15 +117,6 @@
         },
         "commands": [
             {
-                "command": "githd.clear",
-                "title": "Clear",
-                "category": "GitHD",
-                "icon": {
-                    "light": "resources/icons/light/clear.svg",
-                    "dark": "resources/icons/dark/clear.svg"
-                }
-            },
-            {
                 "command": "githd.inputRef",
                 "title": "Input Ref",
                 "category": "GitHD"
@@ -198,6 +189,42 @@
                 "category": "GitHD"
             },
             {
+                "command": "githd.goBack",
+                "title": "Go Back",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/arrow-left.svg",
+                    "dark": "resources/icons/dark/arrow-left.svg"
+                }
+            },
+            {
+                "command": "githd.goBackNoMore",
+                "title": "No more to go back",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/arrow-left-no-more.svg",
+                    "dark": "resources/icons/dark/arrow-left-no-more.svg"
+                }
+            },
+            {
+                "command": "githd.goForward",
+                "title": "Go Forward",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/arrow-right.svg",
+                    "dark": "resources/icons/dark/arrow-right.svg"
+                }
+            },
+            {
+                "command": "githd.goForwardNoMore",
+                "title": "No more to go forward",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/arrow-right-no-more.svg",
+                    "dark": "resources/icons/dark/arrow-right-no-more.svg"
+                }
+            },
+            {
                 "command": "githd.showFilesWithFolder",
                 "title": "Folder View",
                 "category": "GitHD",
@@ -231,6 +258,15 @@
                 "icon": {
                     "light": "resources/icons/light/collapse-all.svg",
                     "dark": "resources/icons/dark/collapse-all.svg"
+                }
+            },
+            {
+                "command": "githd.clear",
+                "title": "Clear",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/clear.svg",
+                    "dark": "resources/icons/dark/clear.svg"
                 }
             },
             {
@@ -285,7 +321,7 @@
                 },
                 {
                     "command": "githd.openCommittedFile",
-                    "when": "false"
+                    "when": "false" 
                 },
                 {
                     "command": "githd.viewFileHistory",
@@ -342,23 +378,59 @@
                 {
                     "command": "githd.openCommitInfo",
                     "when": "false"
+                },
+                {
+                    "command": "githd.goBack",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.goBackNoMore",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.goForward",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.goForwardNoMore",
+                    "when": "false"
                 }
             ],
             "view/title": [
                 {
+                    "command": "githd.goBack",
+                    "when": "view == committedFiles && hasGitRepo && canGoBackFilesView",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "githd.goBackNoMore",
+                    "when": "view == committedFiles && hasGitRepo && !canGoBackFilesView",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "githd.goForward",
+                    "when": "view == committedFiles && hasGitRepo && canGoForwardFilesView",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "githd.goForwardNoMore",
+                    "when": "view == committedFiles && hasGitRepo && !canGoForwardFilesView",
+                    "group": "navigation@2"
+                },
+                {
                     "command": "githd.showFilesWithFolder",
                     "when": "view == committedFiles && hasGitRepo",
-                    "group": "navigation@1"
+                    "group": "navigation@4"
                 },
                 {
                     "command": "githd.showFilesWithoutFolder",
                     "when": "view == committedFiles && hasGitRepo",
-                    "group": "navigation@2"
+                    "group": "navigation@5"
                 },
                 {
                     "command": "githd.collapseFolder",
                     "when": "view == committedFiles && hasGitRepo",
-                    "group": "navigation@3"
+                    "group": "navigation@6"
                 },
                 {
                     "command": "githd.clear",
