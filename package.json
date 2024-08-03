@@ -265,8 +265,8 @@
                 "title": "Clear",
                 "category": "GitHD",
                 "icon": {
-                    "light": "resources/icons/light/clear.svg",
-                    "dark": "resources/icons/dark/clear.svg"
+                    "light": "resources/icons/light/close.svg",
+                    "dark": "resources/icons/dark/close.svg"
                 }
             },
             {
