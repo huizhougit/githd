@@ -316,7 +316,7 @@ export class GitService {
       if (file) {
         const filePath = (await this.getGitRelativePath(file)) ?? '.';
         if (line) {
-          args.push(`-L ${line},${line}:${filePath} --no-patch`);
+          args.push(`-L ${line},${line}:${filePath}`, '--no-patch');
         } else {
           args.push('--follow', filePath);
         }
