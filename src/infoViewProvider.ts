@@ -6,7 +6,7 @@ import { decorateWithoutWhitespace, getTextEditor } from './utils';
 
 export class InfoViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-line';
-  static defaultUri: vs.Uri = vs.Uri.parse(InfoViewProvider.scheme + '://authority/Commit Info');
+  static defaultUri: vs.Uri = vs.Uri.parse(InfoViewProvider.scheme + '://authority//Commit Info');
 
   private _infoDecoration = vs.window.createTextEditorDecorationType({
     color: new vs.ThemeColor('githd.infoView.content')

@@ -26,7 +26,7 @@ function getHistoryViewEditor(): vs.TextEditor | undefined {
 
 export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-logs';
-  static defaultUri: vs.Uri = vs.Uri.parse(HistoryViewProvider.scheme + '://authority/Git History');
+  static defaultUri: vs.Uri = vs.Uri.parse(HistoryViewProvider.scheme + '://authority//Git History');
 
   private _clickableProvider = new ClickableProvider(HistoryViewProvider.scheme);
   private _commitsCount = 200;
