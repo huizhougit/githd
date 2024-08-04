@@ -137,27 +137,27 @@ export class CommandCenter {
   }
 
   @command('githd.clear')
-  async clear(): Promise<void> {
+  clear(): void {
     Tracer.verbose('Command: githd.clear');
     this._model.clearFilesViewContexts();
   }
 
   @command('githd.goBack')
-  goBackFilesViewContext() {
+  goBackFilesViewContext(): void {
     this._model.goBackFilesViewContext();
   }
 
   @command('githd.goForward')
-  goForwardFilesViewContext() {
+  goForwardFilesViewContext(): void {
     this._model.goForwardFilesViewContext();
   }
 
   @command('githd.goBackNoMore')
-  dummyForGoBackIcon() {
+  dummyForGoBackIcon(): void {
   }
 
   @command('githd.goForwardNoMore')
-  dummyForGoForwardIcon() {
+  dummyForGoForwardIcon(): void {
   }
 
   @command('githd.viewHistory')
@@ -250,7 +250,7 @@ export class CommandCenter {
   }
 
   @command('githd.viewAuthorHistory')
-  async viewAuthorHistory(): Promise<void> {
+  viewAuthorHistory(): void {
     Tracer.verbose('Command: githd.viewAuthorHistory');
     assert(this._model.historyViewContext, 'history view context should exist');
     const context: HistoryViewContext = this._model.historyViewContext;
@@ -317,13 +317,13 @@ export class CommandCenter {
   }
 
   @command('githd.openCommit')
-  async openCommit(repo: GitRepo, ref: string, specifiedPath: vs.Uri): Promise<void> {
+  openCommit(repo: GitRepo, ref: string, specifiedPath: vs.Uri): void {
     Tracer.verbose('Command: githd.openCommit');
     this._model.setFilesViewContext({ rightRef: ref, repo, specifiedPath });
   }
 
   @command('githd.openCommittedFile')
-  async openCommittedFile(file: GitCommittedFile): Promise<void> {
+  openCommittedFile(file: GitCommittedFile): void {
     Tracer.verbose('Command: githd.openCommittedFile');
     let rightRef = this._model.filesViewContext?.rightRef;
     let leftRef: string = rightRef + '~';
@@ -342,7 +342,7 @@ export class CommandCenter {
   }
 
   @command('githd.openCommitInfo')
-  async openCommitInfo(content: string): Promise<void> {
+  openCommitInfo(): void {
     Tracer.verbose('Command: githd.openCommitInfo');
     vs.workspace
       .openTextDocument(InfoViewProvider.defaultUri)
@@ -354,15 +354,15 @@ export class CommandCenter {
   }
 
   @command('githd.openLineDiff')
-  async openLineDiff(content: string): Promise<void> {
+  openLineDiff(content: string): void {
     Tracer.verbose('Command: githd.openLineDiff');
     vs.workspace
-    .openTextDocument({content, language:'diff'})
-    .then(doc =>
-      vs.window
-        .showTextDocument(doc, { preview: true, preserveFocus: true })
-        .then(() => vs.commands.executeCommand('cursorTop'))
-    );
+      .openTextDocument({ content, language: 'diff' })
+      .then(doc =>
+        vs.window
+          .showTextDocument(doc, { preview: true, preserveFocus: true, })
+          .then(() => vs.commands.executeCommand('cursorTop'))
+      );
   }
 
   @command('githd.diffUncommittedFile')
