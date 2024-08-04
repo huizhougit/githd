@@ -8,7 +8,6 @@ import { HistoryViewProvider } from './historyViewProvider';
 import { InfoViewProvider } from './infoViewProvider';
 import { GitService, GitRepo, GitRefType, GitCommittedFile } from './gitService';
 import { Tracer } from './tracer';
-import { resolve } from 'path';
 
 function toGitUri(uri: vs.Uri, ref?: string): vs.Uri {
   return uri.with({
@@ -345,7 +344,6 @@ export class CommandCenter {
   @command('githd.openCommitInfo')
   async openCommitInfo(content: string): Promise<void> {
     Tracer.verbose('Command: githd.openCommitInfo');
-    this._infoView.update(content);
     vs.workspace
       .openTextDocument(InfoViewProvider.defaultUri)
       .then(doc =>
@@ -353,6 +351,18 @@ export class CommandCenter {
           .showTextDocument(doc, { preview: true, preserveFocus: true })
           .then(() => vs.commands.executeCommand('cursorTop'))
       );
+  }
+
+  @command('githd.openLineDiff')
+  async openLineDiff(content: string): Promise<void> {
+    Tracer.verbose('Command: githd.openLineDiff');
+    vs.workspace
+    .openTextDocument({content, language:'diff'})
+    .then(doc =>
+      vs.window
+        .showTextDocument(doc, { preview: true, preserveFocus: true })
+        .then(() => vs.commands.executeCommand('cursorTop'))
+    );
   }
 
   @command('githd.diffUncommittedFile')

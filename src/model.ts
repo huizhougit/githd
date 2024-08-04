@@ -118,6 +118,7 @@ export class Model {
       currentContext.specifiedPath != context?.specifiedPath ||
       currentContext.focusedLineInfo != context?.focusedLineInfo
     ) {
+      vs.commands.executeCommand('setContext', 'canGoForwardFilesView', false);
       if (this._nextFilesViewContextIndex == 0) {
         vs.commands.executeCommand('setContext', 'canGoBackFilesView', true);
       }

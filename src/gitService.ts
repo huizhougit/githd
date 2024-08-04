@@ -316,7 +316,7 @@ export class GitService {
       if (file) {
         const filePath = (await this.getGitRelativePath(file)) ?? '.';
         if (line) {
-          args.push(`-L ${line},${line}:${filePath}`, '--no-patch');
+          args.push(`-L ${line},${line}:${filePath}`);
         } else {
           args.push('--follow', filePath);
         }
@@ -563,10 +563,10 @@ export class GitService {
         });
       });
 
-      Tracer.verbose(`git command: ${cmd} ${args}. Output size: ${result.length} (${Date.now() - start}ms) ${cwd}`);
+      Tracer.verbose(`git command: ${cmd} ${args.join(' ')}. Output size: ${result.length} (${Date.now() - start}ms) ${cwd}`);
       return result;
     } catch (err) {
-      Tracer.error(`git command failed: ${cmd} ${args} (${Date.now() - start}ms) ${cwd} ${err}`);
+      Tracer.error(`git command failed: ${cmd} ${args.join(' ')} (${Date.now() - start}ms) ${cwd} ${err}`);
       throw err;
     }
   }

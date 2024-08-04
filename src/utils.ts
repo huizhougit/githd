@@ -1,5 +1,7 @@
 import * as vs from 'vscode';
 
+export const prHoverMessage = new vs.MarkdownString('Click to see GitHub PR');
+
 export function decorateWithoutWhitespace(ranges: vs.Range[], target: string, line: number, offset: number) {
   let start = 0;
   let newWord = true;

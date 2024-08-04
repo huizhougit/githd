@@ -176,6 +176,11 @@
             },
             {
                 "command": "githd.openCommitInfo",
+                "title": "Open the commit information",
+                "category": "GitHD"
+            },
+            {
+                "command": "githd.openLineDiff",
                 "title": "Open the diff of the specified line",
                 "category": "GitHD"
             },
@@ -377,6 +382,10 @@
                 },
                 {
                     "command": "githd.openCommitInfo",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.openLineDiff",
                     "when": "false"
                 },
                 {
@@ -656,7 +665,7 @@
         "@types/glob": "^7.2.0",
         "@types/mocha": "^9.1.1",
         "@types/node": "16.x",
-        "@types/vscode": "^1.68.0",
+        "@types/vscode": "^1.92.0",
         "@typescript-eslint/eslint-plugin": "^5.30.0",
         "@typescript-eslint/parser": "^5.30.0",
         "@vscode/test-electron": "^2.1.5",

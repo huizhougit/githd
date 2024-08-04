@@ -1,8 +1,9 @@
 import * as vs from 'vscode';
 
-import { Model } from './model';
+import { FilesViewContext, Model } from './model';
 import { GitService } from './gitService';
-import { decorateWithoutWhitespace, getTextEditor } from './utils';
+import { decorateWithoutWhitespace, getPullRequest, getTextEditor, prHoverMessage } from './utils';
+import { ClickableProvider } from './clickable';
 
 export class InfoViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-line';
@@ -11,20 +12,13 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
   private _infoDecoration = vs.window.createTextEditorDecorationType({
     color: new vs.ThemeColor('githd.infoView.content')
   });
-  private _pathDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.infoView.path')
-  });
-  private _oldLineDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.infoView.old')
-  });
-  private _newLineDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.infoView.new')
-  });
 
   private _content: string | undefined;
+  private _infoRanges: vs.Range[] = [];
+  private _clickableProvider = new ClickableProvider(InfoViewProvider.scheme);
   private _onDidChange = new vs.EventEmitter<vs.Uri>();
 
-  constructor(context: vs.ExtensionContext, model: Model, gitService: GitService) {
+  constructor(context: vs.ExtensionContext, model: Model, private _gitService: GitService) {
     context.subscriptions.push(vs.workspace.registerTextDocumentContentProvider(InfoViewProvider.scheme, this));
 
     vs.window.onDidChangeActiveTextEditor(
@@ -48,12 +42,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
     );
 
     model.onDidChangeFilesViewContext(
-      async context => {
-        if (context?.rightRef && !context.leftRef) {
-          // It is not a diff of two commits so there will be a commit info update
-          this.update(await gitService.getCommitDetails(context?.repo, context.rightRef, context.isStash ?? false));
-        }
-      },
+      context => this._update(context),
       null,
       context.subscriptions
     );
@@ -61,9 +50,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
     context.subscriptions.push(
       this._onDidChange,
       this._infoDecoration,
-      this._pathDecoration,
-      this._oldLineDecoration,
-      this._newLineDecoration
+      this._clickableProvider,
     );
   }
 
@@ -75,41 +62,47 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
     return this._content ?? '';
   }
 
-  update(content: string) {
-    this._content = content;
+  private async _update(context?: FilesViewContext) {
+    this._infoRanges = [];
+    this._clickableProvider.clear();
+
+    if (!context?.rightRef) {
+      return;
+    }
+
+    this._content = await this._gitService.getCommitDetails(context?.repo, context.rightRef, context?.isStash);
+    if ( this._content) {
+      const remoteUrl: string | undefined = context?.repo.remoteUrl;
+      let addPR = false;
+      if (remoteUrl) {
+        // Only work for github PR url.
+        addPR = remoteUrl.indexOf('github.com') > 0;
+      }
+
+      let i = 0;
+      this._content.split(/\r?\n/g).forEach(line => {
+        if (addPR) {
+          const [pr, start] = getPullRequest(line);
+          if (pr) {
+            const url = remoteUrl + '/pull/' + pr.substring(1);
+            this._clickableProvider.addClickable({
+              range: new vs.Range(i, start, i, start + pr.length),
+              callback: () => vs.env.openExternal(vs.Uri.parse(url)),
+              getHoverMessage: () => prHoverMessage
+            });
+          }
+        }
+        decorateWithoutWhitespace(this._infoRanges, line, i, 0);
+        ++i;
+      });
+    }
+
     this._onDidChange.fire(InfoViewProvider.defaultUri);
   }
 
-  _decorate(editor?: vs.TextEditor) {
+  private _decorate(editor?: vs.TextEditor) {
     if (editor && this._content) {
-      let infoRanges: vs.Range[] = [];
-      let pathRanges: vs.Range[] = [];
-      let oldLineRange: vs.Range[] = [];
-      let newLineRange: vs.Range[] = [];
-
-      let diffStarted = false;
-      let i = 0;
-      this._content.split(/\r?\n/g).forEach(line => {
-        if (line.substring(0, 6) == 'diff --') {
-          diffStarted = true;
-          decorateWithoutWhitespace(pathRanges, line, i, 0);
-        } else if (line.substring(0, 3) == '--- ') {
-          decorateWithoutWhitespace(pathRanges, line, i, 0);
-        } else if (line.substring(0, 3) == '+++ ') {
-          decorateWithoutWhitespace(pathRanges, line, i, 0);
-        } else if (line[0] == '-') {
-          decorateWithoutWhitespace(oldLineRange, line, i, 0);
-        } else if (line[0] == '+') {
-          decorateWithoutWhitespace(newLineRange, line, i, 0);
-        } else if (!diffStarted) {
-          decorateWithoutWhitespace(infoRanges, line, i, 0);
-        }
-        ++i;
-      });
-      editor.setDecorations(this._infoDecoration, infoRanges);
-      editor.setDecorations(this._pathDecoration, pathRanges);
-      editor.setDecorations(this._oldLineDecoration, oldLineRange);
-      editor.setDecorations(this._newLineDecoration, newLineRange);
+      editor.setDecorations(this._infoDecoration, this._infoRanges);
     }
   }
 }

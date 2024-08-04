@@ -13,11 +13,24 @@ const rootFolderIcon = {
 };
 
 class InfoItem extends vs.TreeItem {
-  constructor(content: string, label: string) {
+  constructor(label: string) {
     super(label);
     this.command = {
       title: '',
       command: 'githd.openCommitInfo',
+    };
+    this.iconPath = getIconUri('info', '');
+  }
+
+  readonly parent = undefined;
+}
+
+class LineDiffItem extends vs.TreeItem {
+  constructor(content: string) {
+    super('Line diff');
+    this.command = {
+      title: '',
+      command: 'githd.openLineDiff',
       arguments: [content]
     };
     this.iconPath = getIconUri('info', '');
@@ -304,9 +317,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private async _buildCommitInfo(ref: string): Promise<void> {
-    await this._treeRoot.push(
+    this._treeRoot.push(
       new InfoItem(
-        await this._gitService.getCommitDetails(this._context?.repo, ref, this._context?.isStash),
         `${this.commitOrStashString} Info`
       )
     );
@@ -352,7 +364,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     const relativePath = await this._gitService.getGitRelativePath(specifiedPath);
     if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
       if (lineInfo) {
-        folder.infoItem = new InfoItem(lineInfo, 'line diff');
+        folder.infoItem = new LineDiffItem(lineInfo);
       }
       let file = committedFiles.find(value => {
         return value.gitRelativePath === relativePath;

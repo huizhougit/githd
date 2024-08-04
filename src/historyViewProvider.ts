@@ -4,7 +4,7 @@ import { HistoryViewContext, Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
-import { decorateWithoutWhitespace, getTextEditor, getPullRequest } from './utils';
+import { decorateWithoutWhitespace, getTextEditor, getPullRequest, prHoverMessage } from './utils';
 import { Tracer } from './tracer';
 
 const firstLoadingCount = 25;
@@ -18,7 +18,6 @@ const separatorLabel = '--------------------------------------------------------
 const branchHoverMessage = new vs.MarkdownString('Select a branch to see its history');
 const authorHoverMessage = new vs.MarkdownString('Select an author to see the commits');
 const loadMoreHoverMessage = new vs.MarkdownString('Load more commits');
-const prHoverMessage = new vs.MarkdownString('Click to see GitHub PR');
 
 function getHistoryViewEditor(): vs.TextEditor | undefined {
   return vs.window.visibleTextEditors.find(editor => editor.document.uri.scheme === HistoryViewProvider.scheme);
@@ -407,13 +406,10 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     if (remoteUrl.indexOf('github.com') > 0) {
       const [pr, start] = getPullRequest(subject);
       if (pr) {
-        // Only work for github PR url.
         const url = remoteUrl + '/pull/' + pr.substring(1);
         this._clickableProvider.addClickable({
           range: new vs.Range(this._currentLine, start, this._currentLine, start + pr.length),
-          callback: () => {
-            vs.env.openExternal(vs.Uri.parse(url));
-          },
+          callback: () => vs.env.openExternal(vs.Uri.parse(url)),
           getHoverMessage: () => prHoverMessage
         });
       }
