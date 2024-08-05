@@ -2,6 +2,7 @@ import * as vs from 'vscode';
 
 import { GitService, GitRepo } from './gitService';
 import { Tracer } from './tracer';
+import { ContextTracker } from './contextTracker';
 
 export interface Configuration {
   readonly commitsCount: number;
@@ -46,9 +47,11 @@ function getConfiguration(): Configuration {
 export class Model {
   private _config: Configuration;
 
-  private _historyViewContext: HistoryViewContext | undefined;
-  private _filesViewContextTracker: FilesViewContext[] = [];
-  private _nextFilesViewContextIndex: number = 0;
+  private _historyViewContextTracker = 
+    new ContextTracker<HistoryViewContext>('canGoBackHistoryView', 'canGoForwardHistoryView');
+
+  private _filesViewContextTracker = 
+    new ContextTracker<FilesViewContext>('canGoBackFilesView', 'canGoForwardFilesView');
 
   private _onDidChangeConfiguration = new vs.EventEmitter<Configuration>();
   private _onDidChangeFilesViewContext = new vs.EventEmitter<FilesViewContext | undefined>();
@@ -103,14 +106,25 @@ export class Model {
   }
 
   get filesViewContext(): FilesViewContext | undefined {
-    return this._nextFilesViewContextIndex > 0 ?
-      this._filesViewContextTracker[this._nextFilesViewContextIndex - 1] : undefined;
+    const current = this._filesViewContextTracker.current;
+    if (!current) {
+      return;
+    }
+
+    // make a deep copy to avoid caller's changes impact the tracked data.
+    return {
+      repo: current.repo,
+      focusedLineInfo: current.focusedLineInfo,
+      isStash: current.isStash,
+      leftRef: current.leftRef,
+      rightRef: current.rightRef,
+      specifiedPath: current.specifiedPath
+    }
   }
 
   setFilesViewContext(context: FilesViewContext) {
     Tracer.info(`Model: set filesViewContext - ${JSON.stringify(context)}`);
 
-    const maxTrackedCount = 100;
     const currentContext = this.filesViewContext;
     if (!currentContext ||
       currentContext.leftRef != context?.leftRef ||
@@ -118,78 +132,80 @@ export class Model {
       currentContext.specifiedPath != context?.specifiedPath ||
       currentContext.focusedLineInfo != context?.focusedLineInfo
     ) {
-      vs.commands.executeCommand('setContext', 'canGoForwardFilesView', false);
-      if (this._nextFilesViewContextIndex == 0) {
-        vs.commands.executeCommand('setContext', 'canGoBackFilesView', true);
-      }
-
-      if (this._nextFilesViewContextIndex == maxTrackedCount) {
-        this._filesViewContextTracker = this._filesViewContextTracker.slice(1, this._nextFilesViewContextIndex);
-      } else {
-        this._nextFilesViewContextIndex++
-        this._filesViewContextTracker = this._filesViewContextTracker.slice(0, this._nextFilesViewContextIndex);
-      }
-      this._filesViewContextTracker[this._nextFilesViewContextIndex-1] = context;
+      this._filesViewContextTracker.setContext(context);
       this._onDidChangeFilesViewContext.fire(context);
     }
     vs.commands.executeCommand('workbench.view.extension.githd-explorer');
   }
 
   goBackFilesViewContext() {
-    if (this._nextFilesViewContextIndex == 0) {
-      return;
+    if (this._filesViewContextTracker.goBack()) {
+      const context = this._filesViewContextTracker.current;
+      Tracer.verbose(`Model: go back files view context ${context?.leftRef}..${context?.rightRef}`);
+      this._onDidChangeFilesViewContext.fire(context);
     }
-
-    if (this._nextFilesViewContextIndex == this._filesViewContextTracker.length) {
-      vs.commands.executeCommand('setContext', 'canGoForwardFilesView', true);
-    }
-
-    this._nextFilesViewContextIndex--;
-    if (this._nextFilesViewContextIndex == 0) {
-      vs.commands.executeCommand('setContext', 'canGoBackFilesView', false);
-    }
-    const goToContext = this.filesViewContext;
-    Tracer.verbose(`Model: go back files view context ${goToContext?.leftRef}..${goToContext?.rightRef}`);
-    this._onDidChangeFilesViewContext.fire(goToContext);
   }
 
   goForwardFilesViewContext() {
-    if (this._nextFilesViewContextIndex == this._filesViewContextTracker.length) {
-      return;
+    if (this._filesViewContextTracker.goForward()) {
+      const context = this._filesViewContextTracker.current;
+      Tracer.verbose(`Model: go forward files view context ${context?.leftRef}..${context?.rightRef}`);
+      this._onDidChangeFilesViewContext.fire(context);
     }
-
-    if (this._nextFilesViewContextIndex == 0) {
-      vs.commands.executeCommand('setContext', 'canGoBackFilesView', true);
-    }
-
-    this._nextFilesViewContextIndex++;
-    if (this._nextFilesViewContextIndex == this._filesViewContextTracker.length) {
-      vs.commands.executeCommand('setContext', 'canGoForwardFilesView', false);
-    }
-    const goToContext = this.filesViewContext;
-    Tracer.verbose(`Model: go forward files view context ${goToContext?.leftRef}..${goToContext?.rightRef}`);
-    this._onDidChangeFilesViewContext.fire(goToContext);
   }
 
   clearFilesViewContexts() {
-    this._filesViewContextTracker = [];
-    this._nextFilesViewContextIndex = 0;
-    vs.commands.executeCommand('setContext', 'canGoBackFilesView', false);
-    vs.commands.executeCommand('setContext', 'canGoForwardFilesView', false);
+    this._filesViewContextTracker.clear();
     this._onDidChangeFilesViewContext.fire(undefined);
   }
 
   get historyViewContext(): HistoryViewContext | undefined {
-    return this._historyViewContext;
+    const current = this._historyViewContextTracker.current;
+    if (!current) {
+      return
+    }
+
+    // make a deep copy to avoid caller's changes impact the tracked data.
+    return {
+      branch: current.branch,
+      repo: current.repo,
+      author: current.author,
+      isStash: current.isStash,
+      line: current.line,
+      specifiedPath: current.specifiedPath
+    }
   }
-  async setHistoryViewContext(context: HistoryViewContext | undefined) {
+
+  async setHistoryViewContext(context: HistoryViewContext) {
     Tracer.info(`Model: set historyViewContext - ${JSON.stringify(context)}`);
 
-    this._historyViewContext = context;
-    if (this._historyViewContext && !this._historyViewContext?.branch) {
-      this._historyViewContext.branch = (await this._gitService.getCurrentBranch(context?.repo)) ?? '';
+    if (context && !context.branch) {
+      context.branch = (await this._gitService.getCurrentBranch(context?.repo)) ?? '';
     }
-    this._onDidChangeHistoryViewContext.fire(this._historyViewContext);
+
+    this._historyViewContextTracker.setContext(context);
+    this._onDidChangeHistoryViewContext.fire(context);
+  }
+
+  
+  goBackHistoryViewContext() {
+    if (this._historyViewContextTracker.goBack()) {
+      const context = this._historyViewContextTracker.current;
+      Tracer.verbose(`Model: go back history view context - ${JSON.stringify(context)}`);
+      this._onDidChangeHistoryViewContext.fire(context);
+    }
+  }
+
+  goForwardHistoryViewContext() {
+    if (this._historyViewContextTracker.goForward()) {
+      const context = this._historyViewContextTracker.current;
+      Tracer.verbose(`Model: go forward history view context - ${JSON.stringify(context)}`);
+      this._onDidChangeHistoryViewContext.fire(context);
+    }
+  }
+
+  clearHistoryViewContexts() {
+    this._historyViewContextTracker.clear();
   }
 
   get onDidChangeConfiguration(): vs.Event<Configuration> {

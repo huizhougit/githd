@@ -4,11 +4,11 @@ import { HistoryViewContext, Model } from './model';
 import { GitService, GitLogEntry } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
-import { decorateWithoutWhitespace, getTextEditor, getPullRequest, prHoverMessage } from './utils';
+import { decorateWithoutWhitespace, getTextEditor, getPullRequest, prHoverMessage, getEditor } from './utils';
 import { Tracer } from './tracer';
 
 const firstLoadingCount = 25;
-const loadingPageSize = 300;
+const loadingPageSize = 100;
 
 const stashTitleLabel = 'Git Stashes';
 const titleLabel = 'Git History';
@@ -18,10 +18,6 @@ const separatorLabel = '--------------------------------------------------------
 const branchHoverMessage = new vs.MarkdownString('Select a branch to see its history');
 const authorHoverMessage = new vs.MarkdownString('Select an author to see the commits');
 const loadMoreHoverMessage = new vs.MarkdownString('Load more commits');
-
-function getHistoryViewEditor(): vs.TextEditor | undefined {
-  return vs.window.visibleTextEditors.find(editor => editor.document.uri.scheme === HistoryViewProvider.scheme);
-}
 
 export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-logs';
@@ -117,6 +113,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     );
     this._model.onDidChangeHistoryViewContext(context => {
       Tracer.verbose(`HistoryView: onDidChangeHistoryViewContext`);
+      this._startLoading();
       vs.workspace.openTextDocument(HistoryViewProvider.defaultUri).then(async doc => {
         vs.window.showTextDocument(doc, {
           preview: false,
@@ -124,7 +121,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         });
         this._loadMoreClicked = false;
         await this._updateContent(false);
-        this._moveToTop(getHistoryViewEditor());
+        this._moveToTop(getEditor(HistoryViewProvider.scheme));
       });
     });
 
@@ -172,6 +169,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     vs.workspace.onDidCloseTextDocument(doc => {
       if (doc.uri.scheme === HistoryViewProvider.scheme) {
         Tracer.verbose('HistoryView: onDidCloseTextDocument');
+        this._model.clearHistoryViewContexts();
         this._reset();
       }
     });
@@ -276,8 +274,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         this._content = this._content.substring(0, this._content.length - moreLabel.length - 1);
         this._content += separatorLabel + '\n\n';
         this._currentLine += 2;
-      } else {
-        this._reset();
       }
 
       // No pagination loading for statsh, file history and line history.
@@ -310,7 +306,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       context.author
     );
     if (entries.length === 0) {
-      this._reset();
       this._content = isStash ? 'No Stash' : 'No History';
       this._update();
       return;
@@ -318,7 +313,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
     let content = '';
     if (firstLoading && !loadMore) {
-      this._reset();
       content = await this._updateTitleInfo(context);
     }
 
@@ -339,12 +333,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       } else {
         this._moreClickableRange = undefined;
       }
-      this._totalCommitsCount = 0;
     }
 
     this._content += content;
     if (this._content == prevContent) {
-      this._setDecorations(getHistoryViewEditor());
+      this._setDecorations(getEditor(HistoryViewProvider.scheme));
       this._updating = false;
     } else {
       this._update();
@@ -562,5 +555,12 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._content = '';
     this._logCount = 0;
     this._currentLine = 0;
+    this._totalCommitsCount = 0;
+  }
+
+  
+  private _startLoading() {
+    this._reset();
+    this._update();
   }
 }

@@ -130,6 +130,24 @@
                 }
             },
             {
+                "command": "githd.goBackHistoryView",
+                "title": "GitHD: Go Back",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/arrow-left.svg",
+                    "dark": "resources/icons/dark/arrow-left.svg"
+                }
+            },
+            {
+                "command": "githd.goForwardHistoryView",
+                "title": "GitHD: Go Forward",
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/arrow-rightt.svg",
+                    "dark": "resources/icons/dark/arrow-right.svg"
+                }
+            },
+            {
                 "command": "githd.viewBranchHistory",
                 "title": "View Branch History",
                 "category": "GitHD"
@@ -194,7 +212,7 @@
                 "category": "GitHD"
             },
             {
-                "command": "githd.goBack",
+                "command": "githd.goBackFilesView",
                 "title": "Go Back",
                 "category": "GitHD",
                 "icon": {
@@ -205,14 +223,13 @@
             {
                 "command": "githd.goBackNoMore",
                 "title": "No more to go back",
-                "category": "GitHD",
                 "icon": {
                     "light": "resources/icons/light/arrow-left-no-more.svg",
                     "dark": "resources/icons/dark/arrow-left-no-more.svg"
                 }
             },
             {
-                "command": "githd.goForward",
+                "command": "githd.goForwardFilesView",
                 "title": "Go Forward",
                 "category": "GitHD",
                 "icon": {
@@ -223,7 +240,6 @@
             {
                 "command": "githd.goForwardNoMore",
                 "title": "No more to go forward",
-                "category": "GitHD",
                 "icon": {
                     "light": "resources/icons/light/arrow-right-no-more.svg",
                     "dark": "resources/icons/dark/arrow-right-no-more.svg"
@@ -266,8 +282,8 @@
                 }
             },
             {
-                "command": "githd.clear",
-                "title": "Clear",
+                "command": "githd.clearFilesView",
+                "title": "Clear Files View",
                 "category": "GitHD",
                 "icon": {
                     "light": "resources/icons/light/close.svg",
@@ -317,7 +333,7 @@
                     "when": "hasGitRepo"
                 },
                 {
-                    "command": "githd.clear",
+                    "command": "githd.clearFilesView",
                     "when": "false"
                 },
                 {
@@ -343,6 +359,14 @@
                 {
                     "command": "githd.viewFolderHistory",
                     "when": "false"
+                },
+                {
+                    "command": "githd.goBackHistoryView",
+                    "when": "hasGitRepo && canGoBackHistoryView"
+                },
+                {
+                    "command": "githd.goForwardHistoryView",
+                    "when": "hasGitRepo && canGoForwardHistoryView"
                 },
                 {
                     "command": "githd.diffFile",
@@ -389,7 +413,7 @@
                     "when": "false"
                 },
                 {
-                    "command": "githd.goBack",
+                    "command": "githd.goBackFilesView",
                     "when": "false"
                 },
                 {
@@ -397,7 +421,7 @@
                     "when": "false"
                 },
                 {
-                    "command": "githd.goForward",
+                    "command": "githd.goForwardFilesView",
                     "when": "false"
                 },
                 {
@@ -407,7 +431,7 @@
             ],
             "view/title": [
                 {
-                    "command": "githd.goBack",
+                    "command": "githd.goBackFilesView",
                     "when": "view == committedFiles && hasGitRepo && canGoBackFilesView",
                     "group": "navigation@1"
                 },
@@ -417,7 +441,7 @@
                     "group": "navigation@1"
                 },
                 {
-                    "command": "githd.goForward",
+                    "command": "githd.goForwardFilesView",
                     "when": "view == committedFiles && hasGitRepo && canGoForwardFilesView",
                     "group": "navigation@2"
                 },
@@ -442,7 +466,7 @@
                     "group": "navigation@6"
                 },
                 {
-                    "command": "githd.clear",
+                    "command": "githd.clearFilesView",
                     "when": "view == committedFiles && hasGitRepo",
                     "group": "navigation@9"
                 }
@@ -528,7 +552,27 @@
                 {
                     "command": "githd.viewHistory",
                     "when": "hasGitRepo && !disableInEditor",
-                    "group": "navigation"
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "githd.goBackHistoryView",
+                    "when": "resourceScheme == githd-logs && canGoBackHistoryView",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "githd.goBackNoMore",
+                    "when": "resourceScheme == githd-logs && !canGoBackHistoryView",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "githd.goForwardHistoryView",
+                    "when": "resourceScheme == githd-logs && canGoForwardHistoryView",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "githd.goForwardNoMore",
+                    "when": "resourceScheme == githd-logs && !canGoForwardHistoryView",
+                    "group": "navigation@3"
                 }
             ]
         },

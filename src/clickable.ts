@@ -1,7 +1,7 @@
 import * as vs from 'vscode';
 
 import { Tracer } from './tracer';
-import { getTextEditor } from './utils';
+import { getEditor, getTextEditor } from './utils';
 
 export interface Clickable {
   readonly range: vs.Range;
@@ -93,6 +93,14 @@ export class ClickableProvider implements vs.HoverProvider {
 
   clear(): void {
     this._clickables = [];
+    const editor: vs.TextEditor | undefined = getEditor(this._scheme);
+    if (editor) {
+      this._lastClickedItems.forEach(clickable => {
+        if (clickable.clickedDecorationType) {
+          editor.setDecorations(clickable.clickedDecorationType, []);
+        }
+      });
+    }
     this._lastClickedItems = [];
   }
 

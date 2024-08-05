@@ -136,18 +136,18 @@ export class CommandCenter {
     );
   }
 
-  @command('githd.clear')
+  @command('githd.clearFilesView')
   clear(): void {
-    Tracer.verbose('Command: githd.clear');
+    Tracer.verbose('Command: githd.clearFilesView');
     this._model.clearFilesViewContexts();
   }
 
-  @command('githd.goBack')
+  @command('githd.goBackFilesView')
   goBackFilesViewContext(): void {
     this._model.goBackFilesViewContext();
   }
 
-  @command('githd.goForward')
+  @command('githd.goForwardFilesView')
   goForwardFilesViewContext(): void {
     this._model.goForwardFilesViewContext();
   }
@@ -205,6 +205,18 @@ export class CommandCenter {
     }
     line++;
     return this._viewHistory({ specifiedPath: file, line, repo, branch: '' });
+  }
+
+  @command('githd.goBackHistoryView')
+  goBackHistoryView(): void {
+    Tracer.verbose('Command: githd.goBackHistoryView');
+    this._model.goBackHistoryViewContext();
+  }
+
+  @command('githd.goForwardHistoryView')
+  goForwardHistoryView(): void {
+    Tracer.verbose('Command: githd.goForwardHistoryView');
+    this._model.goForwardHistoryViewContext();
   }
 
   @command('githd.viewAllHistory')

@@ -6,6 +6,7 @@ import * as vs from 'vscode';
 import { GitService, GitCommittedFile } from './gitService';
 import { Model, FilesViewContext } from './model';
 import { Icons, getIconUri } from './icons';
+import { Tracer } from './tracer';
 
 const rootFolderIcon = {
   dark: getIconUri('structure', 'dark'),
@@ -210,28 +211,32 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       vs.commands.registerCommand('githd.expandFolder', (folder: FolderItem) =>
         this._setCollapsibleStateOnAll(folder, vs.TreeItemCollapsibleState.Expanded)
       ),
-      vs.commands.registerCommand('githd.viewFileHistoryFromTree', (fileItem: CommittedFileItem) =>
+      vs.commands.registerCommand('githd.viewFileHistoryFromTree', (fileItem: CommittedFileItem) => {
+        if (!this._context) {
+          Tracer.warning('ExplorerViewProvider: viewFileHistoryFromTree has empty context');
+          return;
+        }
         model.setHistoryViewContext(
-          this._context
-            ? {
-                repo: this._context.repo,
-                specifiedPath: fileItem.file.fileUri,
-                branch: ''
-              }
-            : undefined
+          {
+            repo: this._context.repo,
+            specifiedPath: fileItem.file.fileUri,
+            branch: ''
+          }
         )
-      ),
-      vs.commands.registerCommand('githd.viewFolderHistoryFromTree', (folder: FolderItem) =>
+      }),
+      vs.commands.registerCommand('githd.viewFolderHistoryFromTree', (folder: FolderItem) => {
+        if (!this._context) {
+          Tracer.warning('ExplorerViewProvider: viewFolderHistoryFromTree has empty context');
+          return;
+        }
         model.setHistoryViewContext(
-          this._context
-            ? {
-                repo: this._context.repo,
-                specifiedPath: vs.Uri.file(path.join(this._context.repo.root, folder.gitRelativePath)),
-                branch: ''
-              }
-            : undefined
+          {
+            repo: this._context.repo,
+            specifiedPath: vs.Uri.file(path.join(this._context.repo.root, folder.gitRelativePath)),
+            branch: ''
+          }
         )
-      ),
+      }),
       this._onDidChange
     );
 
