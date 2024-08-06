@@ -1,7 +1,7 @@
 import * as vs from 'vscode';
 
 import { HistoryViewContext, Model } from './model';
-import { GitService, GitLogEntry } from './gitService';
+import { GitService, GitLogEntry, GitRepo } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
 import { decorateWithoutWhitespace, getTextEditor, getPullRequest, prHoverMessage, getEditor } from './utils';
@@ -94,6 +94,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _repoStatusBar: vs.StatusBarItem = vs.window.createStatusBarItem(undefined, 1);
   private _expressStatusBar: vs.StatusBarItem = vs.window.createStatusBarItem(undefined, 2);
   private _express = false;
+  private _currentRepo: GitRepo | undefined;
 
   constructor(context: vs.ExtensionContext, private _model: Model, private _gitService: GitService) {
     Tracer.info('Creating history view');
@@ -101,6 +102,8 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
     this._expressStatusBar.command = 'githd.setExpressMode';
     this._expressStatusBar.tooltip = 'Turn on or off of the history view Express mode';
+    this._repoStatusBar.command = 'githd.setRepository';
+    this._repoStatusBar.tooltip = 'Change the git repository';
     this.express = this._model.configuration.expressMode;
     this.commitsCount = this._model.configuration.commitsCount;
     this._model.onDidChangeConfiguration(
@@ -137,9 +140,12 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
             // If it's updating, _setDecorations will be called after it's updated.
             this._setDecorations(editor);
           }
-          this.repo = this._model.historyViewContext?.repo?.root;
+          if (this._currentRepo?.root) {
+            this._repoStatusBar.show();
+          }
         } else {
-          this.repo = undefined;
+          // only show repo in the history view
+          this._repoStatusBar.hide();
         }
       },
       null,
@@ -211,6 +217,17 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._expressStatusBar.text = 'githd: Express ' + (value ? 'On' : 'Off');
   }
 
+  get gitRepo(): GitRepo | undefined {
+    return this._currentRepo;
+  }
+  set gitRepo(value: GitRepo | undefined) {
+    this._currentRepo = value;
+    if (value) {
+      this._repoStatusBar.text = 'githd: Repository ' + this._currentRepo?.root;
+      this._repoStatusBar.show();
+    }
+  }
+
   private set commitsCount(count: number) {
     if (
       [100, 200, 300, 400, 500, 1000].findIndex(a => {
@@ -218,15 +235,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       }) >= 0
     ) {
       this._commitsCount = count;
-    }
-  }
-
-  private set repo(repo: string | undefined) {
-    if (repo) {
-      this._repoStatusBar.text = 'githd: Repository ' + repo;
-      this._repoStatusBar.show();
-    } else {
-      this._repoStatusBar.hide();
     }
   }
 
@@ -342,8 +350,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     } else {
       this._update();
     }
-
-    this.repo = context.repo.root; // Update the status bar UI.
   }
 
   private async _updateTitleInfo(context: HistoryViewContext): Promise<string> {
@@ -389,6 +395,10 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       callback: () => vs.commands.executeCommand('githd.viewAuthorHistory'),
       getHoverMessage: () => authorHoverMessage
     });
+
+    if (context.repo.root != this._currentRepo?.root) {
+      content += ` (${context.repo.root})`
+    }
 
     this._currentLine += 2;
     return content + ' \n\n';

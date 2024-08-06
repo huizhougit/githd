@@ -163,7 +163,7 @@ export class CommandCenter {
   @command('githd.viewHistory')
   async viewHistory(): Promise<void> {
     Tracer.verbose('Command: githd.viewHistory');
-    const repo = await selectGitRepo(this._gitService);
+    const repo = await this._getOrUpdateRepo();
     if (repo) {
       this._viewHistory({ repo, branch: '' });
     }
@@ -241,7 +241,7 @@ export class CommandCenter {
         placeHolder += ` of ${path.basename(specifiedPath.fsPath)}`;
       }
     } else {
-      const selected = await selectGitRepo(this._gitService);
+      const selected = await this._getOrUpdateRepo();
       if (!selected) {
         return;
       }
@@ -286,7 +286,7 @@ export class CommandCenter {
   @command('githd.viewStashes')
   async viewStashes(): Promise<void> {
     Tracer.verbose('Command: githd.viewStashes');
-    const repo = await selectGitRepo(this._gitService);
+    const repo = await this._getOrUpdateRepo();
     if (repo) {
       this._viewHistory({ repo, isStash: true, branch: '' });
     }
@@ -295,7 +295,7 @@ export class CommandCenter {
   @command('githd.diffBranch')
   async diffBranch(): Promise<void> {
     Tracer.verbose('Command: githd.diffBranch');
-    const repo = await selectGitRepo(this._gitService);
+    const repo = await this._getOrUpdateRepo();
     if (!repo) {
       return;
     }
@@ -317,7 +317,7 @@ export class CommandCenter {
   @command('githd.inputRef')
   async inputRef(): Promise<void> {
     Tracer.verbose('Command: githd.inputRef');
-    const repo = await selectGitRepo(this._gitService);
+    const repo = await this._getOrUpdateRepo();
     if (!repo) {
       return;
     }
@@ -411,6 +411,13 @@ export class CommandCenter {
     this._historyView.express = !this._historyView.express;
   }
 
+  @command('githd.setRepository')
+  async setRepository(): Promise<void> {
+    Tracer.verbose('Command: githd.setRepository');
+    this._historyView.gitRepo = undefined;
+    this._getOrUpdateRepo();
+  }
+
   private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
     this._historyView.loadAll = all;
     await this._model.setHistoryViewContext(context);
@@ -457,5 +464,12 @@ export class CommandCenter {
         specifiedPath
       });
     });
+  }
+
+  private async _getOrUpdateRepo(): Promise<GitRepo | undefined> {
+    if (!this._historyView.gitRepo) {
+      this._historyView.gitRepo =  await selectGitRepo(this._gitService);
+    }
+    return this._historyView.gitRepo;
   }
 }

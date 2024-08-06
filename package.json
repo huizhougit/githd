@@ -9,7 +9,7 @@
         "email": "zhou_hui@outlook.com"
     },
     "engines": {
-        "vscode": "^1.68.0"
+        "vscode": "^1.92.0"
     },
     "license": "MIT",
     "repository": {
@@ -131,7 +131,7 @@
             },
             {
                 "command": "githd.goBackHistoryView",
-                "title": "GitHD: Go Back",
+                "title": "Go Back",
                 "category": "GitHD",
                 "icon": {
                     "light": "resources/icons/light/arrow-left.svg",
@@ -140,7 +140,7 @@
             },
             {
                 "command": "githd.goForwardHistoryView",
-                "title": "GitHD: Go Forward",
+                "title": "Go Forward",
                 "category": "GitHD",
                 "icon": {
                     "light": "resources/icons/light/arrow-rightt.svg",
@@ -208,13 +208,11 @@
             },
             {
                 "command": "githd.setExpressMode",
-                "title": "set Express Mode",
-                "category": "GitHD"
+                "title": "set Express Mode"
             },
             {
                 "command": "githd.goBackFilesView",
                 "title": "Go Back",
-                "category": "GitHD",
                 "icon": {
                     "light": "resources/icons/light/arrow-left.svg",
                     "dark": "resources/icons/dark/arrow-left.svg"
@@ -231,7 +229,6 @@
             {
                 "command": "githd.goForwardFilesView",
                 "title": "Go Forward",
-                "category": "GitHD",
                 "icon": {
                     "light": "resources/icons/light/arrow-right.svg",
                     "dark": "resources/icons/dark/arrow-right.svg"
@@ -304,6 +301,11 @@
                 "command": "githd.viewStashes",
                 "title": "View Stashes",
                 "category": "GitHD"
+            },
+            {
+                "command": "githd.setRepository",
+                "title": "Set Git Repository",
+                "category": "GitHD"
             }
         ],
         "menus": {
@@ -362,11 +364,15 @@
                 },
                 {
                     "command": "githd.goBackHistoryView",
-                    "when": "hasGitRepo && canGoBackHistoryView"
+                    "when": "canGoBackHistoryView"
                 },
                 {
                     "command": "githd.goForwardHistoryView",
-                    "when": "hasGitRepo && canGoForwardHistoryView"
+                    "when": "canGoForwardHistoryView"
+                },
+                {
+                    "command": "githd.setRepository",
+                    "when": "hasGitRepo"
                 },
                 {
                     "command": "githd.diffFile",
