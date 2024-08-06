@@ -243,21 +243,21 @@
                 }
             },
             {
-                "command": "githd.showFilesWithFolder",
-                "title": "Folder View",
+                "command": "githd.showFilesTreeView",
+                "title": "View as Tree",
                 "category": "GitHD",
                 "icon": {
-                    "light": "resources/icons/light/folder.svg",
-                    "dark": "resources/icons/dark/folder.svg"
+                    "light": "resources/icons/light/list-tree.svg",
+                    "dark": "resources/icons/dark/list-tree.svg"
                 }
             },
             {
-                "command": "githd.showFilesWithoutFolder",
-                "title": "List View",
+                "command": "githd.showFilesListView",
+                "title": "View as List",
                 "category": "GitHD",
                 "icon": {
-                    "light": "resources/icons/light/list-unordered.svg",
-                    "dark": "resources/icons/dark/list-unordered.svg"
+                    "light": "resources/icons/light/list-flat.svg",
+                    "dark": "resources/icons/dark/list-flat.svg"
                 }
             },
             {
@@ -274,8 +274,8 @@
                 "title": "Expand All",
                 "category": "GitHD",
                 "icon": {
-                    "light": "resources/icons/light/collapse-all.svg",
-                    "dark": "resources/icons/dark/collapse-all.svg"
+                    "light": "resources/icons/light/expand-all.svg",
+                    "dark": "resources/icons/dark/expand-all.svg"
                 }
             },
             {
@@ -283,19 +283,27 @@
                 "title": "Clear Files View",
                 "category": "GitHD",
                 "icon": {
-                    "light": "resources/icons/light/close.svg",
-                    "dark": "resources/icons/dark/close.svg"
+                    "light": "resources/icons/light/clear-all.svg",
+                    "dark": "resources/icons/dark/clear-all.svg"
                 }
             },
             {
                 "command": "githd.viewFileHistoryFromTree",
                 "title": "View File History",
-                "category": "GitHD"
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/history.svg",
+                    "dark": "resources/icons/dark/history.svg"
+                }
             },
             {
                 "command": "githd.viewFolderHistoryFromTree",
                 "title": "View Folder History",
-                "category": "GitHD"
+                "category": "GitHD",
+                "icon": {
+                    "light": "resources/icons/light/history.svg",
+                    "dark": "resources/icons/dark/history.svg"
+                }
             },
             {
                 "command": "githd.viewStashes",
@@ -387,11 +395,11 @@
                     "when": "false"
                 },
                 {
-                    "command": "githd.showFilesWithFolder",
+                    "command": "githd.showFilesTreeView",
                     "when": "false"
                 },
                 {
-                    "command": "githd.showFilesWithoutFolder",
+                    "command": "githd.showFilesListView",
                     "when": "false"
                 },
                 {
@@ -457,21 +465,6 @@
                     "group": "navigation@2"
                 },
                 {
-                    "command": "githd.showFilesWithFolder",
-                    "when": "view == committedFiles && hasGitRepo",
-                    "group": "navigation@4"
-                },
-                {
-                    "command": "githd.showFilesWithoutFolder",
-                    "when": "view == committedFiles && hasGitRepo",
-                    "group": "navigation@5"
-                },
-                {
-                    "command": "githd.collapseFolder",
-                    "when": "view == committedFiles && hasGitRepo",
-                    "group": "navigation@6"
-                },
-                {
                     "command": "githd.clearFilesView",
                     "when": "view == committedFiles && hasGitRepo",
                     "group": "navigation@9"
@@ -479,34 +472,34 @@
             ],
             "view/item/context": [
                 {
-                    "command": "githd.showFilesWithFolder",
-                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-                    "group": "githd_2"
+                    "command": "githd.showFilesTreeView",
+                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "group": "inline@2"
                 },
                 {
-                    "command": "githd.showFilesWithoutFolder",
-                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-                    "group": "githd_2"
+                    "command": "githd.showFilesListView",
+                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "group": "inline@3"
                 },
                 {
                     "command": "githd.collapseFolder",
-                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-                    "group": "githd_3"
+                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "group": "inline@4"
                 },
                 {
                     "command": "githd.expandFolder",
-                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-                    "group": "githd_3"
+                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "group": "inline@5"
                 },
                 {
                     "command": "githd.viewFileHistoryFromTree",
-                    "when": "view == committedFiles && viewItem != folder && hasGitRepo",
-                    "group": "githd_1"
+                    "when": "view == committedFiles && viewItem == file",
+                    "group": "inline@1"
                 },
                 {
                     "command": "githd.viewFolderHistoryFromTree",
-                    "when": "view == committedFiles && viewItem == folder && hasGitRepo",
-                    "group": "githd_1"
+                    "when": "view == committedFiles && viewItem == folder",
+                    "group": "inline@1"
                 }
             ],
             "explorer/context": [

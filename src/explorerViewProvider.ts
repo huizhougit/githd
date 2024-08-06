@@ -16,6 +16,7 @@ const rootFolderIcon = {
 class InfoItem extends vs.TreeItem {
   constructor(label: string) {
     super(label);
+    this.contextValue = 'infoFile';
     this.command = {
       title: '',
       command: 'githd.openCommitInfo',
@@ -43,6 +44,7 @@ class LineDiffItem extends vs.TreeItem {
 class CommittedFileItem extends vs.TreeItem {
   constructor(readonly parent: FolderItem, readonly file: GitCommittedFile, label: string) {
     super(label);
+    this.contextValue = 'file';
     this.command = {
       title: '',
       command: 'githd.openCommittedFile',
@@ -80,13 +82,14 @@ class FolderItem extends vs.TreeItem {
   private _infoItem: InfoItem | undefined;
 
   constructor(
+    context: string,
     private _parent: FolderItem | undefined,
     private _gitRelativePath: string,
     label: string,
     iconPath?: { light: vs.Uri; dark: vs.Uri }
   ) {
     super(label);
-    this.contextValue = 'folder';
+    this.contextValue = context;
     this.iconPath = iconPath;
     this.collapsibleState = vs.TreeItemCollapsibleState.Expanded;
   }
@@ -139,7 +142,7 @@ function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, 
       return item.label === segments[i];
     });
     if (!folder) {
-      folder = new FolderItem(parent, gitRelativePath, segments[i]);
+      folder = new FolderItem('folder', parent, gitRelativePath, segments[i]);
       parent.subFolders.push(folder);
     }
     parent = folder;
@@ -199,12 +202,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   constructor(context: vs.ExtensionContext, model: Model, private _gitService: GitService) {
     context.subscriptions.push(
       vs.window.registerTreeDataProvider('committedFiles', this),
-      vs.commands.registerCommand('githd.showFilesWithFolder', (folder: FolderItem) =>
-        this._showFilesWithFolder(folder)
-      ),
-      vs.commands.registerCommand('githd.showFilesWithoutFolder', (folder: FolderItem) =>
-        this._showFilesWithoutFolder(folder)
-      ),
+      vs.commands.registerCommand('githd.showFilesTreeView', (folder: FolderItem) => this._showFilesTreeView(folder)),
+      vs.commands.registerCommand('githd.showFilesListView', (folder: FolderItem) => this._showFilesListView(folder)),
       vs.commands.registerCommand('githd.collapseFolder', (folder: FolderItem) =>
         this._setCollapsibleStateOnAll(folder, vs.TreeItemCollapsibleState.Collapsed)
       ),
@@ -354,7 +353,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private _buildCommitFolder(label: string, committedFiles: GitCommittedFile[]) {
-    let folder = new FolderItem(undefined, '', label, rootFolderIcon);
+    let folder = new FolderItem('infoFolder', undefined, '', label, rootFolderIcon);
     buildFileTree(folder, committedFiles, this._withFolder);
     this._treeRoot.push(folder);
   }
@@ -365,7 +364,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     specifiedPath: vs.Uri,
     lineInfo?: string
   ): Promise<void> {
-    let folder = new FolderItem(undefined, '', label, rootFolderIcon);
+    let folder = new FolderItem('infoFolder', undefined, '', label, rootFolderIcon);
     const relativePath = await this._gitService.getGitRelativePath(specifiedPath);
     if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
       if (lineInfo) {
@@ -391,7 +390,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
   }
 
-  private _showFilesWithFolder(parent: FolderItem) {
+  private _showFilesTreeView(parent: FolderItem) {
     if (!parent) {
       this._withFolder = true;
       this._update();
@@ -401,7 +400,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
   }
 
-  private _showFilesWithoutFolder(parent: FolderItem) {
+  private _showFilesListView(parent: FolderItem) {
     if (!parent) {
       this._withFolder = false;
       this._update();
