@@ -32,12 +32,12 @@ export function getEditor(scheme: string): vs.TextEditor | undefined {
   return vs.window.visibleTextEditors.find(editor => editor.document.uri.scheme === scheme);
 }
 
-// getRangeForPullRequest finds the pull request id and its start position in the content.
+// getRangeForPullRequests finds the pull request id and its start position in the content.
 // The assumption is the PR id is represented by #123 in the subject.
-export function getPullRequest(content: string): [string, number] {
+export function getPullRequests(content: string): [string, number][] {
   const found = content.match(/#[0-9]+/g);
   if (!found) {
-    return ['', 0];
+    return [];
   }
-  return [found[0], content.indexOf(found[0])];
+  return found.map(pr => [pr, content.indexOf(pr)]);
 }

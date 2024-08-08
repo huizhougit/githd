@@ -3,7 +3,7 @@ import * as vs from 'vscode';
 import { Model } from './model';
 import { GitService, GitBlameItem } from './gitService';
 import { Tracer } from './tracer';
-import { getTextEditor, getPullRequest } from './utils';
+import { getTextEditor, getPullRequests } from './utils';
 
 const NotCommitted = `Not committed yet`;
 
@@ -109,14 +109,15 @@ export class BlameViewProvider implements vs.HoverProvider {
       const ref: string = blame.hash;
       const args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
       const cmd: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
-      let subject = blame.subject;
-      const [pr, start] = getPullRequest(blame.subject);
-      if (pr) {
-        subject =
-          subject.substring(0, start) +
-          `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)})` +
-          subject.substring(start + pr.length);
-      }
+      let subject: string = '';
+      let lastPREnd = 0;
+
+      getPullRequests(blame.subject).forEach(([pr, start]) => {
+        subject += blame.subject.substring(lastPREnd, start) + `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)})`;
+        lastPREnd = start + pr.length;
+      });
+
+      subject += blame.subject.substring(lastPREnd);
 
       Tracer.verbose(`Blame view: ${cmd}`);
       const content: string = `

@@ -2,7 +2,7 @@ import * as vs from 'vscode';
 
 import { FilesViewContext, Model } from './model';
 import { GitService } from './gitService';
-import { decorateWithoutWhitespace, getPullRequest, getTextEditor, prHoverMessage } from './utils';
+import { decorateWithoutWhitespace, getPullRequests, getTextEditor, prHoverMessage } from './utils';
 import { ClickableProvider } from './clickable';
 
 export class InfoViewProvider implements vs.TextDocumentContentProvider {
@@ -79,8 +79,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
       let i = 0;
       this._content.split(/\r?\n/g).forEach(line => {
         if (addPR) {
-          const [pr, start] = getPullRequest(line);
-          if (pr) {
+          getPullRequests(line).forEach(([pr, start]) => {
             const range = new vs.Range(i, start, i, start + pr.length);
             const url = remoteUrl + '/pull/' + pr.substring(1);
             this._clickableProvider.addClickable({
@@ -89,7 +88,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
               getHoverMessage: () => prHoverMessage
             });
             this._prRange.push(range);
-          }
+          });
         }
         decorateWithoutWhitespace(this._infoRanges, line, i, 0);
         ++i;

@@ -4,7 +4,7 @@ import { HistoryViewContext, Model } from './model';
 import { GitService, GitLogEntry, GitRepo } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
-import { decorateWithoutWhitespace, getTextEditor, getPullRequest, prHoverMessage, getEditor } from './utils';
+import { decorateWithoutWhitespace, getTextEditor, getPullRequests, prHoverMessage, getEditor } from './utils';
 import { Tracer } from './tracer';
 
 const firstLoadingCount = 25;
@@ -407,15 +407,14 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _updateSubject(subject: string, remoteUrl: string): string {
     // PR link only works for github for now.
     if (remoteUrl.indexOf('github.com') > 0) {
-      const [pr, start] = getPullRequest(subject);
-      if (pr) {
+      getPullRequests(subject).forEach(([pr, start]) => {
         const url = remoteUrl + '/pull/' + pr.substring(1);
         this._clickableProvider.addClickable({
           range: new vs.Range(this._currentLine, start, this._currentLine, start + pr.length),
           callback: () => vs.env.openExternal(vs.Uri.parse(url)),
           getHoverMessage: () => prHoverMessage
         });
-      }
+      });
     }
     decorateWithoutWhitespace(this._subjectDecorationOptions, subject, this._currentLine, 0);
     ++this._currentLine;
