@@ -109,7 +109,7 @@
         "views": {
             "githd-explorer": [
                 {
-                    "id": "committedFiles",
+                    "id": "githd.files",
                     "name": "Committed Files",
                     "when": "hasGitRepo"
                 }
@@ -352,7 +352,7 @@
                 },
                 {
                     "command": "githd.openCommittedFile",
-                    "when": "false" 
+                    "when": "false"
                 },
                 {
                     "command": "githd.viewFileHistory",
@@ -446,59 +446,59 @@
             "view/title": [
                 {
                     "command": "githd.goBackFilesView",
-                    "when": "view == committedFiles && hasGitRepo && canGoBackFilesView",
+                    "when": "view == githd.files && hasGitRepo && canGoBackFilesView",
                     "group": "navigation@1"
                 },
                 {
                     "command": "githd.goBackNoMore",
-                    "when": "view == committedFiles && hasGitRepo && !canGoBackFilesView",
+                    "when": "view == githd.files && hasGitRepo && !canGoBackFilesView",
                     "group": "navigation@1"
                 },
                 {
                     "command": "githd.goForwardFilesView",
-                    "when": "view == committedFiles && hasGitRepo && canGoForwardFilesView",
+                    "when": "view == githd.files && hasGitRepo && canGoForwardFilesView",
                     "group": "navigation@2"
                 },
                 {
                     "command": "githd.goForwardNoMore",
-                    "when": "view == committedFiles && hasGitRepo && !canGoForwardFilesView",
+                    "when": "view == githd.files && hasGitRepo && !canGoForwardFilesView",
                     "group": "navigation@2"
                 },
                 {
                     "command": "githd.clearFilesView",
-                    "when": "view == committedFiles && hasGitRepo",
+                    "when": "view == githd.files && hasGitRepo",
                     "group": "navigation@9"
                 }
             ],
             "view/item/context": [
                 {
                     "command": "githd.showFilesTreeView",
-                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
                     "group": "inline@2"
                 },
                 {
                     "command": "githd.showFilesListView",
-                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
                     "group": "inline@3"
                 },
                 {
-                    "command": "githd.collapseFolder",
-                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "command": "githd.expandFolder",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
                     "group": "inline@4"
                 },
                 {
-                    "command": "githd.expandFolder",
-                    "when": "view == committedFiles && (viewItem == folder || viewItem == infoFolder)",
+                    "command": "githd.collapseFolder",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
                     "group": "inline@5"
                 },
                 {
                     "command": "githd.viewFileHistoryFromTree",
-                    "when": "view == committedFiles && viewItem == file",
+                    "when": "view == githd.files && viewItem == file",
                     "group": "inline@1"
                 },
                 {
                     "command": "githd.viewFolderHistoryFromTree",
-                    "when": "view == committedFiles && viewItem == folder",
+                    "when": "view == githd.files && viewItem == folder",
                     "group": "inline@1"
                 }
             ],

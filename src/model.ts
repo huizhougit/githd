@@ -47,11 +47,15 @@ function getConfiguration(): Configuration {
 export class Model {
   private _config: Configuration;
 
-  private _historyViewContextTracker = 
-    new ContextTracker<HistoryViewContext>('canGoBackHistoryView', 'canGoForwardHistoryView');
+  private _historyViewContextTracker = new ContextTracker<HistoryViewContext>(
+    'canGoBackHistoryView',
+    'canGoForwardHistoryView'
+  );
 
-  private _filesViewContextTracker = 
-    new ContextTracker<FilesViewContext>('canGoBackFilesView', 'canGoForwardFilesView');
+  private _filesViewContextTracker = new ContextTracker<FilesViewContext>(
+    'canGoBackFilesView',
+    'canGoForwardFilesView'
+  );
 
   private _onDidChangeConfiguration = new vs.EventEmitter<Configuration>();
   private _onDidChangeFilesViewContext = new vs.EventEmitter<FilesViewContext | undefined>();
@@ -119,14 +123,16 @@ export class Model {
       leftRef: current.leftRef,
       rightRef: current.rightRef,
       specifiedPath: current.specifiedPath
-    }
+    };
   }
 
   setFilesViewContext(context: FilesViewContext) {
     Tracer.info(`Model: set filesViewContext - ${JSON.stringify(context)}`);
 
+    context.specifiedPath?.fsPath; // touch it to make the value to be progate to the getter.
     const currentContext = this.filesViewContext;
-    if (!currentContext ||
+    if (
+      !currentContext ||
       currentContext.leftRef != context?.leftRef ||
       currentContext.rightRef != context?.rightRef ||
       currentContext.specifiedPath != context?.specifiedPath ||
@@ -162,7 +168,7 @@ export class Model {
   get historyViewContext(): HistoryViewContext | undefined {
     const current = this._historyViewContextTracker.current;
     if (!current) {
-      return
+      return;
     }
 
     // make a deep copy to avoid caller's changes impact the tracked data.
@@ -173,12 +179,13 @@ export class Model {
       isStash: current.isStash,
       line: current.line,
       specifiedPath: current.specifiedPath
-    }
+    };
   }
 
   async setHistoryViewContext(context: HistoryViewContext) {
     Tracer.info(`Model: set historyViewContext - ${JSON.stringify(context)}`);
 
+    context.specifiedPath?.fsPath; // touch it to make the value to be progate to the getter.
     if (context && !context.branch) {
       context.branch = (await this._gitService.getCurrentBranch(context?.repo)) ?? '';
     }
@@ -187,7 +194,6 @@ export class Model {
     this._onDidChangeHistoryViewContext.fire(context);
   }
 
-  
   goBackHistoryViewContext() {
     if (this._historyViewContextTracker.goBack()) {
       const context = this._historyViewContextTracker.current;

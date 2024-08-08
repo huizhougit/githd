@@ -21,7 +21,7 @@ const loadMoreHoverMessage = new vs.MarkdownString('Load more commits');
 
 export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-logs';
-  static defaultUri: vs.Uri = vs.Uri.parse(HistoryViewProvider.scheme + '://authority//Git History');
+  static defaultUri: vs.Uri = vs.Uri.parse(HistoryViewProvider.scheme + '://history//Git History');
 
   private _clickableProvider = new ClickableProvider(HistoryViewProvider.scheme);
   private _commitsCount = 200;
@@ -397,7 +397,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     });
 
     if (context.repo.root != this._currentRepo?.root) {
-      content += ` (${context.repo.root})`
+      content += ` (${context.repo.root})`;
     }
 
     this._currentLine += 2;
@@ -568,7 +568,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._totalCommitsCount = 0;
   }
 
-  
   private _startLoading() {
     this._reset();
     this._update();

@@ -6,7 +6,7 @@ import { decorateWithoutWhitespace, getPullRequest, getTextEditor, prHoverMessag
 import { ClickableProvider } from './clickable';
 
 export class InfoViewProvider implements vs.TextDocumentContentProvider {
-  static scheme: string = 'githd-line';
+  static scheme: string = 'githd-info';
   static defaultUri: vs.Uri = vs.Uri.parse(InfoViewProvider.scheme + '://authority//Commit Info');
 
   private _infoDecoration = vs.window.createTextEditorDecorationType({
@@ -41,17 +41,9 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
       context.subscriptions
     );
 
-    model.onDidChangeFilesViewContext(
-      context => this._update(context),
-      null,
-      context.subscriptions
-    );
+    model.onDidChangeFilesViewContext(context => this._update(context), null, context.subscriptions);
 
-    context.subscriptions.push(
-      this._onDidChange,
-      this._infoDecoration,
-      this._clickableProvider,
-    );
+    context.subscriptions.push(this._onDidChange, this._infoDecoration, this._clickableProvider);
   }
 
   get onDidChange(): vs.Event<vs.Uri> {
@@ -71,7 +63,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
     }
 
     this._content = await this._gitService.getCommitDetails(context?.repo, context.rightRef, context?.isStash);
-    if ( this._content) {
+    if (this._content) {
       const remoteUrl: string | undefined = context?.repo.remoteUrl;
       let addPR = false;
       if (remoteUrl) {

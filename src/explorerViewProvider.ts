@@ -1,12 +1,12 @@
 import * as path from 'path';
 import * as fs from 'fs';
-
 import * as vs from 'vscode';
 
 import { GitService, GitCommittedFile } from './gitService';
 import { Model, FilesViewContext } from './model';
-import { Icons, getIconUri } from './icons';
+import { getIconUri } from './icons';
 import { Tracer } from './tracer';
+import { Resource } from './resource';
 
 const rootFolderIcon = {
   dark: getIconUri('structure', 'dark'),
@@ -19,7 +19,7 @@ class InfoItem extends vs.TreeItem {
     this.contextValue = 'infoFile';
     this.command = {
       title: '',
-      command: 'githd.openCommitInfo',
+      command: 'githd.openCommitInfo'
     };
     this.iconPath = getIconUri('info', '');
   }
@@ -42,6 +42,7 @@ class LineDiffItem extends vs.TreeItem {
 }
 
 class CommittedFileItem extends vs.TreeItem {
+  static authority: string = 'files';
   constructor(readonly parent: FolderItem, readonly file: GitCommittedFile, label: string) {
     super(label);
     this.contextValue = 'file';
@@ -50,33 +51,18 @@ class CommittedFileItem extends vs.TreeItem {
       command: 'githd.openCommittedFile',
       arguments: [this.file]
     };
-    if (this.file.status) {
-      this.iconPath = {
-        light: this._getIconPath('light'),
-        dark: this._getIconPath('dark')
-      };
-    }
-  }
-
-  private _getIconPath(theme: string): vs.Uri {
-    switch (this.file.status[0].toUpperCase()) {
-      case 'M':
-        return Icons[theme].Modified;
-      case 'A':
-        return Icons[theme].Added;
-      case 'D':
-        return Icons[theme].Deleted;
-      case 'R':
-        return Icons[theme].Renamed;
-      case 'C':
-        return Icons[theme].Copied;
-      default:
-        throw new Error('Unknown git status: ' + this.file.status[0].toUpperCase());
-    }
+    this.resourceUri = vs.Uri.from({
+      scheme: ExplorerViewProvider.scheme,
+      authority: CommittedFileItem.authority,
+      path: '/' + file.gitRelativePath,
+      query: `status=${file.status}`
+    });
   }
 }
 
 class FolderItem extends vs.TreeItem {
+  static authority: string = 'folders';
+
   private _subFolders: FolderItem[] = [];
   private _files: CommittedFileItem[] = [];
   private _infoItem: InfoItem | undefined;
@@ -89,6 +75,11 @@ class FolderItem extends vs.TreeItem {
     iconPath?: { light: vs.Uri; dark: vs.Uri }
   ) {
     super(label);
+    this.resourceUri = vs.Uri.from({
+      scheme: ExplorerViewProvider.scheme,
+      authority: FolderItem.authority,
+      path: '/' + this._gitRelativePath
+    });
     this.contextValue = context;
     this.iconPath = iconPath;
     this.collapsibleState = vs.TreeItemCollapsibleState.Expanded;
@@ -183,16 +174,11 @@ function buildFilesWithFolder(rootFolder: FolderItem) {
   files.forEach(fileItem => buildOneFileWithFolder(rootFolder, fileItem.file, rootFolder.gitRelativePath));
 }
 
-function setCollapsibleStateOnAll(rootFolder: FolderItem, state: vs.TreeItemCollapsibleState) {
-  if (rootFolder) {
-    rootFolder.collapsibleState = state;
-    rootFolder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
-  }
-}
-
 type CommittedTreeItem = CommittedFileItem | FolderItem | InfoItem;
 
-export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeItem> {
+export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeItem>, vs.FileDecorationProvider {
+  static scheme: string = 'githd-committed';
+
   private _onDidChange = new vs.EventEmitter<CommittedTreeItem | undefined>();
   private _withFolder: boolean;
 
@@ -200,8 +186,9 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   private _treeRoot: (FolderItem | InfoItem)[] = [];
 
   constructor(context: vs.ExtensionContext, model: Model, private _gitService: GitService) {
+    vs.window.createTreeView('githd.files', { treeDataProvider: this });
     context.subscriptions.push(
-      vs.window.registerTreeDataProvider('committedFiles', this),
+      vs.window.registerFileDecorationProvider(this),
       vs.commands.registerCommand('githd.showFilesTreeView', (folder: FolderItem) => this._showFilesTreeView(folder)),
       vs.commands.registerCommand('githd.showFilesListView', (folder: FolderItem) => this._showFilesListView(folder)),
       vs.commands.registerCommand('githd.collapseFolder', (folder: FolderItem) =>
@@ -215,26 +202,22 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
           Tracer.warning('ExplorerViewProvider: viewFileHistoryFromTree has empty context');
           return;
         }
-        model.setHistoryViewContext(
-          {
-            repo: this._context.repo,
-            specifiedPath: fileItem.file.fileUri,
-            branch: ''
-          }
-        )
+        model.setHistoryViewContext({
+          repo: this._context.repo,
+          specifiedPath: fileItem.file.fileUri,
+          branch: ''
+        });
       }),
       vs.commands.registerCommand('githd.viewFolderHistoryFromTree', (folder: FolderItem) => {
         if (!this._context) {
           Tracer.warning('ExplorerViewProvider: viewFolderHistoryFromTree has empty context');
           return;
         }
-        model.setHistoryViewContext(
-          {
-            repo: this._context.repo,
-            specifiedPath: vs.Uri.file(path.join(this._context.repo.root, folder.gitRelativePath)),
-            branch: ''
-          }
-        )
+        model.setHistoryViewContext({
+          repo: this._context.repo,
+          specifiedPath: vs.Uri.file(path.join(this._context.repo.root, folder.gitRelativePath)),
+          branch: ''
+        });
       }),
       this._onDidChange
     );
@@ -251,6 +234,17 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     this._context = model.filesViewContext;
     this._withFolder = model.configuration.withFolder;
     this._update();
+  }
+
+  provideFileDecoration(uri: vs.Uri, token: vs.CancellationToken): vs.ProviderResult<vs.FileDecoration> {
+    if (uri.scheme !== ExplorerViewProvider.scheme) {
+      return;
+    }
+
+    const badge: string = uri.query.split('=')[1];
+    if (uri.authority === CommittedFileItem.authority && badge) {
+      return new vs.FileDecoration(badge, undefined, Resource.getGitStatusColor(badge));
+    }
   }
 
   readonly onDidChangeTreeData: vs.Event<CommittedTreeItem | undefined> = this._onDidChange.event;
@@ -321,11 +315,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private async _buildCommitInfo(ref: string): Promise<void> {
-    this._treeRoot.push(
-      new InfoItem(
-        `${this.commitOrStashString} Info`
-      )
-    );
+    this._treeRoot.push(new InfoItem(`${this.commitOrStashString} Info`));
   }
 
   private _buildCommitTree(files: GitCommittedFile[], ref: string) {
@@ -411,40 +401,22 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
   }
 
-  private _setCollapsibleStateOnAll(folder: FolderItem, state: vs.TreeItemCollapsibleState) {
-    let parent: FolderItem | undefined;
-    if (!folder) {
-      this._treeRoot.forEach(sub => {
-        if (sub instanceof FolderItem) {
-          setCollapsibleStateOnAll(sub, state);
-        }
-      });
-    } else {
-      parent = folder.parent;
+  private _setCollapsibleState(folder: FolderItem, state: vs.TreeItemCollapsibleState) {
+    if (folder) {
       folder.collapsibleState = state;
-      folder.subFolders.forEach(sub => setCollapsibleStateOnAll(sub, state));
+      folder.subFolders.forEach(sub => this._setCollapsibleState(sub, state));
+    }
+  }
+
+  private _setCollapsibleStateOnAll(folder: FolderItem, state: vs.TreeItemCollapsibleState) {
+    // Hack: change the folder label to trigger the tree view to refresh
+    if (folder.label?.toString().endsWith(' ')) {
+      folder.label = folder.label.toString().slice(0, -1);
+    } else {
+      folder.label += ' ';
     }
 
-    // HACK: workaround of vscode regression.
-    // seems vscode people are planing to add new API https://github.com/Microsoft/vscode/issues/55879
-    if (parent) {
-      const temp = parent.subFolders;
-      parent.subFolders = [];
-      this._onDidChange.fire(parent);
-      setTimeout(() => {
-        if (parent) {
-          parent.subFolders = temp;
-          this._onDidChange.fire(parent);
-        }
-      }, 250);
-    } else {
-      const root = this._treeRoot;
-      this._treeRoot = [];
-      this._onDidChange.fire(undefined);
-      setTimeout(() => {
-        this._treeRoot = root;
-        this._onDidChange.fire(undefined);
-      }, 250);
-    }
+    this._setCollapsibleState(folder, state);
+    this._onDidChange.fire(folder.parent);
   }
 }
