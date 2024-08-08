@@ -107,8 +107,11 @@ export class BlameViewProvider implements vs.HoverProvider {
     return new Promise(async resolve => {
       const repo = await this._gitService.getGitRepo(blame.file.fsPath);
       const ref: string = blame.hash;
-      const args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
-      const cmd: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
+      let args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
+      const commit: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
+      args = encodeURIComponent(JSON.stringify([blame.file]));
+      const file: string = `[*file*](command:githd.viewFileHistory?${args} "Click to see current file history")`;
+      const line: string = `[*line*](command:githd.viewLineHistory?${args} "Click to see current line history")`;
       let subject: string = '';
       let lastPREnd = 0;
 
@@ -119,12 +122,14 @@ export class BlameViewProvider implements vs.HoverProvider {
 
       subject += blame.subject.substring(lastPREnd);
 
-      Tracer.verbose(`Blame view: ${cmd}`);
+      Tracer.verbose(`Blame view: ${commit}`);
       const content: string = `
-${cmd}
+${commit}
 *\`${blame.author}\`*
 *\`${blame.email}\`*
 *\`(${blame.date})\`*
+&ensp;
+*\`(history:\`*${file}*\`||\`*${line}*\`)\`*
 
 ${subject}
 

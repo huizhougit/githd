@@ -468,7 +468,7 @@ export class CommandCenter {
 
   private async _getOrUpdateRepo(): Promise<GitRepo | undefined> {
     if (!this._historyView.gitRepo) {
-      this._historyView.gitRepo =  await selectGitRepo(this._gitService);
+      this._historyView.gitRepo = await selectGitRepo(this._gitService);
     }
     return this._historyView.gitRepo;
   }
