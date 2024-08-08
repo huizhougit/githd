@@ -9,12 +9,16 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-info';
   static defaultUri: vs.Uri = vs.Uri.parse(InfoViewProvider.scheme + '://authority//Commit Info');
 
-  private _infoDecoration = vs.window.createTextEditorDecorationType({
+  private readonly _prDecoration = vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('textLink.foreground')
+  });
+  private readonly _infoDecoration = vs.window.createTextEditorDecorationType({
     color: new vs.ThemeColor('githd.infoView.content')
   });
 
   private _content: string | undefined;
   private _infoRanges: vs.Range[] = [];
+  private _prRange: vs.Range[] = [];
   private _clickableProvider = new ClickableProvider(InfoViewProvider.scheme);
   private _onDidChange = new vs.EventEmitter<vs.Uri>();
 
@@ -43,7 +47,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
 
     model.onDidChangeFilesViewContext(context => this._update(context), null, context.subscriptions);
 
-    context.subscriptions.push(this._onDidChange, this._infoDecoration, this._clickableProvider);
+    context.subscriptions.push(this._onDidChange, this._infoDecoration, this._clickableProvider, this._prDecoration);
   }
 
   get onDidChange(): vs.Event<vs.Uri> {
@@ -56,6 +60,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
 
   private async _update(context?: FilesViewContext) {
     this._infoRanges = [];
+    this._prRange = [];
     this._clickableProvider.clear();
 
     if (!context?.rightRef) {
@@ -76,12 +81,14 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
         if (addPR) {
           const [pr, start] = getPullRequest(line);
           if (pr) {
+            const range = new vs.Range(i, start, i, start + pr.length);
             const url = remoteUrl + '/pull/' + pr.substring(1);
             this._clickableProvider.addClickable({
-              range: new vs.Range(i, start, i, start + pr.length),
+              range,
               callback: () => vs.env.openExternal(vs.Uri.parse(url)),
               getHoverMessage: () => prHoverMessage
             });
+            this._prRange.push(range);
           }
         }
         decorateWithoutWhitespace(this._infoRanges, line, i, 0);
@@ -95,6 +102,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
   private _decorate(editor?: vs.TextEditor) {
     if (editor && this._content) {
       editor.setDecorations(this._infoDecoration, this._infoRanges);
+      editor.setDecorations(this._prDecoration, this._prRange);
     }
   }
 }
