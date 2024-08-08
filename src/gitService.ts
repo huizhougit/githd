@@ -65,7 +65,7 @@ class GitCommittedFileImpl implements GitCommittedFile {
     readonly gitRelativePath: string,
     readonly gitRelativeOldPath: string,
     readonly status: string
-  ) {}
+  ) { }
 
   get fileUri(): vs.Uri {
     return vs.Uri.file(path.join(this._repo.root, this.gitRelativePath));
@@ -193,6 +193,8 @@ export class GitService {
     if (author) {
       args.push(`--author=${author}`);
     }
+    // the last '--' is to avoid same branch and file names caused  error
+    args.push('--');
     return parseInt(await this._exec(args, repo.root));
   }
 
@@ -292,7 +294,7 @@ export class GitService {
   ): Promise<GitLogEntry[]> {
     Tracer.info(
       `Get entries. repo: ${repo.root}, express: ${express}, start: ${start}, count: ${count}, branch: ${branch}, ` +
-        `isStash: ${isStash}, file: ${file?.fsPath}, line: ${line}, author: ${author}`
+      `isStash: ${isStash}, file: ${file?.fsPath}, line: ${line}, author: ${author}`
     );
     if (!repo) {
       return [];
@@ -313,13 +315,17 @@ export class GitService {
       if (author) {
         args.push(`--author=${author}`);
       }
+
       if (file) {
         const filePath = (await this.getGitRelativePath(file)) ?? '.';
         if (line) {
-          args.push(`-L ${line},${line}:${filePath}`);
+          args.push(`-L ${line},${line}:${filePath}`, '--');
         } else {
-          args.push('--follow', filePath);
+          args.push('--', '--follow', filePath);
         }
+      } else {
+        // the '--' is to avoid same branch and file names caused  error
+        args.push('--');
       }
     }
 
@@ -468,7 +474,7 @@ export class GitService {
     if ([hash, subject, author, email, date].some(v => !v)) {
       Tracer.warning(
         `Blame info missed. repo ${repo.root} file ${filePath}:${line} ${hash}` +
-          ` author: ${author}, mail: ${email}, date: ${date}, summary: ${subject}`
+        ` author: ${author}, mail: ${email}, date: ${date}, summary: ${subject}`
       );
       return;
     }
