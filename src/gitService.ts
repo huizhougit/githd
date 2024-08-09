@@ -65,7 +65,7 @@ class GitCommittedFileImpl implements GitCommittedFile {
     readonly gitRelativePath: string,
     readonly gitRelativeOldPath: string,
     readonly status: string
-  ) { }
+  ) {}
 
   get fileUri(): vs.Uri {
     return vs.Uri.file(path.join(this._repo.root, this.gitRelativePath));
@@ -294,7 +294,7 @@ export class GitService {
   ): Promise<GitLogEntry[]> {
     Tracer.info(
       `Get entries. repo: ${repo.root}, express: ${express}, start: ${start}, count: ${count}, branch: ${branch}, ` +
-      `isStash: ${isStash}, file: ${file?.fsPath}, line: ${line}, author: ${author}`
+        `isStash: ${isStash}, file: ${file?.fsPath}, line: ${line}, author: ${author}`
     );
     if (!repo) {
       return [];
@@ -419,7 +419,7 @@ export class GitService {
     return result.split(/\r?\n/g).map(item => {
       item = item.trim();
       let start: number = item.search(/ |\t/);
-      item = item.substr(start + 1).trim();
+      item = item.substring(start + 1).trim();
       start = item.indexOf('<');
 
       const name: string = item.substring(0, start);
@@ -449,7 +449,7 @@ export class GitService {
         hash = line.split(' ')[0];
       } else {
         const infoName = line.split(' ')[0];
-        const info = line.substr(infoName.length).trim();
+        const info = line.substring(infoName.length).trim();
         if (!info) {
           return;
         }
@@ -474,7 +474,7 @@ export class GitService {
     if ([hash, subject, author, email, date].some(v => !v)) {
       Tracer.warning(
         `Blame info missed. repo ${repo.root} file ${filePath}:${line} ${hash}` +
-        ` author: ${author}, mail: ${email}, date: ${date}, summary: ${subject}`
+          ` author: ${author}, mail: ${email}, date: ${date}, summary: ${subject}`
       );
       return;
     }
@@ -502,6 +502,13 @@ export class GitService {
       relativeDate,
       stat
     };
+  }
+
+  async getCommitStat(repo: GitRepo | undefined, ref: string): Promise<string> {
+    if (!repo) {
+      return '';
+    }
+    return await this._exec(['show', '--format=', '--shortstat', ref], repo.root);
   }
 
   private _scanFolder(folder: string, includeSubFolders?: boolean): number {
@@ -569,7 +576,9 @@ export class GitService {
         });
       });
 
-      Tracer.verbose(`git command: ${cmd} ${args.join(' ')}. Output size: ${result.length} (${Date.now() - start}ms) ${cwd}`);
+      Tracer.verbose(
+        `git command: ${cmd} ${args.join(' ')}. Output size: ${result.length} (${Date.now() - start}ms) ${cwd}`
+      );
       return result;
     } catch (err) {
       Tracer.error(`git command failed: ${cmd} ${args.join(' ')} (${Date.now() - start}ms) ${cwd} ${err}`);

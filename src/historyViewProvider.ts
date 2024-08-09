@@ -7,8 +7,8 @@ import { ClickableProvider } from './clickable';
 import { decorateWithoutWhitespace, getTextEditor, getPullRequests, prHoverMessage, getEditor } from './utils';
 import { Tracer } from './tracer';
 
-const firstLoadingCount = 25;
-const loadingPageSize = 100;
+const firstLoadingCount = 30;
+const loadingPageSize = 300;
 
 const stashTitleLabel = 'Git Stashes';
 const titleLabel = 'Git History';

@@ -315,7 +315,12 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private async _buildCommitInfo(ref: string): Promise<void> {
-    this._treeRoot.push(new InfoItem(`${this.commitOrStashString} Info`));
+    let stat: string = await this._gitService.getCommitStat(this._context?.repo, ref);
+    const i: number = stat.indexOf(' changed,');
+    if (i > 0) {
+      stat = `(${stat.substring(i + 10).trim()})`;
+    }
+    this._treeRoot.push(new InfoItem(`${this.commitOrStashString} Info \u00a0 ${stat}`));
   }
 
   private _buildCommitTree(files: GitCommittedFile[], ref: string) {
