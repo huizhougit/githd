@@ -7,6 +7,7 @@ import { Model, FilesViewContext } from './model';
 import { getIconUri } from './icons';
 import { Tracer } from './tracer';
 import { Resource } from './resource';
+import { Dataloader } from './dataloader';
 
 const rootFolderIcon = {
   dark: getIconUri('structure', 'dark'),
@@ -192,7 +193,12 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   private _treeRoot: (FolderItem | InfoItem)[] = [];
   private _rootCommitPosition: RootCommitPosition = RootCommitPosition.Current;
 
-  constructor(context: vs.ExtensionContext, private _model: Model, private _gitService: GitService) {
+  constructor(
+    context: vs.ExtensionContext,
+    private _model: Model,
+    private _dataloader: Dataloader,
+    private _gitService: GitService
+  ) {
     vs.window.createTreeView('githd.files', { treeDataProvider: this });
     context.subscriptions.push(
       vs.window.registerFileDecorationProvider(this),
@@ -357,12 +363,12 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       return;
     }
 
-    const commit: string = await this._gitService.getNextCommit(
-      this._context.repo,
-      this._context.rightRef,
-      (await this._gitService.getCurrentBranch(this._context.repo)) ?? '',
+    const repo = this._context.repo;
+    const ref = this._context.rightRef;
+    const commit: string =
       position === RootCommitPosition.Previous
-    );
+        ? await this._dataloader.getPreviousCommit(repo, ref)
+        : await this._dataloader.getNextCommit(repo, ref);
     if (commit) {
       this._context = { rightRef: commit, repo: this._context.repo };
       this._treeRoot = [];

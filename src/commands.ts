@@ -9,6 +9,7 @@ import { InfoViewProvider } from './infoViewProvider';
 import { GitService, GitRepo, GitRefType, GitCommittedFile } from './gitService';
 import { Tracer } from './tracer';
 import { ExplorerViewProvider } from './explorerViewProvider';
+import { Dataloader } from './dataloader';
 
 function toGitUri(uri: vs.Uri, ref?: string): vs.Uri {
   return uri.with({
@@ -124,6 +125,7 @@ export class CommandCenter {
   constructor(
     context: vs.ExtensionContext,
     private _model: Model,
+    private _loader: Dataloader,
     private _gitService: GitService,
     private _historyView: HistoryViewProvider,
     private _explorerView: ExplorerViewProvider
@@ -206,26 +208,18 @@ export class CommandCenter {
     return this._viewHistory({ specifiedPath: file, line, repo, branch: '' });
   }
 
-  @command('githd.goBackHistoryView')
-  goBackHistoryView(): void {
-    Tracer.verbose('Command: githd.goBackHistoryView');
-    this._model.goBackHistoryViewContext();
-  }
-
-  @command('githd.goForwardHistoryView')
-  goForwardHistoryView(): void {
-    Tracer.verbose('Command: githd.goForwardHistoryView');
-    this._model.goForwardHistoryViewContext();
-  }
-
   @command('githd.viewAllHistory')
   async viewAllHistory(): Promise<void> {
     Tracer.verbose('Command: githd.viewAllHistory');
-    let context = this._model.historyViewContext ?? {
-      repo: this._gitService.getGitRepos()[0],
-      branch: ''
-    };
-    return this._viewHistory(context, true);
+    if (this._model.historyViewContext) {
+      return this._viewHistory(this._model.historyViewContext, true);
+    }
+
+    const selected = await this._getOrUpdateRepo();
+    if (!selected) {
+      return;
+    }
+    this._model.setHistoryViewContext({ repo: selected, branch: '' });
   }
 
   @command('githd.viewBranchHistory')
@@ -333,6 +327,18 @@ export class CommandCenter {
     this._model.setFilesViewContext({ rightRef: ref, repo, specifiedPath });
   }
 
+  @command('githd.goBackHistoryView')
+  goBackHistoryView(): void {
+    Tracer.verbose('Command: githd.goBackHistoryView');
+    this._model.goBackHistoryViewContext();
+  }
+
+  @command('githd.goForwardHistoryView')
+  goForwardHistoryView(): void {
+    Tracer.verbose('Command: githd.goForwardHistoryView');
+    this._model.goForwardHistoryViewContext();
+  }
+
   @command('githd.previousCommit')
   async previousCommit(): Promise<void> {
     Tracer.verbose('Command: githd.previousCommit');
@@ -425,8 +431,11 @@ export class CommandCenter {
   @command('githd.setRepository')
   async setRepository(): Promise<void> {
     Tracer.verbose('Command: githd.setRepository');
-    this._historyView.gitRepo = undefined;
-    this._getOrUpdateRepo();
+
+    const repo: GitRepo | undefined = await selectGitRepo(this._gitService);
+    if (repo) {
+      this._historyView.updateRepo(repo);
+    }
   }
 
   private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {
@@ -447,7 +456,7 @@ export class CommandCenter {
     const branches = await selectBranch(this._gitService, repo, true);
     const branchWithCombination = await branchCombination(this._gitService, repo);
     const items = [...branches, ...branchWithCombination];
-    const currentRef = await this._gitService.getCurrentBranch(repo);
+    const currentRef = await this._loader.getCurrentBranch(repo);
     const placeHolder: string = `Select a ref to see it's diff with ${currentRef} or select two refs to see their diffs`;
     vs.window.showQuickPick(items, { placeHolder: placeHolder }).then(async item => {
       if (!item) {
@@ -479,7 +488,11 @@ export class CommandCenter {
 
   private async _getOrUpdateRepo(): Promise<GitRepo | undefined> {
     if (!this._historyView.gitRepo) {
-      this._historyView.gitRepo = await selectGitRepo(this._gitService);
+      const repo: GitRepo | undefined = await selectGitRepo(this._gitService);
+      if (!repo) {
+        return;
+      }
+      this._historyView.updateRepo(repo);
     }
     return this._historyView.gitRepo;
   }

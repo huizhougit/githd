@@ -3,6 +3,7 @@ import * as vs from 'vscode';
 import { GitService, GitRepo } from './gitService';
 import { Tracer } from './tracer';
 import { ContextTracker } from './contextTracker';
+import { Dataloader } from './dataloader';
 
 export interface Configuration {
   readonly commitsCount: number;
@@ -61,7 +62,7 @@ export class Model {
   private _onDidChangeFilesViewContext = new vs.EventEmitter<FilesViewContext | undefined>();
   private _onDidChangeHistoryViewContext = new vs.EventEmitter<HistoryViewContext | undefined>();
 
-  constructor(context: vs.ExtensionContext, private _gitService: GitService) {
+  constructor(context: vs.ExtensionContext, private _loader: Dataloader) {
     this._config = getConfiguration();
     Tracer.level = this._config.traceLevel;
     vs.commands.executeCommand('setContext', 'disableInEditor', this._config.disabledInEditor);
@@ -88,15 +89,6 @@ export class Model {
       null,
       context.subscriptions
     );
-
-    vs.workspace.onDidChangeWorkspaceFolders(
-      e => {
-        this._gitService.updateGitRoots(vs.workspace.workspaceFolders);
-      },
-      null,
-      context.subscriptions
-    );
-    this._gitService.updateGitRoots(vs.workspace.workspaceFolders);
 
     context.subscriptions.push(
       this._onDidChangeConfiguration,
@@ -187,7 +179,7 @@ export class Model {
 
     context.specifiedPath?.fsPath; // touch it to make the value to be progate to the getter.
     if (context && !context.branch) {
-      context.branch = (await this._gitService.getCurrentBranch(context?.repo)) ?? '';
+      context.branch = await this._loader.getCurrentBranch(context?.repo);
     }
 
     this._historyViewContextTracker.setContext(context);

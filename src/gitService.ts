@@ -99,7 +99,10 @@ export class GitService {
   private _gitPath: string;
 
   constructor(context: vs.ExtensionContext) {
-    context.subscriptions.push(this._onDidChangeGitRepositories);
+    context.subscriptions.push(
+      vs.workspace.onDidChangeWorkspaceFolders(_ => this.updateGitRoots(vs.workspace.workspaceFolders)),
+      this._onDidChangeGitRepositories
+    );
     let gitPath: string = vs.workspace.getConfiguration('git').get('path') ?? '';
     if (gitPath) {
       try {
@@ -112,6 +115,8 @@ export class GitService {
       gitPath = 'git';
     }
     this._gitPath = gitPath;
+
+    this.updateGitRoots(vs.workspace.workspaceFolders);
   }
 
   get onDidChangeGitRepositories(): vs.Event<GitRepo[]> {
@@ -511,30 +516,16 @@ export class GitService {
     return await this._exec(['show', '--format=', '--shortstat', ref], repo.root);
   }
 
-  /**
-   * Retrieves the commit hash of the next (newer) commit from the given Git repository.
-   *
-   * @param {GitRepo | undefined} repo - The Git repository to retrieve the commit from. If undefined, an empty string is returned.
-   * @param {string} ref - The reference to find the next commit for.
-   * @param {boolean} [reverse] - Optional. If true, the commits are returned in reverse order.
-   * @return {Promise<string>} The commit hash of the next commit, or an empty string if no next commit is found.
-   */
-  async getNextCommit(repo: GitRepo | undefined, ref: string, branch: string, reverse?: boolean): Promise<string> {
-    if (!repo) {
-      return '';
+  async getCommits(repo: GitRepo, branch?: string): Promise<string[]> {
+    if (!branch) {
+      return [];
     }
-    const args: string[] = [
-      'log',
-      '--format=%h',
-      '--simplify-merges',
-      '--date-order',
-      ...(reverse ? ['--reverse'] : []),
-      branch,
-      '--'
-    ];
-    const commits: string[] = (await this._exec(args, repo.root)).split(/\r?\n/g);
-    const index: number = reverse ? commits.lastIndexOf(ref) : commits.indexOf(ref);
-    return index > 0 ? commits[index - 1] : '';
+
+    const result: string = await this._exec(
+      ['log', '--format=%h', '--simplify-merges', '--date-order', branch, '--'],
+      repo.root
+    );
+    return result.split(/\r?\n/g);
   }
 
   private _scanFolder(folder: string, includeSubFolders?: boolean): number {

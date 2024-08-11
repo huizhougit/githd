@@ -6,6 +6,7 @@ import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
 import { decorateWithoutWhitespace, getTextEditor, getPullRequests, prHoverMessage, getEditor } from './utils';
 import { Tracer } from './tracer';
+import { Dataloader } from './dataloader';
 
 const firstLoadingCount = 30;
 const loadingPageSize = 300;
@@ -24,7 +25,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   static defaultUri: vs.Uri = vs.Uri.parse(HistoryViewProvider.scheme + '://history//Git History');
 
   private _clickableProvider = new ClickableProvider(HistoryViewProvider.scheme);
-  private _commitsCount = 200;
+  private _commitsCount = 300;
   private _content = '';
   private _logCount = 0;
   private _currentLine = 0;
@@ -96,7 +97,12 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _express = false;
   private _currentRepo: GitRepo | undefined;
 
-  constructor(context: vs.ExtensionContext, private _model: Model, private _gitService: GitService) {
+  constructor(
+    context: vs.ExtensionContext,
+    private _model: Model,
+    private _loader: Dataloader,
+    private _gitService: GitService
+  ) {
     Tracer.info('Creating history view');
     context.subscriptions.push(vs.workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this));
 
@@ -129,6 +135,10 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     });
 
     this._gitService.onDidChangeGitRepositories(repos => {
+      if (repos.length == 1) {
+        this._currentRepo = repos[0];
+        this._loader.updateRepo(repos[0]);
+      }
       this._updateExpressStatusBar();
     });
 
@@ -220,12 +230,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   get gitRepo(): GitRepo | undefined {
     return this._currentRepo;
   }
-  set gitRepo(value: GitRepo | undefined) {
+  updateRepo(value: GitRepo) {
     this._currentRepo = value;
-    if (value) {
-      this._repoStatusBar.text = 'githd: Repository ' + this._currentRepo?.root;
-      this._repoStatusBar.show();
-    }
+    this._loader.updateRepo(value);
+    this._repoStatusBar.text = 'githd: Repository ' + this._currentRepo?.root;
+    this._repoStatusBar.show();
   }
 
   private set commitsCount(count: number) {
@@ -288,7 +297,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       if (isStash || context.specifiedPath) {
         logCount = 10000; // Display at most 10k commits
       } else {
-        const commitsCount = await this._gitService.getCommitsCount(context.repo, context.branch, context.author);
+        const commitsCount = await this._loader.getCommitsCount(context.repo, context.branch, context.author);
         let loadingCount = Math.min(commitsCount - this._logCount, this._commitsCount);
         if (this._loadAll) {
           loadingCount = commitsCount - this._logCount;
@@ -302,7 +311,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       this._leftCount = this._leftCount - logCount;
     }
 
-    const entries: GitLogEntry[] = await this._gitService.getLogEntries(
+    const entries: GitLogEntry[] = await this._loader.getLogEntries(
       context.repo,
       this._express,
       this._logCount,
