@@ -30,7 +30,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _logCount = 0;
   private _currentLine = 0;
   private _loadAll = false;
-  private _updating = false;
   private _loadMoreClicked = false;
   private _leftCount = 0;
   private _totalCommitsCount = 0;
@@ -97,6 +96,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _express = false;
   private _currentRepo: GitRepo | undefined;
 
+  private _updating = false;
+  private _updatingCanceled = false;
+  private _updatingResolver!: () => void;
+  private _updatingPromise: Promise<void>;
+
   constructor(
     context: vs.ExtensionContext,
     private _model: Model,
@@ -105,6 +109,9 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   ) {
     Tracer.info('Creating history view');
     context.subscriptions.push(vs.workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this));
+
+    this._updatingPromise = new Promise<void>(resolve => (this._updatingResolver = resolve));
+    this._updatingResolver(); // start in a resolved state to unblock the first load
 
     this._expressStatusBar.command = 'githd.setExpressMode';
     this._expressStatusBar.tooltip = 'Turn on or off of the history view Express mode';
@@ -120,18 +127,15 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       null,
       context.subscriptions
     );
-    this._model.onDidChangeHistoryViewContext(context => {
+    this._model.onDidChangeHistoryViewContext(async _ => {
       Tracer.verbose(`HistoryView: onDidChangeHistoryViewContext`);
-      this._startLoading();
-      vs.workspace.openTextDocument(HistoryViewProvider.defaultUri).then(async doc => {
-        vs.window.showTextDocument(doc, {
-          preview: false,
-          preserveFocus: true
-        });
-        this._loadMoreClicked = false;
-        await this._updateContent(false);
-        this._moveToTop(getEditor(HistoryViewProvider.scheme));
+      await this._cancelUpdating();
+      const doc: vs.TextDocument = await vs.workspace.openTextDocument(HistoryViewProvider.defaultUri);
+      await vs.window.showTextDocument(doc, {
+        preview: false,
+        preserveFocus: true
       });
+      this._startLoading();
     });
 
     this._gitService.onDidChangeGitRepositories(repos => {
@@ -168,13 +172,13 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
           Tracer.verbose('HistoryView: onDidChangeTextDocument');
           const editor = getTextEditor(e.document);
           this._setDecorations(editor);
-          if (this._leftCount > 0) {
+          if (this._updating) {
             this._updateContent(false);
           } else {
             if (!this._loadMoreClicked) {
               this._moveToTop(editor);
             }
-            this._updating = false;
+            this._updatingResolver();
           }
         }
       },
@@ -261,7 +265,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   }
 
   private _update() {
-    Tracer.info(`HistoryView: _update`);
+    Tracer.info(`HistoryView: _update, content size ${this._content.length}, left count ${this._leftCount}`);
+    if (this._updatingCanceled) {
+      Tracer.info('HistoryView: exsiting updating canceled');
+      this._updating = false;
+    }
     this._onDidChange.fire(HistoryViewProvider.defaultUri);
   }
 
@@ -278,11 +286,8 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       `HistoryView: left count ${this._leftCount}, current total count ${this._totalCommitsCount}, load more ${loadMore}`
     );
 
-    this._updating = true;
-
     Tracer.info(`HistoryView: _updateContent. ${JSON.stringify(context)}`);
 
-    const prevContent = this._content;
     const isStash = context.isStash ?? false;
     const firstLoading = this._leftCount == 0;
     let logCount = this._express ? 2 * firstLoadingCount : firstLoadingCount;
@@ -291,6 +296,8 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         this._content = this._content.substring(0, this._content.length - moreLabel.length - 1);
         this._content += separatorLabel + '\n\n';
         this._currentLine += 2;
+      } else {
+        this._content = '';
       }
 
       // No pagination loading for statsh, file history and line history.
@@ -310,6 +317,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       logCount = Math.min(logCount, this._leftCount);
       this._leftCount = this._leftCount - logCount;
     }
+    this._updating = this._leftCount > 0;
 
     const entries: GitLogEntry[] = await this._loader.getLogEntries(
       context.repo,
@@ -344,7 +352,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     });
 
     // All loadings are finished.
-    if (this._leftCount == 0) {
+    if (!this._updating) {
       if (this._totalCommitsCount > this._logCount) {
         content += this._createClickableForMore();
       } else {
@@ -353,12 +361,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     }
 
     this._content += content;
-    if (this._content == prevContent) {
-      this._setDecorations(getEditor(HistoryViewProvider.scheme));
-      this._updating = false;
-    } else {
-      this._update();
-    }
+    this._update();
   }
 
   private async _updateTitleInfo(context: HistoryViewContext): Promise<string> {
@@ -572,12 +575,25 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._clearDecorations();
     this._content = '';
     this._logCount = 0;
+    this._leftCount = 0;
     this._currentLine = 0;
     this._totalCommitsCount = 0;
+    this._loadMoreClicked = false;
   }
 
   private _startLoading() {
+    Tracer.verbose('HistoryView: _startLoading');
     this._reset();
+    this._updating = true;
+    this._content = ' '; // this is for loading indicator
     this._update();
+    this._updatingPromise = new Promise(resolve => (this._updatingResolver = resolve));
+  }
+
+  private async _cancelUpdating(): Promise<void> {
+    this._updatingCanceled = true;
+    await this._updatingPromise;
+    this._updatingCanceled = false;
+    Tracer.verbose('HistoryView: updating canceled');
   }
 }
