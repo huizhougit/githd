@@ -252,7 +252,7 @@
             },
             {
                 "command": "githd.previousCommitNoMore",
-                "title": "No More",
+                "title": "No More Previous",
                 "icon": {
                     "light": "resources/icons/light/fold-down-no-more.svg",
                     "dark": "resources/icons/dark/fold-down-no-more.svg"
@@ -268,7 +268,7 @@
             },
             {
                 "command": "githd.nextCommitNoMore",
-                "title": "No More",
+                "title": "No More Next",
                 "icon": {
                     "light": "resources/icons/light/fold-up-no-more.svg",
                     "dark": "resources/icons/dark/fold-up-no-more.svg"
@@ -784,7 +784,7 @@
         "glob": "^8.0.3",
         "mocha": "^10.0.0",
         "prettier": "^2.7.1",
-        "typescript": "^4.7.4"
+        "typescript": "^5.5.4"
     },
     "dependencies": {
         "lru-cache": "^11.0.0"
