@@ -2,7 +2,7 @@ import * as vs from 'vscode';
 
 import { FilesViewContext, Model } from './model';
 import { GitService } from './gitService';
-import { decorateWithoutWhitespace, getPullRequests, getTextEditor, prHoverMessage } from './utils';
+import { decorateWithoutWhitespace, getPullRequests, getTextEditors, prHoverMessage } from './utils';
 import { ClickableProvider } from './clickable';
 
 export class InfoViewProvider implements vs.TextDocumentContentProvider {
@@ -38,7 +38,7 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
     vs.workspace.onDidChangeTextDocument(
       e => {
         if (e.document.uri.scheme === InfoViewProvider.scheme) {
-          this._decorate(getTextEditor(e.document));
+          getTextEditors(InfoViewProvider.scheme).forEach(editor => this._decorate(editor));
         }
       },
       null,

@@ -4,7 +4,7 @@ import { HistoryViewContext, Model } from './model';
 import { GitService, GitLogEntry, GitRepo } from './gitService';
 import { getIconUri } from './icons';
 import { ClickableProvider } from './clickable';
-import { decorateWithoutWhitespace, getTextEditor, getPullRequests, prHoverMessage, getEditor } from './utils';
+import { decorateWithoutWhitespace, getTextEditors, getPullRequests, prHoverMessage } from './utils';
 import { Tracer } from './tracer';
 import { Dataloader } from './dataloader';
 
@@ -15,6 +15,7 @@ const stashTitleLabel = 'Git Stashes';
 const titleLabel = 'Git History';
 const moreLabel = '\u00b7\u00b7\u00b7';
 const separatorLabel = '--------------------------------------------------------------';
+const loadingContent = ' ';
 
 const branchHoverMessage = new vs.MarkdownString('Select a branch to see its history');
 const authorHoverMessage = new vs.MarkdownString('Select an author to see the commits');
@@ -170,13 +171,13 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       e => {
         if (e.document.uri.scheme === HistoryViewProvider.scheme) {
           Tracer.verbose('HistoryView: onDidChangeTextDocument');
-          const editor = getTextEditor(e.document);
-          this._setDecorations(editor);
+          const editors: vs.TextEditor[] = getTextEditors(HistoryViewProvider.scheme);
+          editors.forEach(editor => this._setDecorations(editor));
           if (this._updating) {
             this._updateContent(false);
           } else {
             if (!this._loadMoreClicked) {
-              this._moveToTop(editor);
+              editors.forEach(editor => this._moveToTop(editor));
             }
             this._updatingResolver();
           }
@@ -529,10 +530,10 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       return;
     }
     Tracer.verbose(
-      `HistoryView: _setDecorations cnontent length: ${this._content.length}, _subjectDecorationOptions size: ${this._subjectDecorationOptions.length}`
+      `HistoryView: _setDecorations content length: ${this._content.length}, _subjectDecorationOptions size: ${this._subjectDecorationOptions.length}`
     );
 
-    if (!this._content) {
+    if (this._content === loadingContent) {
       Tracer.verbose('HistoryView: _loadingDecoration used');
       editor.setDecorations(this._loadingDecoration, [new vs.Range(0, 0, 0, 1)]);
       return;
@@ -585,7 +586,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     Tracer.verbose('HistoryView: _startLoading');
     this._reset();
     this._updating = true;
-    this._content = ' '; // this is for loading indicator
+    this._content = loadingContent;
     this._update();
     this._updatingPromise = new Promise(resolve => (this._updatingResolver = resolve));
   }

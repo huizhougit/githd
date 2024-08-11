@@ -3,7 +3,7 @@ import * as vs from 'vscode';
 import { Model } from './model';
 import { GitService, GitBlameItem } from './gitService';
 import { Tracer } from './tracer';
-import { getTextEditor, getPullRequests } from './utils';
+import { getPullRequests } from './utils';
 
 const NotCommitted = `Not committed yet`;
 
@@ -68,7 +68,7 @@ export class BlameViewProvider implements vs.HoverProvider {
 
     vs.workspace.onDidChangeTextDocument(
       e => {
-        this._onDidChangeTextDocument(getTextEditor(e.document));
+        this._onDidChangeTextDocument(e.document);
       },
       null,
       context.subscriptions
@@ -190,18 +190,16 @@ ${blame.body}
     this._update(editor);
   }
 
-  private async _onDidChangeTextDocument(editor?: vs.TextEditor) {
-    if (!editor) {
+  private async _onDidChangeTextDocument(doc: vs.TextDocument) {
+    const editor: vs.TextEditor | undefined = vs.window.activeTextEditor;
+    if (!this._enabled || doc.uri.scheme !== 'file' || editor?.document !== doc) {
       return;
     }
-    const file = editor.document.uri;
-    if (!this._enabled || file.scheme !== 'file') {
-      return;
-    }
-    Tracer.verbose(`Blame view: onDidChange.TextDocument. isDirty ${editor.document.isDirty}`);
+
+    Tracer.verbose(`Blame view: onDidChange.TextDocument. isDirty ${doc.isDirty}`);
 
     this._clear(editor);
-    if (!editor.document.isDirty) {
+    if (!doc.isDirty) {
       this._update(editor);
     }
   }
