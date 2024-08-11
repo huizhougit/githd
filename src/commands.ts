@@ -139,28 +139,6 @@ export class CommandCenter {
     );
   }
 
-  @command('githd.clearFilesView')
-  clear(): void {
-    Tracer.verbose('Command: githd.clearFilesView');
-    this._model.clearFilesViewContexts();
-  }
-
-  @command('githd.goBackFilesView')
-  goBackFilesViewContext(): void {
-    this._model.goBackFilesViewContext();
-  }
-
-  @command('githd.goForwardFilesView')
-  goForwardFilesViewContext(): void {
-    this._model.goForwardFilesViewContext();
-  }
-
-  @command('githd.goBackNoMore')
-  dummyForGoBackIcon(): void {}
-
-  @command('githd.goForwardNoMore')
-  dummyForGoForwardIcon(): void {}
-
   @command('githd.viewHistory')
   async viewHistory(): Promise<void> {
     Tracer.verbose('Command: githd.viewHistory');
@@ -339,6 +317,22 @@ export class CommandCenter {
     this._model.goForwardHistoryViewContext();
   }
 
+  @command('githd.goBackFilesView')
+  goBackFilesViewContext(): void {
+    this._model.goBackFilesViewContext();
+  }
+
+  @command('githd.goForwardFilesView')
+  goForwardFilesViewContext(): void {
+    this._model.goForwardFilesViewContext();
+  }
+
+  @command('githd.goBackNoMore')
+  dummyForGoBackIcon(): void {}
+
+  @command('githd.goForwardNoMore')
+  dummyForGoForwardIcon(): void {}
+
   @command('githd.previousCommit')
   async previousCommit(): Promise<void> {
     Tracer.verbose('Command: githd.previousCommit');
@@ -350,6 +344,12 @@ export class CommandCenter {
     Tracer.verbose('Command: githd.nextCommit');
     this._explorerView.showNextCommit();
   }
+
+  @command('githd.previousCommitNoMore')
+  dummyForPreviousCommitIcon(): void {}
+
+  @command('githd.nextCommitNoMore')
+  dummyForNextCommitIcon(): void {}
 
   @command('githd.openCommittedFile')
   openCommittedFile(file: GitCommittedFile): void {
@@ -436,6 +436,12 @@ export class CommandCenter {
     if (repo) {
       this._historyView.updateRepo(repo);
     }
+  }
+
+  @command('githd.clearFilesView')
+  clearFilesView(): void {
+    Tracer.verbose('Command: githd.clearFilesView');
+    this._model.clearFilesViewContexts();
   }
 
   private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {

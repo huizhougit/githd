@@ -481,6 +481,14 @@
                 {
                     "command": "githd.nextCommit",
                     "when": "false"
+                },
+                {
+                    "command": "githd.previousCommitNoMore",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.nextCommitNoMore",
+                    "when": "false"
                 }
             ],
             "view/title": [
@@ -500,19 +508,29 @@
                     "group": "navigation@2"
                 },
                 {
+                    "command": "githd.goForwardNoMore",
+                    "when": "view == githd.files && hasGitRepo && !canGoForwardFilesView",
+                    "group": "navigation@2"
+                },
+                {
                     "command": "githd.previousCommit",
-                    "when": "view == githd.files && hasGitRepo",
+                    "when": "view == githd.files && hasGitRepo && hasPreviousCommit",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "githd.previousCommitNoMore",
+                    "when": "view == githd.files && hasGitRepo && !hasPreviousCommit",
                     "group": "navigation@3"
                 },
                 {
                     "command": "githd.nextCommit",
-                    "when": "view == githd.files && hasGitRepo",
+                    "when": "view == githd.files && hasGitRepo && hasNextCommit",
                     "group": "navigation@4"
                 },
                 {
-                    "command": "githd.goForwardNoMore",
-                    "when": "view == githd.files && hasGitRepo && !canGoForwardFilesView",
-                    "group": "navigation@2"
+                    "command": "githd.nextCommitNoMore",
+                    "when": "view == githd.files && hasGitRepo && !hasNextCommit",
+                    "group": "navigation@4"
                 },
                 {
                     "command": "githd.clearFilesView",

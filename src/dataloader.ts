@@ -194,6 +194,16 @@ export class Dataloader {
     return index >= 0 && index + 1 < commits.length ? commits[index + 1] : '';
   }
 
+  // Returns [has previous commit, has next commit]
+  async hasNeighborCommits(repo: GitRepo | undefined, ref: string): Promise<[boolean, boolean]> {
+    if (!repo) {
+      return [false, false];
+    }
+
+    const commits: string[] = this._useCache(repo.root) ? this._cache.commits : await this._gitService.getCommits(repo);
+    return [commits.indexOf(ref) < commits.length - 1, commits.indexOf(ref) > 0];
+  }
+
   private async _updateCaches(repo: GitRepo, uri?: vs.Uri): Promise<void> {
     Tracer.verbose(`Dataloader: _updateCaches: current repo:${repo.root}, uri:${uri?.fsPath}`);
 
@@ -204,13 +214,15 @@ export class Dataloader {
     this._updateDelay = setTimeout(async () => {
       Tracer.verbose(`Dataloader: _updateCaches: updating cache for ${repo.root}`);
 
-      const branch: string = (await this._gitService.getCurrentBranch(repo)) ?? '';
-      const commits: string[] = await this._gitService.getCommits(repo, branch);
-      const count: number = await this._gitService.getCommitsCount(repo, branch);
-      const logs: GitLogEntry[] = await this._gitService.getLogEntries(repo, false, 0, Cache.logEntriesCount, branch);
+      const branch = (await this._gitService.getCurrentBranch(repo)) ?? '';
+      const [commits, count, logs] = await Promise.all([
+        this._gitService.getCommits(repo, branch),
+        this._gitService.getCommitsCount(repo, branch),
+        this._gitService.getLogEntries(repo, false, 0, Cache.logEntriesCount, branch)
+      ]);
 
       if (this._repo?.root !== repo.root) {
-        // The cache data fetching is finished after the repo is changed. We don't update the cache.
+        // The cache data fetching is finished after the repo is changed. We don't update
         Tracer.warning(`Dataloader: different repo: ${repo.root} ${this._repo?.root}`);
         return;
       }

@@ -318,11 +318,13 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     if (this._rootCommitPosition === RootCommitPosition.Current) {
       return this._buildCurrentCommit();
     }
-    return this._buildNeighboringCommit();
+    return this._buildNeighborCommit();
   }
 
   private async _buildCurrentCommit(): Promise<void> {
     if (!this._context) {
+      vs.commands.executeCommand('setContext', 'hasPreviousCommit', false);
+      vs.commands.executeCommand('setContext', 'hasNextCommit', false);
       return;
     }
 
@@ -333,6 +335,15 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
 
     if (!rightRef) {
       return;
+    }
+
+    if (!this._context.isStash) {
+      // check if it has neighbor commits and update context asynchronously
+      setTimeout(async () => {
+        const [hasPrevious, hasNext] = await this._dataloader.hasNeighborCommits(this._context?.repo, rightRef);
+        vs.commands.executeCommand('setContext', 'hasPreviousCommit', hasPrevious);
+        vs.commands.executeCommand('setContext', 'hasNextCommit', hasNext);
+      }, 0);
     }
 
     const committedFiles: GitCommittedFile[] = await this._gitService.getCommittedFiles(
@@ -355,7 +366,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
   }
 
-  private async _buildNeighboringCommit(): Promise<void> {
+  private async _buildNeighborCommit(): Promise<void> {
     const position: RootCommitPosition = this._rootCommitPosition;
     this._rootCommitPosition = RootCommitPosition.Current;
 
