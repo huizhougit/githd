@@ -8,6 +8,7 @@ import { HistoryViewProvider } from './historyViewProvider';
 import { InfoViewProvider } from './infoViewProvider';
 import { GitService, GitRepo, GitRefType, GitCommittedFile } from './gitService';
 import { Tracer } from './tracer';
+import { ExplorerViewProvider } from './explorerViewProvider';
 
 function toGitUri(uri: vs.Uri, ref?: string): vs.Uri {
   return uri.with({
@@ -125,7 +126,7 @@ export class CommandCenter {
     private _model: Model,
     private _gitService: GitService,
     private _historyView: HistoryViewProvider,
-    private _infoView: InfoViewProvider
+    private _explorerView: ExplorerViewProvider
   ) {
     context.subscriptions.push(
       ...Commands.map(({ id, method }) => {
@@ -153,12 +154,10 @@ export class CommandCenter {
   }
 
   @command('githd.goBackNoMore')
-  dummyForGoBackIcon(): void {
-  }
+  dummyForGoBackIcon(): void {}
 
   @command('githd.goForwardNoMore')
-  dummyForGoForwardIcon(): void {
-  }
+  dummyForGoForwardIcon(): void {}
 
   @command('githd.viewHistory')
   async viewHistory(): Promise<void> {
@@ -325,13 +324,25 @@ export class CommandCenter {
       .showInputBox({
         placeHolder: `Input a ref(sha1) to see it's committed files`
       })
-      .then(ref => (this._model.setFilesViewContext({ rightRef: ref?.trim(), repo })));
+      .then(ref => this._model.setFilesViewContext({ rightRef: ref?.trim(), repo }));
   }
 
   @command('githd.openCommit')
   openCommit(repo: GitRepo, ref: string, specifiedPath: vs.Uri): void {
     Tracer.verbose('Command: githd.openCommit');
     this._model.setFilesViewContext({ rightRef: ref, repo, specifiedPath });
+  }
+
+  @command('githd.previousCommit')
+  async previousCommit(): Promise<void> {
+    Tracer.verbose('Command: githd.previousCommit');
+    this._explorerView.showPreviousCommit();
+  }
+
+  @command('githd.nextCommit')
+  async nextCommit(): Promise<void> {
+    Tracer.verbose('Command: githd.nextCommit');
+    this._explorerView.showNextCommit();
   }
 
   @command('githd.openCommittedFile')
@@ -372,7 +383,7 @@ export class CommandCenter {
       .openTextDocument({ content, language: 'diff' })
       .then(doc =>
         vs.window
-          .showTextDocument(doc, { preview: true, preserveFocus: true, })
+          .showTextDocument(doc, { preview: true, preserveFocus: true })
           .then(() => vs.commands.executeCommand('cursorTop'))
       );
   }

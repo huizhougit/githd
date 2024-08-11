@@ -52,7 +52,7 @@
                 },
                 "githd.logView.commitsCount": {
                     "type": "number",
-                    "default": 200,
+                    "default": 300,
                     "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking ... or load the entire log with command.",
                     "enum": [
                         100,
@@ -220,7 +220,7 @@
             },
             {
                 "command": "githd.goBackNoMore",
-                "title": "No more to go back",
+                "title": "No More",
                 "icon": {
                     "light": "resources/icons/light/arrow-left-no-more.svg",
                     "dark": "resources/icons/dark/arrow-left-no-more.svg"
@@ -236,10 +236,42 @@
             },
             {
                 "command": "githd.goForwardNoMore",
-                "title": "No more to go forward",
+                "title": "No More",
                 "icon": {
                     "light": "resources/icons/light/arrow-right-no-more.svg",
                     "dark": "resources/icons/dark/arrow-right-no-more.svg"
+                }
+            },
+            {
+                "command": "githd.previousCommit",
+                "title": "Previous Commit (Older One)",
+                "icon": {
+                    "light": "resources/icons/light/fold-down.svg",
+                    "dark": "resources/icons/dark/fold-down.svg"
+                }
+            },
+            {
+                "command": "githd.previousCommitNoMore",
+                "title": "No More",
+                "icon": {
+                    "light": "resources/icons/light/fold-down-no-more.svg",
+                    "dark": "resources/icons/dark/fold-down-no-more.svg"
+                }
+            },
+            {
+                "command": "githd.nextCommit",
+                "title": "Next Commit (Newer One)",
+                "icon": {
+                    "light": "resources/icons/light/fold-up.svg",
+                    "dark": "resources/icons/dark/fold-up.svg"
+                }
+            },
+            {
+                "command": "githd.nextCommitNoMore",
+                "title": "No More",
+                "icon": {
+                    "light": "resources/icons/light/fold-up-no-more.svg",
+                    "dark": "resources/icons/dark/fold-up-no-more.svg"
                 }
             },
             {
@@ -441,6 +473,14 @@
                 {
                     "command": "githd.goForwardNoMore",
                     "when": "false"
+                },
+                {
+                    "command": "githd.previousCommit",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.nextCommit",
+                    "when": "false"
                 }
             ],
             "view/title": [
@@ -458,6 +498,16 @@
                     "command": "githd.goForwardFilesView",
                     "when": "view == githd.files && hasGitRepo && canGoForwardFilesView",
                     "group": "navigation@2"
+                },
+                {
+                    "command": "githd.previousCommit",
+                    "when": "view == githd.files && hasGitRepo",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "githd.nextCommit",
+                    "when": "view == githd.files && hasGitRepo",
+                    "group": "navigation@4"
                 },
                 {
                     "command": "githd.goForwardNoMore",
@@ -717,5 +767,8 @@
         "mocha": "^10.0.0",
         "prettier": "^2.7.1",
         "typescript": "^4.7.4"
+    },
+    "dependencies": {
+        "lru-cache": "^11.0.0"
     }
 }

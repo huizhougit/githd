@@ -176,6 +176,12 @@ function buildFilesWithFolder(rootFolder: FolderItem) {
 
 type CommittedTreeItem = CommittedFileItem | FolderItem | InfoItem;
 
+enum RootCommitPosition {
+  Current = 0,
+  Previous = 1,
+  Next = 2
+}
+
 export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeItem>, vs.FileDecorationProvider {
   static scheme: string = 'githd-committed';
 
@@ -184,8 +190,9 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
 
   private _context: FilesViewContext | undefined;
   private _treeRoot: (FolderItem | InfoItem)[] = [];
+  private _rootCommitPosition: RootCommitPosition = RootCommitPosition.Current;
 
-  constructor(context: vs.ExtensionContext, model: Model, private _gitService: GitService) {
+  constructor(context: vs.ExtensionContext, private _model: Model, private _gitService: GitService) {
     vs.window.createTreeView('githd.files', { treeDataProvider: this });
     context.subscriptions.push(
       vs.window.registerFileDecorationProvider(this),
@@ -202,7 +209,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
           Tracer.warning('ExplorerViewProvider: viewFileHistoryFromTree has empty context');
           return;
         }
-        model.setHistoryViewContext({
+        this._model.setHistoryViewContext({
           repo: this._context.repo,
           specifiedPath: fileItem.file.fileUri,
           branch: ''
@@ -213,7 +220,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
           Tracer.warning('ExplorerViewProvider: viewFolderHistoryFromTree has empty context');
           return;
         }
-        model.setHistoryViewContext({
+        this._model.setHistoryViewContext({
           repo: this._context.repo,
           specifiedPath: vs.Uri.file(path.join(this._context.repo.root, folder.gitRelativePath)),
           branch: ''
@@ -222,8 +229,11 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       this._onDidChange
     );
 
-    model.onDidChangeFilesViewContext(
+    this._model.onDidChangeFilesViewContext(
       context => {
+        if (JSON.stringify(this._context) === JSON.stringify(context)) {
+          return;
+        }
         this._context = context;
         this._update();
       },
@@ -231,8 +241,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       context.subscriptions
     );
 
-    this._context = model.filesViewContext;
-    this._withFolder = model.configuration.withFolder;
+    this._context = this._model.filesViewContext;
+    this._withFolder = this._model.configuration.withFolder;
     this._update();
   }
 
@@ -253,8 +263,10 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     return element;
   }
 
-  getChildren(element?: CommittedTreeItem): CommittedTreeItem[] {
+  async getChildren(element?: CommittedTreeItem): Promise<CommittedTreeItem[]> {
     if (!element) {
+      // build the tree here so that we can show the loading indicator
+      await this._build();
       return this._treeRoot;
     }
     let items: CommittedTreeItem[] = [];
@@ -272,14 +284,39 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     return element.parent;
   }
 
+  showPreviousCommit(): void {
+    if (this._rootCommitPosition != RootCommitPosition.Current) {
+      // the previous show operation may be in progress
+      Tracer.warning('showPreviousCommit: _rootCommitType should be RootCommitType.Current');
+      return;
+    }
+    this._rootCommitPosition = RootCommitPosition.Previous;
+    this._onDidChange.fire(undefined);
+  }
+
+  showNextCommit(): void {
+    if (this._rootCommitPosition != RootCommitPosition.Current) {
+      // the previous show operation may be in progress
+      Tracer.warning('showNextCommit: _rootCommitType should be RootCommitType.Current');
+      return;
+    }
+    this._rootCommitPosition = RootCommitPosition.Next;
+    this._onDidChange.fire(undefined);
+  }
+
   private get commitOrStashString(): string {
     return this._context?.isStash ? 'Stash' : 'Commit';
   }
 
-  private async _update(): Promise<void> {
-    this._treeRoot = [];
+  private async _build(): Promise<void> {
+    if (this._rootCommitPosition === RootCommitPosition.Current) {
+      return this._buildCurrentCommit();
+    }
+    return this._buildNeighboringCommit();
+  }
+
+  private async _buildCurrentCommit(): Promise<void> {
     if (!this._context) {
-      this._onDidChange.fire(undefined);
       return;
     }
 
@@ -289,7 +326,6 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     const lineInfo = this._context.focusedLineInfo;
 
     if (!rightRef) {
-      this._onDidChange.fire(undefined);
       return;
     }
 
@@ -311,6 +347,33 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     } else {
       await this._buildPathSpecifiedDiffBranchTree(committedFiles, this._context);
     }
+  }
+
+  private async _buildNeighboringCommit(): Promise<void> {
+    const position: RootCommitPosition = this._rootCommitPosition;
+    this._rootCommitPosition = RootCommitPosition.Current;
+
+    if (!this._context?.rightRef) {
+      return;
+    }
+
+    const commit: string = await this._gitService.getNextCommit(
+      this._context.repo,
+      this._context.rightRef,
+      (await this._gitService.getCurrentBranch(this._context.repo)) ?? '',
+      position === RootCommitPosition.Previous
+    );
+    if (commit) {
+      this._context = { rightRef: commit, repo: this._context.repo };
+      this._treeRoot = [];
+      await this._buildCurrentCommit();
+      this._model.setFilesViewContext(this._context);
+    }
+  }
+
+  private async _update(): Promise<void> {
+    this._treeRoot = [];
+    this._rootCommitPosition = RootCommitPosition.Current;
     this._onDidChange.fire(undefined);
   }
 

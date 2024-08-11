@@ -311,7 +311,7 @@ export class GitService {
     if (isStash) {
       args.unshift('stash', 'list');
     } else {
-      args.unshift('log', `--skip=${start}`, `--max-count=${count}`, '--simplify-merges', branch);
+      args.unshift('log', `--skip=${start}`, `--max-count=${count}`, '--date-order', '--simplify-merges', branch);
       if (author) {
         args.push(`--author=${author}`);
       }
@@ -509,6 +509,32 @@ export class GitService {
       return '';
     }
     return await this._exec(['show', '--format=', '--shortstat', ref], repo.root);
+  }
+
+  /**
+   * Retrieves the commit hash of the next (newer) commit from the given Git repository.
+   *
+   * @param {GitRepo | undefined} repo - The Git repository to retrieve the commit from. If undefined, an empty string is returned.
+   * @param {string} ref - The reference to find the next commit for.
+   * @param {boolean} [reverse] - Optional. If true, the commits are returned in reverse order.
+   * @return {Promise<string>} The commit hash of the next commit, or an empty string if no next commit is found.
+   */
+  async getNextCommit(repo: GitRepo | undefined, ref: string, branch: string, reverse?: boolean): Promise<string> {
+    if (!repo) {
+      return '';
+    }
+    const args: string[] = [
+      'log',
+      '--format=%h',
+      '--simplify-merges',
+      '--date-order',
+      ...(reverse ? ['--reverse'] : []),
+      branch,
+      '--'
+    ];
+    const commits: string[] = (await this._exec(args, repo.root)).split(/\r?\n/g);
+    const index: number = reverse ? commits.lastIndexOf(ref) : commits.indexOf(ref);
+    return index > 0 ? commits[index - 1] : '';
   }
 
   private _scanFolder(folder: string, includeSubFolders?: boolean): number {
