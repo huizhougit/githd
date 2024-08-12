@@ -18,6 +18,7 @@ export function activate(context: vs.ExtensionContext) {
   new InfoViewProvider(context, model, gitService);
   new BlameViewProvider(context, model, gitService);
   new CommandCenter(context, model, dataloader, gitService, historyViewProvider, explorerViewProvider);
+  gitService.updateGitRoots(vs.workspace.workspaceFolders);
 }
 
 export function deactivate() {}

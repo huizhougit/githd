@@ -254,6 +254,9 @@ export class Dataloader {
   }
 
   private _useCache(repo: string): boolean {
+    if (!this._cacheEnabled) {
+      return false;
+    }
     if (repo !== this._repo?.root) {
       Tracer.warning(`Dataloader: different repo: ${repo} ${this._repo?.root}`);
       return false;

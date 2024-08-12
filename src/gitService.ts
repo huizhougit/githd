@@ -118,8 +118,6 @@ export class GitService {
       gitPath = 'git';
     }
     this._gitPath = gitPath;
-
-    this.updateGitRoots(vs.workspace.workspaceFolders);
   }
 
   get onDidChangeGitRepositories(): vs.Event<GitRepo[]> {
@@ -130,20 +128,20 @@ export class GitService {
     return this._onDidChangeCurrentGitRepo.event;
   }
 
-  updateGitRoots(wsFolders: readonly vs.WorkspaceFolder[] | undefined) {
+  async updateGitRoots(wsFolders: readonly vs.WorkspaceFolder[] | undefined) {
     // reset repos first. Should optimize it to avoid firing multiple events.
     this._gitRepos = [];
     vs.commands.executeCommand('setContext', 'githd.hasGitRepo', false);
     this._onDidChangeGitRepositories.fire([]);
 
     const start = Date.now();
-    let count = 0;
-    if (wsFolders) {
-      wsFolders.forEach(wsFolder => {
-        count += this._scanFolder(wsFolder.uri.fsPath, true);
-      });
+    const promises: Promise<number>[] = wsFolders
+      ? wsFolders.map(wsFolder => this._scanFolder(wsFolder.uri.fsPath, true))
+      : [Promise.resolve(0)];
+    const count: number = await Promise.all(promises).then(results => results.reduce((a, b) => a + b, 0));
+    if (count === 1) {
+      this.updateCurrentGitRepo(this._gitRepos[0]);
     }
-
     Tracer.info(`updateGitRoots: ${wsFolders?.length} wsFolders ${count} subFolders (${Date.now() - start}ms)`);
   }
 
@@ -544,20 +542,21 @@ export class GitService {
     return result.split(/\r?\n/g);
   }
 
-  private _scanFolder(folder: string, includeSubFolders?: boolean): number {
-    let count = 0;
+  private async _scanFolder(folder: string, includeSubFolders?: boolean): Promise<number> {
     const children = fs.readdirSync(folder, { withFileTypes: true });
-    children
+    const promises = children
       .filter(child => child.isDirectory())
-      .forEach(async child => {
+      .map(async child => {
         if (child.name === '.git') {
-          this.getGitRepo(folder);
-          count++;
-        } else if (includeSubFolders) {
-          count += this._scanFolder(path.join(folder, child.name));
+          await this.getGitRepo(folder);
+          return 1;
         }
+        if (includeSubFolders) {
+          return await this._scanFolder(path.join(folder, child.name));
+        }
+        return 0;
       });
-    return count;
+    return await Promise.all(promises).then(results => results.reduce((a, b) => a + b, 0));
   }
 
   private async _getRemoteUrl(fsPath: string): Promise<string> {
