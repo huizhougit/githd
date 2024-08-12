@@ -126,7 +126,7 @@ export class GitService {
   updateGitRoots(wsFolders: readonly vs.WorkspaceFolder[] | undefined) {
     // reset repos first. Should optimize it to avoid firing multiple events.
     this._gitRepos = [];
-    vs.commands.executeCommand('setContext', 'hasGitRepo', false);
+    vs.commands.executeCommand('setContext', 'githd.hasGitRepo', false);
     this._onDidChangeGitRepositories.fire([]);
 
     const start = Date.now();
@@ -164,7 +164,7 @@ export class GitService {
         const remoteUrl = await this._getRemoteUrl(fsPath);
         repo = { root, remoteUrl };
         this._gitRepos.push(repo);
-        vs.commands.executeCommand('setContext', 'hasGitRepo', true);
+        vs.commands.executeCommand('setContext', 'githd.hasGitRepo', true);
         this._onDidChangeGitRepositories.fire(this.getGitRepos());
       }
     }

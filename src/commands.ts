@@ -132,9 +132,9 @@ export class CommandCenter {
   ) {
     context.subscriptions.push(
       ...Commands.map(({ id, method }) => {
-        return vs.commands.registerCommand(id, (...args: any[]) => {
-          Promise.resolve(method.apply(this, args));
-        });
+        return vs.commands.registerCommand(id, (...args: any[]) =>
+          Promise.resolve(method.apply(this, args)).catch(err => Tracer.error(`command ${id} failed ${err.message}`))
+        );
       })
     );
   }
@@ -270,19 +270,19 @@ export class CommandCenter {
     if (!repo) {
       return;
     }
-    this._diffSelections({ repo });
+    this._diffSelections(repo);
   }
 
   @command('githd.diffFile')
-  async diffFile(specifiedPath: vs.Uri): Promise<void> {
+  async diffFile(specifiedPath: vs.Uri, ref?: string): Promise<void> {
     Tracer.verbose('Command: githd.diffFile');
-    return this._diffPath(specifiedPath);
+    return this._diffPath(specifiedPath, ref);
   }
 
   @command('githd.diffFolder')
-  async diffFolder(specifiedPath: vs.Uri): Promise<void> {
+  async diffFolder(specifiedPath: vs.Uri, ref?: string): Promise<void> {
     Tracer.verbose('Command: githd.diffFolder');
-    return this._diffPath(specifiedPath);
+    return this._diffPath(specifiedPath, ref);
   }
 
   @command('githd.inputRef')
@@ -449,30 +449,30 @@ export class CommandCenter {
     await this._model.setHistoryViewContext(context);
   }
 
-  private async _diffPath(specifiedPath: vs.Uri): Promise<void> {
+  private async _diffPath(specifiedPath: vs.Uri, ref?: string): Promise<void> {
     if (specifiedPath) {
       const repo = await this._gitService.getGitRepo(specifiedPath.fsPath);
       if (repo) {
-        this._diffSelections({ repo, specifiedPath });
+        this._diffSelections(repo, specifiedPath, ref);
       }
     }
   }
 
-  private async _diffSelections({ repo, specifiedPath }: { repo: GitRepo; specifiedPath?: vs.Uri }): Promise<void> {
+  private async _diffSelections(repo: GitRepo, specifiedPath?: vs.Uri, ref?: string): Promise<void> {
     const branches = await selectBranch(this._gitService, repo, true);
     const branchWithCombination = await branchCombination(this._gitService, repo);
     const items = [...branches, ...branchWithCombination];
-    const currentRef = await this._loader.getCurrentBranch(repo);
-    const placeHolder: string = `Select a ref to see it's diff with ${currentRef} or select two refs to see their diffs`;
+    ref = ref || (await this._loader.getCurrentBranch(repo));
+    const placeHolder: string = `Select a ref to see it's diff with ${ref} or select two refs to see their diffs`;
     vs.window.showQuickPick(items, { placeHolder: placeHolder }).then(async item => {
       if (!item) {
         return;
       }
       let leftRef = await getRefFromQuickPickItem(
         item,
-        `Input a ref(sha1) to compare with ${currentRef} or ` + `'ref(sha1) .. ref(sha2)' to compare with two commits`
+        `Input a ref(sha1) to compare with ${ref} or ` + `'ref(sha1) .. ref(sha2)' to compare with two commits`
       );
-      let rightRef = currentRef;
+      let rightRef = ref;
       if (!leftRef) {
         return;
       }

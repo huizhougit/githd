@@ -232,6 +232,27 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
           branch: ''
         });
       }),
+      vs.commands.registerCommand('githd.diffFileFromTreeView', (fileItem: CommittedFileItem) => {
+        if (!this._context?.rightRef) {
+          Tracer.warning('ExplorerViewProvider: diffFileFromTreeView has empty commit ref');
+          return;
+        }
+        vs.commands.executeCommand('githd.diffFile', fileItem.file.fileUri, this._context.rightRef);
+      }),
+      vs.commands.registerCommand('githd.diffFolderFromTreeView', (folder: FolderItem) => {
+        if (!this._context?.rightRef) {
+          Tracer.warning('ExplorerViewProvider: diffFolderFromTreeView has empty commit ref');
+          return;
+        }
+        vs.commands.executeCommand(
+          'githd.diffFolder',
+          vs.Uri.file(path.join(this._context.repo.root, folder.gitRelativePath)),
+          this._context.rightRef
+        );
+      }),
+      vs.commands.registerCommand('githd.openFile', (fileItem: CommittedFileItem) => {
+        vs.commands.executeCommand('vscode.open', fileItem.file.fileUri);
+      }),
       this._onDidChange
     );
 
@@ -314,6 +335,11 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     return this._context?.isStash ? 'Stash' : 'Commit';
   }
 
+  private _isCommitsView(): boolean {
+    // this._context.leftRef is set when comparing differences between two commits
+    return !this._context?.isStash && !!this._context?.rightRef && !this._context?.leftRef;
+  }
+
   private async _build(): Promise<void> {
     if (this._rootCommitPosition === RootCommitPosition.Current) {
       return this._buildCurrentCommit();
@@ -323,8 +349,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
 
   private async _buildCurrentCommit(): Promise<void> {
     if (!this._context) {
-      vs.commands.executeCommand('setContext', 'hasPreviousCommit', false);
-      vs.commands.executeCommand('setContext', 'hasNextCommit', false);
+      vs.commands.executeCommand('setContext', 'githd.hasPreviousCommit', false);
+      vs.commands.executeCommand('setContext', 'githd.hasNextCommit', false);
       return;
     }
 
@@ -337,14 +363,19 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       return;
     }
 
-    if (!this._context.isStash) {
-      // check if it has neighbor commits and update context asynchronously
-      setTimeout(async () => {
+    // Update related contexts asynchronously
+    setTimeout(async () => {
+      if (this._isCommitsView()) {
+        vs.commands.executeCommand('setContext', 'githd.commitsView', true);
         const [hasPrevious, hasNext] = await this._dataloader.hasNeighborCommits(this._context?.repo, rightRef);
-        vs.commands.executeCommand('setContext', 'hasPreviousCommit', hasPrevious);
-        vs.commands.executeCommand('setContext', 'hasNextCommit', hasNext);
-      }, 0);
-    }
+        vs.commands.executeCommand('setContext', 'githd.hasPreviousCommit', hasPrevious);
+        vs.commands.executeCommand('setContext', 'githd.hasNextCommit', hasNext);
+      } else {
+        vs.commands.executeCommand('setContext', 'githd.hasPreviousCommit', false);
+        vs.commands.executeCommand('setContext', 'githd.hasNextCommit', false);
+        vs.commands.executeCommand('setContext', 'githd.commitsView', false);
+      }
+    }, 0);
 
     const committedFiles: GitCommittedFile[] = await this._gitService.getCommittedFiles(
       this._context.repo,

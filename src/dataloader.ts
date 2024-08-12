@@ -201,7 +201,8 @@ export class Dataloader {
     }
 
     const commits: string[] = this._useCache(repo.root) ? this._cache.commits : await this._gitService.getCommits(repo);
-    return [commits.indexOf(ref) < commits.length - 1, commits.indexOf(ref) > 0];
+    const index: number = commits.indexOf(ref);
+    return [index >= 0 && index + 1 < commits.length, index > 0];
   }
 
   private async _updateCaches(repo: GitRepo, uri?: vs.Uri): Promise<void> {

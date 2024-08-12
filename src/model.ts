@@ -49,12 +49,12 @@ export class Model {
   private _config: Configuration;
 
   private _historyViewContextTracker = new ContextTracker<HistoryViewContext>(
-    'canGoBackHistoryView',
-    'canGoForwardHistoryView'
+    'githd.canGoBackHistoryView',
+    'githd.canGoForwardHistoryView'
   );
 
   private _filesViewContextTracker = new ContextTracker<FilesViewContext>(
-    'canGoBackFilesView',
+    'githd.canGoBackFilesView',
     'canGoForwardFilesView'
   );
 
@@ -65,7 +65,7 @@ export class Model {
   constructor(context: vs.ExtensionContext, private _loader: Dataloader) {
     this._config = getConfiguration();
     Tracer.level = this._config.traceLevel;
-    vs.commands.executeCommand('setContext', 'disableInEditor', this._config.disabledInEditor);
+    vs.commands.executeCommand('setContext', 'githd.disableInEditor', this._config.disabledInEditor);
 
     vs.workspace.onDidChangeConfiguration(
       () => {
@@ -83,7 +83,7 @@ export class Model {
           this._config = newConfig;
           this._onDidChangeConfiguration.fire(newConfig);
           Tracer.level = newConfig.traceLevel;
-          vs.commands.executeCommand('setContext', 'disableInEditor', newConfig.disabledInEditor);
+          vs.commands.executeCommand('setContext', 'githd.disableInEditor', newConfig.disabledInEditor);
         }
       },
       null,
