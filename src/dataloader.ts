@@ -105,7 +105,7 @@ export class Dataloader {
         this._cache.logEntries.set(key, entries);
       } else if (count < Cache.logEntriesCount) {
         // Update the cache asynchronously
-        setTimeout(async () => {
+        Promise.resolve().then(async () => {
           const cacheEntries = await this._gitService.getLogEntries(
             repo,
             express,
@@ -119,12 +119,8 @@ export class Dataloader {
           );
 
           this._cache.logEntries.set(key, cacheEntries);
-          Tracer.info(
-            `Dataloader: update log entries cache ${key}, ${cacheEntries.length} entries, cache size ${
-              this._cache.logEntries.info(key)?.size
-            } entries`
-          );
-        }, 0);
+          Tracer.info(`Dataloader: update log entries cache ${key}, ${cacheEntries.length}`);
+        });
       }
     } else {
       Tracer.info(`Dataloader: cache missing for non-first page ${key}, start {${start}}, count ${count}`);

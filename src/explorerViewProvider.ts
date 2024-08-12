@@ -340,6 +340,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     return !this._context?.isStash && !!this._context?.rightRef && !this._context?.leftRef;
   }
 
+  private async _setViewContexts(): Promise<void> {}
+
   private async _build(): Promise<void> {
     if (this._rootCommitPosition === RootCommitPosition.Current) {
       return this._buildCurrentCommit();
@@ -364,7 +366,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
 
     // Update related contexts asynchronously
-    setTimeout(async () => {
+    Promise.resolve().then(async () => {
       if (this._isCommitsView()) {
         vs.commands.executeCommand('setContext', 'githd.commitsView', true);
         const [hasPrevious, hasNext] = await this._dataloader.hasNeighborCommits(this._context?.repo, rightRef);
@@ -375,7 +377,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
         vs.commands.executeCommand('setContext', 'githd.hasNextCommit', false);
         vs.commands.executeCommand('setContext', 'githd.commitsView', false);
       }
-    }, 0);
+    });
 
     const committedFiles: GitCommittedFile[] = await this._gitService.getCommittedFiles(
       this._context.repo,
