@@ -487,7 +487,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   }
 
   private _updateStat(context: HistoryViewContext, entry: GitLogEntry): string {
-    if (!entry.stat) {
+    if (!entry.stat || this._express) {
       return '';
     }
 

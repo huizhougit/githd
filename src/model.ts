@@ -119,9 +119,10 @@ export class Model {
   }
 
   setFilesViewContext(context: FilesViewContext) {
+    context.specifiedPath?.fsPath; // touch it to make the value to be progate to the getter.
+
     Tracer.info(`Model: set filesViewContext - ${JSON.stringify(context)}`);
 
-    context.specifiedPath?.fsPath; // touch it to make the value to be progate to the getter.
     const currentContext = this.filesViewContext;
     if (
       !currentContext ||
@@ -130,7 +131,14 @@ export class Model {
       currentContext.specifiedPath != context?.specifiedPath ||
       currentContext.focusedLineInfo != context?.focusedLineInfo
     ) {
-      this._filesViewContextTracker.setContext(context);
+      this._filesViewContextTracker.setContext({
+        repo: context.repo,
+        focusedLineInfo: context.focusedLineInfo,
+        isStash: context.isStash,
+        leftRef: context.leftRef,
+        rightRef: context.rightRef,
+        specifiedPath: context.specifiedPath
+      });
       this._onDidChangeFilesViewContext.fire(context);
     }
     vs.commands.executeCommand('workbench.view.extension.githd-explorer');
@@ -175,14 +183,21 @@ export class Model {
   }
 
   async setHistoryViewContext(context: HistoryViewContext) {
-    Tracer.info(`Model: set historyViewContext - ${JSON.stringify(context)}`);
-
     context.specifiedPath?.fsPath; // touch it to make the value to be progate to the getter.
     if (context && !context.branch) {
       context.branch = await this._loader.getCurrentBranch(context?.repo);
     }
 
-    this._historyViewContextTracker.setContext(context);
+    Tracer.info(`Model: set historyViewContext - ${JSON.stringify(context)}`);
+
+    this._historyViewContextTracker.setContext({
+      branch: context.branch,
+      repo: context.repo,
+      author: context.author,
+      isStash: context.isStash,
+      line: context.line,
+      specifiedPath: context.specifiedPath
+    });
     this._onDidChangeHistoryViewContext.fire(context);
   }
 

@@ -1,3 +1,4 @@
+import { isEqual } from 'lodash';
 import * as vs from 'vscode';
 
 const maxTrackedCount = 100;
@@ -9,7 +10,7 @@ export class ContextTracker<T> {
   constructor(private _goBackFlag: string, private _goForwardFlag: string) {}
 
   setContext(context: T) {
-    if (!context || JSON.stringify(context) == JSON.stringify(this.current)) {
+    if (!context || isEqual(this.current, context)) {
       return;
     }
 

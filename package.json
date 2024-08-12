@@ -796,6 +796,7 @@
     },
     "devDependencies": {
         "@types/glob": "^7.2.0",
+        "@types/lodash": "^4.17.7",
         "@types/mocha": "^9.1.1",
         "@types/node": "16.x",
         "@types/vscode": "^1.92.0",
@@ -809,6 +810,7 @@
         "typescript": "^5.5.4"
     },
     "dependencies": {
+        "lodash": "^4.17.21",
         "lru-cache": "^11.0.0"
     }
 }
