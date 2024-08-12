@@ -128,24 +128,38 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       null,
       context.subscriptions
     );
-    this._model.onDidChangeHistoryViewContext(async _ => {
-      Tracer.verbose(`HistoryView: onDidChangeHistoryViewContext`);
-      await this._cancelUpdating();
-      const doc: vs.TextDocument = await vs.workspace.openTextDocument(HistoryViewProvider.defaultUri);
-      await vs.window.showTextDocument(doc, {
-        preview: false,
-        preserveFocus: true
-      });
-      this._startLoading();
-    });
+    this._model.onDidChangeHistoryViewContext(
+      async _ => {
+        Tracer.verbose(`HistoryView: onDidChangeHistoryViewContext`);
+        await this._cancelUpdating();
+        const doc: vs.TextDocument = await vs.workspace.openTextDocument(HistoryViewProvider.defaultUri);
+        await vs.window.showTextDocument(doc, {
+          preview: false,
+          preserveFocus: true
+        });
+        this._startLoading();
+      },
+      null,
+      context.subscriptions
+    );
 
-    this._gitService.onDidChangeGitRepositories(repos => {
-      if (repos.length == 1) {
-        this._currentRepo = repos[0];
-        this._loader.updateRepo(repos[0]);
-      }
-      this._updateExpressStatusBar();
-    });
+    this._gitService.onDidChangeGitRepositories(
+      repos => {
+        this._updateExpressStatusBar();
+      },
+      null,
+      context.subscriptions
+    );
+
+    this._gitService.onDidChangeCurrentGitRepo(
+      repo => {
+        this._currentRepo = repo;
+        this._repoStatusBar.text = 'githd: Repository ' + this._currentRepo?.root;
+        this._repoStatusBar.show();
+      },
+      null,
+      context.subscriptions
+    );
 
     vs.window.onDidChangeActiveTextEditor(
       editor => {
@@ -187,13 +201,17 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       context.subscriptions
     );
 
-    vs.workspace.onDidCloseTextDocument(doc => {
-      if (doc.uri.scheme === HistoryViewProvider.scheme) {
-        Tracer.verbose('HistoryView: onDidCloseTextDocument');
-        this._model.clearHistoryViewContexts();
-        this._reset();
-      }
-    });
+    vs.workspace.onDidCloseTextDocument(
+      doc => {
+        if (doc.uri.scheme === HistoryViewProvider.scheme) {
+          Tracer.verbose('HistoryView: onDidCloseTextDocument');
+          this._model.clearHistoryViewContexts();
+          this._reset();
+        }
+      },
+      null,
+      context.subscriptions
+    );
 
     this._updateExpressStatusBar();
 
@@ -230,16 +248,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   set express(value: boolean) {
     this._express = value;
     this._expressStatusBar.text = 'githd: Express ' + (value ? 'On' : 'Off');
-  }
-
-  get gitRepo(): GitRepo | undefined {
-    return this._currentRepo;
-  }
-  updateRepo(value: GitRepo) {
-    this._currentRepo = value;
-    this._loader.updateRepo(value);
-    this._repoStatusBar.text = 'githd: Repository ' + this._currentRepo?.root;
-    this._repoStatusBar.show();
   }
 
   private set commitsCount(count: number) {

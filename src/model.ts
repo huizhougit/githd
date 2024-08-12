@@ -13,6 +13,7 @@ export interface Configuration {
   readonly blameEnabled: boolean;
   readonly disabledInEditor: boolean;
   withFolder: boolean;
+  readonly cacheEnabled: boolean;
 }
 
 export interface FilesViewContext {
@@ -41,7 +42,8 @@ function getConfiguration(): Configuration {
     displayExpress: <boolean>vs.workspace.getConfiguration('githd.logView').get('displayExpressStatus'),
     blameEnabled: <boolean>vs.workspace.getConfiguration('githd.blameView').get('enabled'),
     disabledInEditor: <boolean>vs.workspace.getConfiguration('githd.editor').get('disabled'),
-    traceLevel: <string>vs.workspace.getConfiguration('githd').get('traceLevel')
+    traceLevel: <string>vs.workspace.getConfiguration('githd').get('traceLevel'),
+    cacheEnabled: <boolean>vs.workspace.getConfiguration('githd').get('cacheEnabled')
   };
 }
 
@@ -66,6 +68,7 @@ export class Model {
     this._config = getConfiguration();
     Tracer.level = this._config.traceLevel;
     vs.commands.executeCommand('setContext', 'githd.disableInEditor', this._config.disabledInEditor);
+    this._loader.enableCache(this._config.cacheEnabled);
 
     vs.workspace.onDidChangeConfiguration(
       () => {
@@ -77,13 +80,15 @@ export class Model {
           newConfig.displayExpress !== this._config.displayExpress ||
           newConfig.blameEnabled !== this._config.blameEnabled ||
           newConfig.disabledInEditor !== this._config.disabledInEditor ||
-          newConfig.traceLevel !== this._config.traceLevel
+          newConfig.traceLevel !== this._config.traceLevel ||
+          newConfig.cacheEnabled !== this._config.cacheEnabled
         ) {
           Tracer.info(`Model: configuration updated ${JSON.stringify(newConfig)}`);
           this._config = newConfig;
           this._onDidChangeConfiguration.fire(newConfig);
           Tracer.level = newConfig.traceLevel;
           vs.commands.executeCommand('setContext', 'githd.disableInEditor', newConfig.disabledInEditor);
+          this._loader.enableCache(newConfig.cacheEnabled);
         }
       },
       null,

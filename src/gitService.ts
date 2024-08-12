@@ -96,12 +96,15 @@ function singleLined(value: string): string {
 export class GitService {
   private _gitRepos: GitRepo[] = [];
   private _onDidChangeGitRepositories = new vs.EventEmitter<GitRepo[]>();
+  private _onDidChangeCurrentGitRepo = new vs.EventEmitter<GitRepo>();
   private _gitPath: string;
+  private _currentRepo: GitRepo | undefined;
 
   constructor(context: vs.ExtensionContext) {
     context.subscriptions.push(
       vs.workspace.onDidChangeWorkspaceFolders(_ => this.updateGitRoots(vs.workspace.workspaceFolders)),
-      this._onDidChangeGitRepositories
+      this._onDidChangeGitRepositories,
+      this._onDidChangeCurrentGitRepo
     );
     let gitPath: string = vs.workspace.getConfiguration('git').get('path') ?? '';
     if (gitPath) {
@@ -123,6 +126,10 @@ export class GitService {
     return this._onDidChangeGitRepositories.event;
   }
 
+  get onDidChangeCurrentGitRepo(): vs.Event<GitRepo> {
+    return this._onDidChangeCurrentGitRepo.event;
+  }
+
   updateGitRoots(wsFolders: readonly vs.WorkspaceFolder[] | undefined) {
     // reset repos first. Should optimize it to avoid firing multiple events.
     this._gitRepos = [];
@@ -142,6 +149,15 @@ export class GitService {
 
   getGitRepos(): GitRepo[] {
     return this._gitRepos;
+  }
+
+  get currentGitRepo(): GitRepo | undefined {
+    return this._currentRepo;
+  }
+
+  updateCurrentGitRepo(repo: GitRepo) {
+    this._currentRepo = repo;
+    this._onDidChangeCurrentGitRepo.fire(repo);
   }
 
   async getGitRepo(fsPath: string): Promise<GitRepo | undefined> {

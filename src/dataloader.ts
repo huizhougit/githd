@@ -37,6 +37,7 @@ class Cache {
 }
 
 export class Dataloader {
+  private _cacheEnabled = true;
   private _cache = new Cache();
   private _fsWatcher: vs.FileSystemWatcher | undefined;
   private _repo: GitRepo | undefined;
@@ -44,35 +45,16 @@ export class Dataloader {
   private _updateDelay: NodeJS.Timer | undefined;
 
   constructor(ctx: vs.ExtensionContext, private _gitService: GitService) {
-    const repos: GitRepo[] = _gitService.getGitRepos();
-    if (repos.length == 1) {
-      this.updateRepo(repos[0]);
-    }
+    this._gitService.onDidChangeCurrentGitRepo(repo => this._updateRepo(repo), null, ctx.subscriptions);
   }
 
-  async updateRepo(repo: GitRepo): Promise<void> {
-    if (this._repo?.root === repo.root) {
+  enableCache(enable: boolean): void {
+    if (this._cacheEnabled === enable) {
       return;
     }
 
-    this._repo = repo;
-
-    const watching: string = path.join(repo.root, '.git', '**');
-    Tracer.info(`Dataloader: repo updated. watching ${watching}`);
-
-    if (this._fsWatcher) {
-      this._fsWatcher.dispose();
-    }
-    clearTimeout(this._updateDelay);
-    this._cache.clear();
-    this._updating = false;
-
-    this._repo = repo;
-    this._fsWatcher = vs.workspace.createFileSystemWatcher(watching);
-    this._fsWatcher.onDidChange(uri => this._updateCaches(repo, uri));
-    this._fsWatcher.onDidCreate(uri => this._updateCaches(repo, uri));
-    this._fsWatcher.onDidDelete(uri => this._updateCaches(repo, uri));
-    this._updateCaches(repo);
+    this._cacheEnabled = enable;
+    enable ? this._enableCache() : this._disableCache();
   }
 
   async getLogEntries(
@@ -203,6 +185,43 @@ export class Dataloader {
     const commits: string[] = this._useCache(repo.root) ? this._cache.commits : await this._gitService.getCommits(repo);
     const index: number = commits.indexOf(ref);
     return [index >= 0 && index + 1 < commits.length, index > 0];
+  }
+
+  private _enableCache() {
+    const repo: GitRepo | undefined = this._gitService.currentGitRepo;
+    if (!repo) {
+      return;
+    }
+
+    this._repo = repo;
+    const watching: string = path.join(repo.root, '.git', '**');
+    this._fsWatcher = vs.workspace.createFileSystemWatcher(watching);
+    this._fsWatcher.onDidChange(uri => this._updateCaches(repo, uri));
+    this._fsWatcher.onDidCreate(uri => this._updateCaches(repo, uri));
+    this._fsWatcher.onDidDelete(uri => this._updateCaches(repo, uri));
+    this._updateCaches(repo);
+
+    Tracer.info(`Dataloader: started watching ${watching}`);
+  }
+
+  private _disableCache() {
+    this._repo = undefined;
+    if (this._fsWatcher) {
+      this._fsWatcher.dispose();
+    }
+    clearTimeout(this._updateDelay);
+    this._cache.clear();
+    this._updating = false;
+  }
+
+  private async _updateRepo(repo: GitRepo): Promise<void> {
+    if (!this._cacheEnabled || this._repo?.root === repo.root) {
+      return;
+    }
+
+    // reenable cache in the new repo
+    this._disableCache();
+    this._enableCache();
   }
 
   private async _updateCaches(repo: GitRepo, uri?: vs.Uri): Promise<void> {

@@ -434,7 +434,7 @@ export class CommandCenter {
 
     const repo: GitRepo | undefined = await selectGitRepo(this._gitService);
     if (repo) {
-      this._historyView.updateRepo(repo);
+      this._gitService.updateCurrentGitRepo(repo);
     }
   }
 
@@ -493,13 +493,13 @@ export class CommandCenter {
   }
 
   private async _getOrUpdateRepo(): Promise<GitRepo | undefined> {
-    if (!this._historyView.gitRepo) {
+    if (!this._gitService.currentGitRepo) {
       const repo: GitRepo | undefined = await selectGitRepo(this._gitService);
       if (!repo) {
         return;
       }
-      this._historyView.updateRepo(repo);
+      this._gitService.updateCurrentGitRepo(repo);
     }
-    return this._historyView.gitRepo;
+    return this._gitService.currentGitRepo;
   }
 }

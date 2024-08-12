@@ -94,6 +94,11 @@
                         "info",
                         "verbose"
                     ]
+                },
+                "githd.cacheEnabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Cache some git data to improve performance. Whenever there is a change under .git the cache will be updated."
                 }
             }
         },
