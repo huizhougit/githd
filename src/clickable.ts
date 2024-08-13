@@ -53,6 +53,18 @@ export class ClickableProvider implements vs.HoverProvider {
       this._disposables
     );
 
+    vs.window.onDidChangeVisibleTextEditors(
+      editors => {
+        editors.forEach(editor => {
+          if (editor && editor.document.uri.scheme === _scheme) {
+            this._setDecorations(editor);
+          }
+        });
+      },
+      null,
+      this._disposables
+    );
+
     vs.workspace.onDidChangeTextDocument(
       e => {
         if (e.document.uri.scheme === _scheme) {

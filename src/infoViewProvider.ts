@@ -35,6 +35,18 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
       context.subscriptions
     );
 
+    vs.window.onDidChangeVisibleTextEditors(
+      editors => {
+        editors.forEach(editor => {
+          if (editor && editor.document.uri.scheme === InfoViewProvider.scheme) {
+            this._decorate(editor);
+          }
+        });
+      },
+      null,
+      context.subscriptions
+    );
+
     vs.workspace.onDidChangeTextDocument(
       e => {
         if (e.document.uri.scheme === InfoViewProvider.scheme) {

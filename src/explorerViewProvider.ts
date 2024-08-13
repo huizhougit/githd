@@ -340,8 +340,6 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     return !this._context?.isStash && !!this._context?.rightRef && !this._context?.leftRef;
   }
 
-  private async _setViewContexts(): Promise<void> {}
-
   private async _build(): Promise<void> {
     if (this._rootCommitPosition === RootCommitPosition.Current) {
       return this._buildCurrentCommit();

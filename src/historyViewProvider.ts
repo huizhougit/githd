@@ -155,7 +155,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       repo => {
         this._currentRepo = repo;
         this._repoStatusBar.text = 'githd: Repository ' + this._currentRepo?.root;
-        this._repoStatusBar.show();
       },
       null,
       context.subscriptions
@@ -163,17 +162,26 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
     vs.window.onDidChangeActiveTextEditor(
       editor => {
-        if (editor && editor.document.uri.scheme === HistoryViewProvider.scheme) {
-          Tracer.verbose(`HistoryView: onDidChangeActiveTextEditor`);
-          if (!this._updating) {
-            // If it's updating, _setDecorations will be called after it's updated.
-            this._setDecorations(editor);
+        if (editor?.document.uri.scheme === HistoryViewProvider.scheme) {
+          Tracer.verbose('HistoryView: onDidChangeActiveTextEditor');
+          this._show(editor);
+        }
+      },
+      null,
+      context.subscriptions
+    );
+
+    vs.window.onDidChangeVisibleTextEditors(
+      editors => {
+        let visible = false;
+        editors.forEach(editor => {
+          if (editor?.document.uri.scheme === HistoryViewProvider.scheme) {
+            Tracer.verbose('HistoryView: onDidChangeVisibleTextEditors');
+            this._show(editor);
+            visible = true;
           }
-          if (this._currentRepo?.root) {
-            this._repoStatusBar.show();
-          }
-        } else {
-          // only show repo in the history view
+        });
+        if (!visible) {
           this._repoStatusBar.hide();
         }
       },
@@ -263,6 +271,19 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   provideTextDocumentContent(uri: vs.Uri): string {
     Tracer.verbose(`HistoryView: provideTextDocumentContent length: ${this._content.length}`);
     return this._content;
+  }
+
+  private _show(editor: vs.TextEditor) {
+    if (!this._updating) {
+      // If it's updating, _setDecorations will be called after it's updated.
+      this._setDecorations(editor);
+    }
+    if (this._currentRepo?.root) {
+      this._repoStatusBar.show();
+    } else {
+      // only show repo in the history view
+      this._repoStatusBar.hide();
+    }
   }
 
   private _updateExpressStatusBar() {
