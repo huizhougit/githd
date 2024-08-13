@@ -58,6 +58,7 @@ class CommittedFileItem extends vs.TreeItem {
       path: '/' + file.gitRelativePath,
       query: `status=${file.status}`
     });
+    this.tooltip = file.stat;
   }
 }
 
@@ -377,14 +378,14 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       }
     });
 
-    const committedFiles: GitCommittedFile[] = await this._gitService.getCommittedFiles(
+    const [stats, committedFiles]: [string, GitCommittedFile[]] = await this._gitService.getCommittedFiles(
       this._context.repo,
       rightRef,
       leftRef,
       this._context.isStash
     );
     if (!leftRef) {
-      await this._buildCommitInfo(rightRef);
+      await this._buildCommitInfo(stats);
     }
     if (!leftRef && !specifiedPath) {
       this._buildCommitTree(committedFiles, rightRef);
@@ -425,13 +426,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     this._onDidChange.fire(undefined);
   }
 
-  private async _buildCommitInfo(ref: string): Promise<void> {
-    let stat: string = await this._gitService.getCommitStat(this._context?.repo, ref);
-    const i: number = stat.indexOf(' changed,');
-    if (i > 0) {
-      stat = `(${stat.substring(i + 10).trim()})`;
-    }
-    this._treeRoot.push(new InfoItem(`${this.commitOrStashString} Info \u00a0 ${stat}`));
+  private async _buildCommitInfo(stats: string): Promise<void> {
+    this._treeRoot.push(new InfoItem(`${this.commitOrStashString} Info \u00a0 ${stats}`));
   }
 
   private _buildCommitTree(files: GitCommittedFile[], ref: string) {

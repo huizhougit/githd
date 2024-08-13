@@ -57,6 +57,7 @@ export interface GitCommittedFile {
   gitRelativePath: string;
   gitRelativeOldPath: string;
   status: string;
+  stat: string | undefined;
 }
 
 class GitCommittedFileImpl implements GitCommittedFile {
@@ -66,6 +67,8 @@ class GitCommittedFileImpl implements GitCommittedFile {
     readonly gitRelativeOldPath: string,
     readonly status: string
   ) {}
+
+  stat: string | undefined;
 
   get fileUri(): vs.Uri {
     return vs.Uri.file(path.join(this._repo.root, this.gitRelativePath));
@@ -248,14 +251,15 @@ export class GitService {
       .filter(ref => !!ref) as GitRef[];
   }
 
+  // returns [total commits stats, [commits]]
   async getCommittedFiles(
     repo: GitRepo,
     rightRef: string,
     leftRef?: string,
     isStash?: boolean
-  ): Promise<GitCommittedFile[]> {
+  ): Promise<[string, GitCommittedFile[]]> {
     if (!repo) {
-      return [];
+      return ['', []];
     }
     let args = ['show', '--format=%h', '--name-status', rightRef];
     if (leftRef) {
@@ -283,6 +287,7 @@ export class GitService {
           case 'M':
           case 'A':
           case 'D':
+          case 'T':
             gitRelativeOldPath = info[1];
             gitRelativePath = info[1];
             break;
@@ -297,7 +302,8 @@ export class GitService {
         files.push(new GitCommittedFileImpl(repo, gitRelativePath, gitRelativeOldPath, status));
       }
     });
-    return files;
+    const stats: string = !leftRef && !isStash ? await this._updateCommitsStats(repo, rightRef, files) : '';
+    return [stats, files];
   }
 
   async getLogEntries(
@@ -426,7 +432,7 @@ export class GitService {
       details += body + '\r\n\r\n';
     }
     details += '-----------------------------\r\n\r\n';
-    details += await this._exec(['show', '--format=', '--stat', ref], repo.root);
+    details += await this._exec(['show', '--format=', '--stat', '--stat-width=200', ref], repo.root);
     return details;
   }
 
@@ -523,11 +529,25 @@ export class GitService {
     };
   }
 
-  async getCommitStat(repo: GitRepo | undefined, ref: string): Promise<string> {
-    if (!repo) {
-      return '';
-    }
-    return await this._exec(['show', '--format=', '--shortstat', ref], repo.root);
+  // commits will be updated with stats
+  private async _updateCommitsStats(repo: GitRepo, ref: string, commits: GitCommittedFile[]): Promise<string> {
+    const res: string = await this._exec(['show', '--format=', '--stat', '--stat-width=200', ref], repo.root);
+    const stats = new Map<string, string>(); // [oldFilePath, stat]
+    let total = '';
+    res.split(/\r?\n/g).forEach(line => {
+      const items = line.split('|');
+      if (items.length == 2) {
+        stats.set(items[0].trim(), items[1].trim()); // TODO: rename is not handled
+      } else {
+        const i: number = line.indexOf(' changed,');
+        if (i > 0) {
+          total = `(${line.substring(i + 10).trim()})`;
+        }
+      }
+    });
+
+    commits.forEach(commit => (commit.stat = stats.get(commit.gitRelativeOldPath)));
+    return total;
   }
 
   async getCommits(repo: GitRepo, branch?: string): Promise<string[]> {
