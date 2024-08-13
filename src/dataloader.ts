@@ -190,14 +190,14 @@ export class Dataloader {
     }
 
     this._repo = repo;
-    const watching: string = path.join(repo.root, '.git', '**');
+    const watching = new vs.RelativePattern(path.join(repo.root, '.git'), '**');
     this._fsWatcher = vs.workspace.createFileSystemWatcher(watching);
     this._fsWatcher.onDidChange(uri => this._updateCaches(repo, uri));
     this._fsWatcher.onDidCreate(uri => this._updateCaches(repo, uri));
     this._fsWatcher.onDidDelete(uri => this._updateCaches(repo, uri));
     this._updateCaches(repo);
 
-    Tracer.info(`Dataloader: started watching ${watching}`);
+    Tracer.info(`Dataloader: started watching ${watching.baseUri.fsPath}`);
   }
 
   private _disableCache() {
