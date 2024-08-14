@@ -251,6 +251,9 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
           this._context.rightRef
         );
       }),
+      vs.commands.registerCommand('githd.diffCommitFromTreeView', (folder: FolderItem) =>
+        vs.commands.executeCommand('githd.diffFolderFromTreeView', folder)
+      ),
       vs.commands.registerCommand('githd.openFile', (fileItem: CommittedFileItem) => {
         vs.commands.executeCommand('vscode.open', fileItem.file.fileUri);
       }),
@@ -293,8 +296,10 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
 
   async getChildren(element?: CommittedTreeItem): Promise<CommittedTreeItem[]> {
     if (!element) {
-      // build the tree here so that we can show the loading indicator
-      await this._build();
+      if (this._treeRoot.length === 0) {
+        // build the tree here so that we can show the loading indicator
+        await this._build();
+      }
       return this._treeRoot;
     }
     let items: CommittedTreeItem[] = [];
@@ -319,6 +324,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       return;
     }
     this._rootCommitPosition = RootCommitPosition.Previous;
+    this._treeRoot = [];
     this._onDidChange.fire(undefined);
   }
 
@@ -329,6 +335,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       return;
     }
     this._rootCommitPosition = RootCommitPosition.Next;
+    this._treeRoot = [];
     this._onDidChange.fire(undefined);
   }
 
@@ -455,7 +462,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private _buildCommitFolder(label: string, committedFiles: GitCommittedFile[]) {
-    let folder = new FolderItem('infoFolder', undefined, '', label, rootFolderIcon);
+    let folder = new FolderItem('commitFolder', undefined, '', label, rootFolderIcon);
     buildFileTree(folder, committedFiles, this._withFolder);
     this._treeRoot.push(folder);
   }

@@ -195,7 +195,12 @@
             {
                 "command": "githd.diffFolderFromTreeView",
                 "title": "View folder diff with this version",
-                "icon": "$(diff-single)"
+                "icon": "$(diff-multiple)"
+            },
+            {
+                "command": "githd.diffCommitFromTreeView",
+                "title": "View all diff with this version",
+                "icon": "$(diff-multiple)"
             },
             {
                 "command": "githd.openCommit",
@@ -558,42 +563,47 @@
                 },
                 {
                     "command": "githd.diffFileFromTreeView",
-                    "when": "view == githd.files && viewItem == file  && githd.commitsView",
+                    "when": "view == githd.files && viewItem == file && githd.commitsView",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "githd.diffCommitFromTreeView",
+                    "when": "view == githd.files && viewItem == commitFolder && githd.commitsView",
                     "group": "inline@2"
                 },
                 {
                     "command": "githd.diffFolderFromTreeView",
-                    "when": "view == githd.files && viewItem == folder  && githd.commitsView",
+                    "when": "view == githd.files && viewItem == folder && githd.commitsView",
                     "group": "inline@2"
                 },
                 {
                     "command": "githd.viewFileHistoryFromTree",
                     "when": "view == githd.files && viewItem == file",
-                    "group": "inline@2"
+                    "group": "inline@3"
                 },
                 {
                     "command": "githd.viewFolderHistoryFromTree",
                     "when": "view == githd.files && viewItem == folder",
-                    "group": "inline@2"
+                    "group": "inline@3"
                 },
                 {
                     "command": "githd.showFilesTreeView",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
                     "group": "inline@4"
                 },
                 {
                     "command": "githd.showFilesListView",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
                     "group": "inline@5"
                 },
                 {
                     "command": "githd.expandFolder",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
                     "group": "inline@6"
                 },
                 {
                     "command": "githd.collapseFolder",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
                     "group": "inline@7"
                 }
             ],
