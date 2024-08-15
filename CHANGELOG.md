@@ -1,8 +1,15 @@
 # Change Log
 
+## 2.4.0
+
+- Go back or forward on History view.
+- Go back or forward on Explorer view.
+- Check the previous (older) or next (newer) commit.
+- Go to github PR links from blame view and commit info.
+
 ## 2.3.8
 
- - Bug fixes.
+- Bug fixes.
 
 ## 2.3.7
 
