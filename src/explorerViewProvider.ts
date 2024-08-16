@@ -58,7 +58,21 @@ class CommittedFileItem extends vs.TreeItem {
       path: '/' + file.gitRelativePath,
       query: `status=${file.status}`
     });
-    this.tooltip = file.stat;
+    if (file.stat) {
+      const [count, changes] = file.stat.split(' ');
+      const stat: string = `${count} <span style="color:var(--vscode-terminal-ansiGreen);">${changes.substring(
+        0,
+        changes.lastIndexOf('+') + 1
+      )}</span><span style="color:var(--vscode-terminal-ansiRed);">${changes.substring(
+        changes.indexOf('-'),
+        changes.lastIndexOf('-') + 1
+      )}</span>`;
+
+      const markdown = new vs.MarkdownString();
+      markdown.isTrusted = true;
+      markdown.appendMarkdown(stat);
+      this.tooltip = markdown;
+    }
   }
 }
 
