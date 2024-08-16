@@ -373,13 +373,12 @@ export class CommandCenter {
   @command('githd.openCommitInfo')
   openCommitInfo(): void {
     Tracer.verbose('Command: githd.openCommitInfo');
-    vs.workspace
-      .openTextDocument(InfoViewProvider.defaultUri)
-      .then(doc =>
-        vs.window
-          .showTextDocument(doc, { preview: true, preserveFocus: true })
-          .then(() => vs.commands.executeCommand('cursorTop'))
-      );
+    vs.workspace.openTextDocument(InfoViewProvider.defaultUri).then(doc => {
+      vs.languages.setTextDocumentLanguage(doc, 'githd');
+      vs.window
+        .showTextDocument(doc, { preview: true, preserveFocus: true })
+        .then(() => vs.commands.executeCommand('cursorTop'));
+    });
   }
 
   @command('githd.openLineDiff')

@@ -133,6 +133,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         Tracer.verbose(`HistoryView: onDidChangeHistoryViewContext`);
         await this._cancelUpdating();
         const doc: vs.TextDocument = await vs.workspace.openTextDocument(HistoryViewProvider.defaultUri);
+        vs.languages.setTextDocumentLanguage(doc, 'githd');
         await vs.window.showTextDocument(doc, {
           preview: false,
           preserveFocus: true
@@ -203,18 +204,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
             }
             this._updatingResolver();
           }
-        }
-      },
-      null,
-      context.subscriptions
-    );
-
-    vs.workspace.onDidCloseTextDocument(
-      doc => {
-        if (doc.uri.scheme === HistoryViewProvider.scheme) {
-          Tracer.verbose('HistoryView: onDidCloseTextDocument');
-          this._model.clearHistoryViewContexts();
-          this._reset();
         }
       },
       null,
