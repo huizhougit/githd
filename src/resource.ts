@@ -4,7 +4,7 @@ export class Resource {
   static getGitStatusColor(status: string): vs.ThemeColor | undefined {
     switch (status) {
       case 'M':
-        return new vs.ThemeColor('gitDecoration.modifiedResourceForeground');
+        return; // majority of files are modified, we don't need to show color
       case 'D':
         return new vs.ThemeColor('gitDecoration.deletedResourceForeground');
       case 'A':
