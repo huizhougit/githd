@@ -41,6 +41,15 @@
         "test": "node ./out/test/runTest.js"
     },
     "contributes": {
+        "languages": [
+            {
+                "id": "githd",
+                "icon": {
+                    "light": "resources/icons/githd.svg",
+                    "dark": "resources/icons/githd.svg"
+                }
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "Git History Diff configuration",
