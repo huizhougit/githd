@@ -597,22 +597,22 @@
                 },
                 {
                     "command": "githd.showFilesTreeView",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
                     "group": "inline@4"
                 },
                 {
                     "command": "githd.showFilesListView",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
                     "group": "inline@5"
                 },
                 {
                     "command": "githd.expandFolder",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
                     "group": "inline@6"
                 },
                 {
                     "command": "githd.collapseFolder",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == infoFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
                     "group": "inline@7"
                 }
             ],

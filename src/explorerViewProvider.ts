@@ -15,13 +15,15 @@ const rootFolderIcon = {
 };
 
 class InfoItem extends vs.TreeItem {
-  constructor(label: string) {
+  constructor(label: string, description?: string) {
     super(label);
     this.contextValue = 'infoFile';
     this.command = {
       title: '',
       command: 'githd.openCommitInfo'
     };
+    this.description = description;
+    this.tooltip = description;
     this.iconPath = getIconUri('info', '');
   }
 
@@ -44,7 +46,7 @@ class LineDiffItem extends vs.TreeItem {
 
 class CommittedFileItem extends vs.TreeItem {
   static authority: string = 'files';
-  constructor(readonly parent: FolderItem, readonly file: GitCommittedFile, label: string) {
+  constructor(readonly parent: FolderItem, readonly file: GitCommittedFile, label: string, description?: string) {
     super(label);
     this.contextValue = 'file';
     this.command = {
@@ -58,6 +60,7 @@ class CommittedFileItem extends vs.TreeItem {
       path: '/' + file.gitRelativePath,
       query: `status=${file.status}`
     });
+    this.description = description;
     if (file.stat) {
       const [count, changes] = file.stat.split(' ');
       const stat: string = `${count} <span style="color:var(--vscode-terminal-ansiGreen);">${changes.substring(
@@ -88,6 +91,7 @@ class FolderItem extends vs.TreeItem {
     private _parent: FolderItem | undefined,
     private _gitRelativePath: string,
     label: string,
+    description: string,
     iconPath?: { light: vs.Uri; dark: vs.Uri }
   ) {
     super(label);
@@ -97,6 +101,7 @@ class FolderItem extends vs.TreeItem {
       path: '/' + this._gitRelativePath
     });
     this.contextValue = context;
+    this.description = description;
     this.iconPath = iconPath;
     this.collapsibleState = vs.TreeItemCollapsibleState.Expanded;
   }
@@ -123,17 +128,18 @@ class FolderItem extends vs.TreeItem {
   }
 }
 
-function getFormattedLabel(relativePath: string): string {
+function getFormattedLabelAndDesc(relativePath: string): [string, string] {
   const name: string = path.basename(relativePath);
   let dir: string = path.dirname(relativePath);
   if (dir === '.') {
     dir = '';
   }
-  return name + ' \u00a0\u2022\u00a0 ' + dir;
+  return [name, '\u00a0\u2022\u00a0' + dir];
 }
 
 function createCommittedFileItem(rootFolder: FolderItem, file: GitCommittedFile): CommittedFileItem {
-  return new CommittedFileItem(rootFolder, file, getFormattedLabel(file.gitRelativePath));
+  const [label, desc] = getFormattedLabelAndDesc(file.gitRelativePath);
+  return new CommittedFileItem(rootFolder, file, label, desc);
 }
 
 function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relativePath: string = '') {
@@ -149,7 +155,7 @@ function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, 
       return item.label === segments[i];
     });
     if (!folder) {
-      folder = new FolderItem('folder', parent, gitRelativePath, segments[i]);
+      folder = new FolderItem('folder', parent, gitRelativePath, segments[i], '');
       parent.subFolders.push(folder);
     }
     parent = folder;
@@ -172,7 +178,7 @@ function buildFileTree(rootFolder: FolderItem, files: GitCommittedFile[], withFo
 function buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem) {
   rootFolder.files.push(
     ...folder.files.map(item => {
-      item.label = getFormattedLabel(
+      [item.label, item.description] = getFormattedLabelAndDesc(
         path.relative(rootFolder.gitRelativePath, item.file.gitRelativePath).replace(/\\/g, '/')
       );
       return item;
@@ -302,7 +308,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     });
   }
 
-  provideFileDecoration(uri: vs.Uri, token: vs.CancellationToken): vs.ProviderResult<vs.FileDecoration> {
+  provideFileDecoration(uri: vs.Uri): vs.ProviderResult<vs.FileDecoration> {
     if (uri.scheme !== ExplorerViewProvider.scheme) {
       return;
     }
@@ -459,15 +465,17 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private async _buildCommitInfo(stats: string): Promise<void> {
-    this._treeRoot.push(new InfoItem(`${this.commitOrStashString} Info \u00a0 ${stats}`));
+    this._treeRoot.push(
+      new InfoItem(`${this.commitOrStashString} Info`, stats.replace(/(\b(insertions?|deletions?)\b)/g, ''))
+    );
   }
 
   private _buildCommitTree(files: GitCommittedFile[], ref: string) {
-    this._buildCommitFolder(`${this.commitOrStashString} ${ref} \u00a0 (${files.length} files changed)`, files);
+    this._buildCommitFolder(`${this.commitOrStashString}`, ref, files);
   }
 
   private _buildDiffBranchTree(files: GitCommittedFile[], leftRef: string, rightRef: string) {
-    this._buildCommitFolder(`Diffs between ${leftRef} and ${rightRef} \u00a0 (${files.length} files)`, files);
+    this._buildCommitFolder(`Diffs between ${leftRef} and ${rightRef}`, `(${files.length} files)`, files);
   }
 
   private async _buildPathSpecifiedCommitTree(
@@ -486,8 +494,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
   }
 
-  private _buildCommitFolder(label: string, committedFiles: GitCommittedFile[]) {
-    let folder = new FolderItem('commitFolder', undefined, '', label, rootFolderIcon);
+  private _buildCommitFolder(label: string, description: string, committedFiles: GitCommittedFile[]) {
+    let folder = new FolderItem('commitFolder', undefined, '', label, description, rootFolderIcon);
     buildFileTree(folder, committedFiles, this._withFolder);
     this._treeRoot.push(folder);
   }
@@ -498,8 +506,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     specifiedPath: vs.Uri,
     lineInfo?: string
   ): Promise<void> {
-    let folder = new FolderItem('infoFolder', undefined, '', label, rootFolderIcon);
-    const relativePath = await this._gitService.getGitRelativePath(specifiedPath);
+    const relativePath: string = (await this._gitService.getGitRelativePath(specifiedPath)) ?? '';
+    let folder = new FolderItem('focusFolder', undefined, '', label, relativePath, rootFolderIcon);
     if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
       if (lineInfo) {
         folder.infoItem = new LineDiffItem(lineInfo);
@@ -524,24 +532,20 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
   }
 
-  private _showFilesTreeView(parent: FolderItem) {
-    if (!parent) {
+  private _showFilesTreeView(folder: FolderItem) {
+    buildFilesWithFolder(folder);
+    this._onDidChange.fire(folder);
+    if (folder.contextValue === 'commitFolder') {
       this._withFolder = true;
-      this._update();
-    } else {
-      buildFilesWithFolder(parent);
-      this._onDidChange.fire(parent);
     }
   }
 
-  private _showFilesListView(parent: FolderItem) {
-    if (!parent) {
+  private _showFilesListView(folder: FolderItem) {
+    folder.subFolders.forEach(sub => buildFilesWithoutFolder(folder, sub));
+    folder.subFolders = [];
+    this._onDidChange.fire(folder);
+    if (folder.contextValue === 'commitFolder') {
       this._withFolder = false;
-      this._update();
-    } else {
-      parent.subFolders.forEach(folder => buildFilesWithoutFolder(parent, folder));
-      parent.subFolders = [];
-      this._onDidChange.fire(parent);
     }
   }
 

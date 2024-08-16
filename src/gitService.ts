@@ -538,11 +538,8 @@ export class GitService {
       const items = line.split('|');
       if (items.length == 2) {
         stats.set(items[0].trim(), items[1].trim()); // TODO: rename is not handled
-      } else {
-        const i: number = line.indexOf(' changed,');
-        if (i > 0) {
-          total = `(${line.substring(i + 10).trim()})`;
-        }
+      } else if (line.indexOf('changed') > 0) {
+        total = line;
       }
     });
 
