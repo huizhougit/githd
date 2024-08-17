@@ -541,10 +541,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
   private _moveToTop(editor?: vs.TextEditor) {
     Tracer.verbose('HistoryView: _moveToTop');
-    if (editor) {
-      editor.selection = new vs.Selection(0, 0, 0, 0);
-      editor.revealRange(new vs.Range(0, 0, 0, 0));
-    }
+    editor?.revealRange(new vs.Range(0, 0, 0, 0), vs.TextEditorRevealType.AtTop);
   }
 
   private _setDecorations(editor?: vs.TextEditor) {

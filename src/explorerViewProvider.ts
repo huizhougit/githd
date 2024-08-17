@@ -242,7 +242,17 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
         vs.commands.executeCommand('githd.diffFolderFromTreeView', folder)
       ),
       vs.commands.registerCommand('githd.openFile', (fileItem: CommittedFileItem) => {
-        vs.commands.executeCommand('vscode.open', fileItem.file.fileUri);
+        const editor: vs.TextEditor | undefined = vs.window.activeTextEditor;
+        vs.commands.executeCommand('vscode.open', fileItem.file.fileUri).then(() => {
+          if (
+            editor?.document.uri.fsPath === fileItem.file.fileUri.fsPath &&
+            vs.window.activeTextEditor?.document.uri.fsPath === fileItem.file.fileUri.fsPath
+          ) {
+            vs.window.activeTextEditor.revealRange(editor.visibleRanges[0], vs.TextEditorRevealType.InCenter);
+            vs.window.activeTextEditor.selection = editor.selection;
+            vs.window.activeTextEditor.selections = editor.selections;
+          }
+        });
       }),
       vs.commands.registerCommand('githd.showFileStats', (folder: FolderItem) => this._setFileWithStats(folder, true)),
       vs.commands.registerCommand('githd.hideFileStats', (folder: FolderItem) => this._setFileWithStats(folder, false)),

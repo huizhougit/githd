@@ -509,6 +509,11 @@ export class GitService {
       return;
     }
 
+    if (hash.startsWith('0000')) {
+      Tracer.verbose(`Blame info skipped. repo ${repo.root} file ${filePath}:${line} ${hash}`);
+      return;
+    }
+
     // get additional info: abbrev hash, relative date, body, stat
     const addition: string = await this._exec(
       ['show', `--format=%h${FormatSeparator}%cr${FormatSeparator}%b${FormatSeparator}`, '--stat', `${hash}`],
