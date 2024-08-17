@@ -246,6 +246,9 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       }),
       vs.commands.registerCommand('githd.showFileStats', (folder: FolderItem) => this._setFileWithStats(folder, true)),
       vs.commands.registerCommand('githd.hideFileStats', (folder: FolderItem) => this._setFileWithStats(folder, false)),
+      vs.commands.registerCommand('githd.copyCommitHash', () =>
+        vs.env.clipboard.writeText(this._context?.rightRef ?? '')
+      ),
       this._onDidChange
     );
 
