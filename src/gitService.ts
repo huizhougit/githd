@@ -207,7 +207,7 @@ export class GitService {
     return (await this._exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
   }
 
-  async getCommitsCount(repo: GitRepo, branch: string, author?: string): Promise<number> {
+  async getCommitsCount(repo: GitRepo, branch: string, file?: vs.Uri, author?: string): Promise<number> {
     if (!repo) {
       return 0;
     }
@@ -215,8 +215,13 @@ export class GitService {
     if (author) {
       args.push(`--author=${author}`);
     }
-    // the last '--' is to avoid same branch and file names caused  error
-    args.push('--');
+    if (file) {
+      const filePath = (await this.getGitRelativePath(file)) ?? '.';
+      args.push('--', '--follow', filePath);
+    } else {
+      // the '--' is to avoid same branch and file names caused  error
+      args.push('--');
+    }
     return parseInt(await this._exec(args, repo.root));
   }
 

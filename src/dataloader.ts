@@ -20,8 +20,8 @@ class Cache {
 
   constructor() {}
 
-  countKey(branch: string, author: string): string {
-    return `${branch},${author}`;
+  countKey(branch: string, file?: string, author?: string): string {
+    return `${branch},${file ?? ''},${author ?? ''}`;
   }
 
   logEntryKey(branch: string, stash?: boolean, file?: string, line?: number, author?: string): string {
@@ -128,18 +128,18 @@ export class Dataloader {
     return entries;
   }
 
-  async getCommitsCount(repo: GitRepo, branch: string, author?: string): Promise<number> {
+  async getCommitsCount(repo: GitRepo, branch: string, file?: vs.Uri, author?: string): Promise<number> {
     if (!this._useCache(repo.root)) {
-      return this._gitService.getCommitsCount(repo, branch, author);
+      return this._gitService.getCommitsCount(repo, branch, file, author);
     }
 
-    const key = this._cache.countKey(branch, author ?? '');
+    const key = this._cache.countKey(branch, file?.fsPath, author);
     const count: number | undefined = this._cache.counts.get(key);
     if (count) {
       return count;
     }
 
-    const result = await this._gitService.getCommitsCount(repo, branch, author);
+    const result = await this._gitService.getCommitsCount(repo, branch, file, author);
     this._cache.counts.set(key, result);
     return result;
   }
@@ -245,7 +245,7 @@ export class Dataloader {
 
       this._cache.branch = branch;
       this._cache.commits = commits;
-      this._cache.counts.set(this._cache.countKey(branch, ''), count);
+      this._cache.counts.set(this._cache.countKey(branch), count);
       this._cache.logEntries.set(this._cache.logEntryKey(branch), logs);
       this._updating = false;
 
