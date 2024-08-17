@@ -269,9 +269,9 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     this._update();
 
     vs.window.onDidChangeActiveTextEditor(async (editor: vs.TextEditor | undefined) => {
-      if (editor) {
-        const item = await this.findItemByPath(editor.document.fileName);
-        if (item && this._view.visible) {
+      if (this._view.visible && this._treeRoot.length > 0 && editor) {
+        const item = await this.findItemByPath(editor.document.uri);
+        if (item) {
           this._view.reveal(item);
         }
       }
@@ -535,28 +535,31 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     }
   }
 
-  async findItemByPath(fileName: string): Promise<CommittedFileItem | undefined> {
-    if (this._gitService) {
-      const activeFile = await this._gitService.getGitRelativePath(vs.Uri.file(fileName));
-      if (activeFile) {
-        Tracer.verbose(`active file: ${activeFile}`);
-        function findRecursive(rootFolder: FolderItem | undefined): CommittedFileItem | undefined {
-          const found = rootFolder?.files?.find(file => file.file.gitRelativePath == activeFile);
+  async findItemByPath(file: vs.Uri): Promise<CommittedFileItem | undefined> {
+    let activeFile: string | undefined;
+    try {
+      activeFile = await this._gitService.getGitRelativePath(file);
+    } catch (e) {
+      return;
+    }
+    if (activeFile) {
+      Tracer.verbose(`active file: ${activeFile}`);
+      function findRecursive(rootFolder: FolderItem | undefined): CommittedFileItem | undefined {
+        const found = rootFolder?.files?.find(file => file.file.gitRelativePath == activeFile);
+        if (found) {
+          return found;
+        }
+        for (let i = 0; i < (rootFolder?.subFolders?.length ?? 0); i++) {
+          const found = findRecursive(rootFolder?.subFolders[i]);
           if (found) {
             return found;
-          }
-          for (let i = 0; i < (rootFolder?.subFolders?.length ?? 0); i++) {
-            const found = findRecursive(rootFolder?.subFolders[i]);
-            if (found) {
-              return found;
-            }
           }
         }
-        for (let i = 0; i < this._treeRoot.length; i++) {
-          const found = findRecursive(this._treeRoot[i] as FolderItem);
-          if (found) {
-            return found;
-          }
+      }
+      for (let i = 0; i < this._treeRoot.length; i++) {
+        const found = findRecursive(this._treeRoot[i] as FolderItem);
+        if (found) {
+          return found;
         }
       }
     }
