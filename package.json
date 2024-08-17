@@ -606,6 +606,11 @@
                     "group": "inline@1"
                 },
                 {
+                    "command": "githd.copyCommitHash",
+                    "when": "view == githd.files && viewItem =~ /^root-folder-/",
+                    "group": "copy"
+                },
+                {
                     "command": "githd.showFileStats",
                     "when": "view == githd.files && viewItem =~ /^root-folder-/ && !githd.fileWithStats",
                     "group": "inline@2"
