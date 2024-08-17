@@ -208,13 +208,15 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   private _treeRoot: (FolderItem | InfoItem)[] = [];
   private _rootCommitPosition: RootCommitPosition = RootCommitPosition.Current;
 
+  private _view: vs.TreeView<CommittedTreeItem>;
+
   constructor(
     context: vs.ExtensionContext,
     private _model: Model,
     private _dataloader: Dataloader,
     private _gitService: GitService
   ) {
-    vs.window.createTreeView('githd.files', { treeDataProvider: this });
+    this._view = vs.window.createTreeView('githd.files', { treeDataProvider: this });
     context.subscriptions.push(
       vs.window.registerFileDecorationProvider(this),
       vs.commands.registerCommand('githd.showFilesTreeView', (folder: FolderItem) => this._showFilesTreeView(folder)),
@@ -289,6 +291,15 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     this._context = this._model.filesViewContext;
     this._withFolder = this._model.configuration.withFolder;
     this._update();
+
+    vs.window.onDidChangeActiveTextEditor(async (editor: vs.TextEditor | undefined) => {
+      if (editor) {
+        const item = await this.findItemByPath(editor.document.fileName);
+        if (item && this._view.visible) {
+          this._view.reveal(item);
+        }
+      }
+    });
   }
 
   provideFileDecoration(uri: vs.Uri, token: vs.CancellationToken): vs.ProviderResult<vs.FileDecoration> {
@@ -531,6 +542,33 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       parent.subFolders.forEach(folder => buildFilesWithoutFolder(parent, folder));
       parent.subFolders = [];
       this._onDidChange.fire(parent);
+    }
+  }
+
+  async findItemByPath(fileName: string): Promise<CommittedFileItem | undefined> {
+    if (this._gitService) {
+      const activeFile = await this._gitService.getGitRelativePath(vs.Uri.file(fileName));
+      if (activeFile) {
+        Tracer.verbose(`active file: ${activeFile}`);
+        function findRecursive(rootFolder: FolderItem | undefined): CommittedFileItem | undefined {
+          const found = rootFolder?.files?.find(file => file.file.gitRelativePath == activeFile);
+          if (found) {
+            return found;
+          }
+          for (let i = 0; i < (rootFolder?.subFolders?.length ?? 0); i++) {
+            const found = findRecursive(rootFolder?.subFolders[i]);
+            if (found) {
+              return found;
+            }
+          }
+        }
+        for (let i = 0; i < this._treeRoot.length; i++) {
+          const found = findRecursive(this._treeRoot[i] as FolderItem);
+          if (found) {
+            return found;
+          }
+        }
+      }
     }
   }
 
