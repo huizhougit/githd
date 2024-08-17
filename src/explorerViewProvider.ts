@@ -46,7 +46,14 @@ class LineDiffItem extends vs.TreeItem {
 
 class CommittedFileItem extends vs.TreeItem {
   static authority: string = 'files';
-  constructor(readonly parent: FolderItem, readonly file: GitCommittedFile, label: string, description?: string) {
+
+  constructor(
+    readonly parent: FolderItem,
+    readonly file: GitCommittedFile,
+    label: string,
+    private _description: string,
+    private _withStats: boolean
+  ) {
     super(label);
     this.contextValue = 'file';
     this.command = {
@@ -60,7 +67,6 @@ class CommittedFileItem extends vs.TreeItem {
       path: '/' + file.gitRelativePath,
       query: `status=${file.status}`
     });
-    this.description = description;
     if (file.stat) {
       const [count, changes] = file.stat.split(' ');
       const stat: string = `${count} <span style="color:var(--vscode-terminal-ansiGreen);">${changes.substring(
@@ -75,7 +81,21 @@ class CommittedFileItem extends vs.TreeItem {
       markdown.isTrusted = true;
       markdown.appendMarkdown(stat);
       this.tooltip = markdown;
+      this.withStats = _withStats;
     }
+  }
+
+  set withStats(value: boolean) {
+    this._withStats = value;
+    this.description = this._description;
+    if (value) {
+      this.description += '\u00a0\u2022\u00a0' + this.file.stat;
+    }
+  }
+
+  updateDescription(description: string) {
+    this._description = description;
+    this.withStats = this._withStats;
   }
 }
 
@@ -101,7 +121,10 @@ class FolderItem extends vs.TreeItem {
       path: '/' + this._gitRelativePath
     });
     this.contextValue = context;
-    this.description = description;
+    if (description) {
+      this.description = description;
+      this.tooltip = description;
+    }
     this.iconPath = iconPath;
     this.collapsibleState = vs.TreeItemCollapsibleState.Expanded;
   }
@@ -137,65 +160,6 @@ function getFormattedLabelAndDesc(relativePath: string): [string, string] {
   return [name, '\u00a0\u2022\u00a0' + dir];
 }
 
-function createCommittedFileItem(rootFolder: FolderItem, file: GitCommittedFile): CommittedFileItem {
-  const [label, desc] = getFormattedLabelAndDesc(file.gitRelativePath);
-  return new CommittedFileItem(rootFolder, file, label, desc);
-}
-
-function buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relativePath: string = '') {
-  const segments: string[] = relativePath
-    ? path.relative(relativePath, file.gitRelativePath).split(/\\|\//)
-    : file.gitRelativePath.split('/');
-  let gitRelativePath: string = relativePath;
-  let parent: FolderItem = rootFolder;
-  let i = 0;
-  for (; i < segments.length - 1; ++i) {
-    gitRelativePath += segments[i] + '/';
-    let folder = parent.subFolders.find(item => {
-      return item.label === segments[i];
-    });
-    if (!folder) {
-      folder = new FolderItem('folder', parent, gitRelativePath, segments[i], '');
-      parent.subFolders.push(folder);
-    }
-    parent = folder;
-  }
-  parent.files.push(new CommittedFileItem(parent, file, segments[i]));
-}
-
-function buildFileTree(rootFolder: FolderItem, files: GitCommittedFile[], withFolder: boolean) {
-  if (withFolder) {
-    files.forEach(file => buildOneFileWithFolder(rootFolder, file));
-  } else {
-    rootFolder.files.push(
-      ...files.map(file => {
-        return createCommittedFileItem(rootFolder, file);
-      })
-    );
-  }
-}
-
-function buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem) {
-  rootFolder.files.push(
-    ...folder.files.map(item => {
-      [item.label, item.description] = getFormattedLabelAndDesc(
-        path.relative(rootFolder.gitRelativePath, item.file.gitRelativePath).replace(/\\/g, '/')
-      );
-      return item;
-    })
-  );
-  folder.subFolders.forEach(f => buildFilesWithoutFolder(rootFolder, f));
-  folder.files = [];
-  folder.subFolders = [];
-}
-
-function buildFilesWithFolder(rootFolder: FolderItem) {
-  rootFolder.subFolders.forEach(folder => buildFilesWithFolder(folder));
-  const files: CommittedFileItem[] = rootFolder.files;
-  rootFolder.files = [];
-  files.forEach(fileItem => buildOneFileWithFolder(rootFolder, fileItem.file, rootFolder.gitRelativePath));
-}
-
 type CommittedTreeItem = CommittedFileItem | FolderItem | InfoItem;
 
 enum RootCommitPosition {
@@ -209,6 +173,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
 
   private _onDidChange = new vs.EventEmitter<CommittedTreeItem | undefined>();
   private _withFolder: boolean;
+  private _fileWithStats: boolean = false;
 
   private _context: FilesViewContext | undefined;
   private _treeRoot: (FolderItem | InfoItem)[] = [];
@@ -279,6 +244,8 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       vs.commands.registerCommand('githd.openFile', (fileItem: CommittedFileItem) => {
         vs.commands.executeCommand('vscode.open', fileItem.file.fileUri);
       }),
+      vs.commands.registerCommand('githd.showFileStats', (folder: FolderItem) => this._setFileWithStats(folder, true)),
+      vs.commands.registerCommand('githd.hideFileStats', (folder: FolderItem) => this._setFileWithStats(folder, false)),
       this._onDidChange
     );
 
@@ -495,8 +462,15 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private _buildCommitFolder(label: string, description: string, committedFiles: GitCommittedFile[]) {
-    let folder = new FolderItem('commitFolder', undefined, '', label, description, rootFolderIcon);
-    buildFileTree(folder, committedFiles, this._withFolder);
+    let folder = new FolderItem(
+      'root-folder-' + (this._withFolder ? 'tree' : 'list'),
+      undefined,
+      '',
+      label,
+      description,
+      rootFolderIcon
+    );
+    this._buildFileTree(folder, committedFiles);
     this._treeRoot.push(folder);
   }
 
@@ -507,7 +481,14 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     lineInfo?: string
   ): Promise<void> {
     const relativePath: string = (await this._gitService.getGitRelativePath(specifiedPath)) ?? '';
-    let folder = new FolderItem('focusFolder', undefined, '', label, relativePath, rootFolderIcon);
+    let folder = new FolderItem(
+      'focus-folder-' + (this._withFolder ? 'tree' : 'list'),
+      undefined,
+      '',
+      label,
+      relativePath,
+      rootFolderIcon
+    );
     if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
       if (lineInfo) {
         folder.infoItem = new LineDiffItem(lineInfo);
@@ -516,7 +497,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
         return value.gitRelativePath === relativePath;
       });
       if (file) {
-        folder.files.push(createCommittedFileItem(folder, file));
+        folder.files.push(this._createCommittedFileItem(folder, file));
       }
     } else {
       let focus: GitCommittedFile[] = [];
@@ -525,7 +506,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
           focus.push(file);
         }
       });
-      buildFileTree(folder, focus, this._withFolder);
+      this._buildFileTree(folder, focus);
     }
     if (folder.files.length + folder.subFolders.length > 0 || folder.infoItem) {
       this._treeRoot.push(folder);
@@ -533,18 +514,20 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   }
 
   private _showFilesTreeView(folder: FolderItem) {
-    buildFilesWithFolder(folder);
+    folder.contextValue = folder.contextValue?.replace('list', 'tree');
+    this._buildFilesWithFolder(folder);
     this._onDidChange.fire(folder);
-    if (folder.contextValue === 'commitFolder') {
+    if (folder.contextValue?.startsWith('root-folder')) {
       this._withFolder = true;
     }
   }
 
   private _showFilesListView(folder: FolderItem) {
-    folder.subFolders.forEach(sub => buildFilesWithoutFolder(folder, sub));
+    folder.contextValue = folder.contextValue?.replace('tree', 'list');
+    folder.subFolders.forEach(sub => this._buildFilesWithoutFolder(folder, sub));
     folder.subFolders = [];
     this._onDidChange.fire(folder);
-    if (folder.contextValue === 'commitFolder') {
+    if (folder.contextValue?.startsWith('root-folder')) {
       this._withFolder = false;
     }
   }
@@ -593,5 +576,77 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
 
     this._setCollapsibleState(folder, state);
     this._onDidChange.fire(folder.parent);
+  }
+
+  private _setFileWithStats(folder: FolderItem, value: boolean) {
+    this._fileWithStats = value;
+    vs.commands.executeCommand('setContext', 'githd.fileWithStats', value);
+    const travesal = (folder: FolderItem) => {
+      folder.files.forEach(file => (file.withStats = this._fileWithStats));
+      folder.subFolders.forEach(sub => travesal(sub));
+    };
+    travesal(folder);
+    this._onDidChange.fire(folder);
+  }
+
+  private _createCommittedFileItem(rootFolder: FolderItem, file: GitCommittedFile): CommittedFileItem {
+    const [label, desc] = getFormattedLabelAndDesc(file.gitRelativePath);
+    return new CommittedFileItem(rootFolder, file, label, desc, this._fileWithStats);
+  }
+
+  private _buildOneFileWithFolder(rootFolder: FolderItem, file: GitCommittedFile, relativePath: string = '') {
+    const segments: string[] = relativePath
+      ? path.relative(relativePath, file.gitRelativePath).split(/\\|\//)
+      : file.gitRelativePath.split('/');
+    let gitRelativePath: string = relativePath;
+    let parent: FolderItem = rootFolder;
+    let i = 0;
+    for (; i < segments.length - 1; ++i) {
+      gitRelativePath += segments[i] + '/';
+      let folder = parent.subFolders.find(item => {
+        return item.label === segments[i];
+      });
+      if (!folder) {
+        folder = new FolderItem('folder-tree', parent, gitRelativePath, segments[i], '');
+        parent.subFolders.push(folder);
+      }
+      parent = folder;
+    }
+    parent.files.push(new CommittedFileItem(parent, file, segments[i], '', this._fileWithStats));
+  }
+
+  private _buildFileTree(rootFolder: FolderItem, files: GitCommittedFile[]) {
+    if (this._withFolder) {
+      files.forEach(file => this._buildOneFileWithFolder(rootFolder, file));
+    } else {
+      rootFolder.files.push(
+        ...files.map(file => {
+          return this._createCommittedFileItem(rootFolder, file);
+        })
+      );
+    }
+  }
+
+  private _buildFilesWithoutFolder(rootFolder: FolderItem, folder: FolderItem) {
+    rootFolder.files.push(
+      ...folder.files.map(item => {
+        const [label, description] = getFormattedLabelAndDesc(
+          path.relative(rootFolder.gitRelativePath, item.file.gitRelativePath).replace(/\\/g, '/')
+        );
+        item.label = label;
+        item.updateDescription(description);
+        return item;
+      })
+    );
+    folder.subFolders.forEach(f => this._buildFilesWithoutFolder(rootFolder, f));
+    folder.files = [];
+    folder.subFolders = [];
+  }
+
+  private _buildFilesWithFolder(rootFolder: FolderItem) {
+    rootFolder.subFolders.forEach(folder => this._buildFilesWithFolder(folder));
+    const files: CommittedFileItem[] = rootFolder.files;
+    rootFolder.files = [];
+    files.forEach(fileItem => this._buildOneFileWithFolder(rootFolder, fileItem.file, rootFolder.gitRelativePath));
   }
 }

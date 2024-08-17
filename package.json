@@ -352,6 +352,18 @@
                 "icon": "$(go-to-file)"
             },
             {
+                "command": "githd.showFileStats",
+                "title": "Show File Stats",
+                "category": "GitHD",
+                "icon": "$(eye)"
+            },
+            {
+                "command": "githd.hideFileStats",
+                "title": "Hide File Stats",
+                "category": "GitHD",
+                "icon": "$(eye-closed)"
+            },
+            {
                 "command": "githd.viewStashes",
                 "title": "View Stashes",
                 "category": "GitHD"
@@ -515,6 +527,14 @@
                 {
                     "command": "githd.openFile",
                     "when": "false"
+                },
+                {
+                    "command": "githd.showFileStats",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.hideFileStats",
+                    "when": "false"
                 }
             ],
             "view/title": [
@@ -571,18 +591,28 @@
                     "group": "inline@1"
                 },
                 {
+                    "command": "githd.showFileStats",
+                    "when": "view == githd.files && viewItem =~ /^root-folder-/ && !githd.fileWithStats",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "githd.hideFileStats",
+                    "when": "view == githd.files && viewItem =~ /^root-folder-/ && githd.fileWithStats",
+                    "group": "inline@1"
+                },
+                {
                     "command": "githd.diffFileFromTreeView",
                     "when": "view == githd.files && viewItem == file && githd.commitsView",
                     "group": "inline@2"
                 },
                 {
                     "command": "githd.diffCommitFromTreeView",
-                    "when": "view == githd.files && viewItem == commitFolder && githd.commitsView",
+                    "when": "view == githd.files && viewItem =~ /^root-folder-/ && githd.commitsView",
                     "group": "inline@2"
                 },
                 {
                     "command": "githd.diffFolderFromTreeView",
-                    "when": "view == githd.files && viewItem == folder && githd.commitsView",
+                    "when": "view == githd.files && viewItem =~ /^folder-/ && githd.commitsView",
                     "group": "inline@2"
                 },
                 {
@@ -592,27 +622,27 @@
                 },
                 {
                     "command": "githd.viewFolderHistoryFromTree",
-                    "when": "view == githd.files && viewItem == folder",
+                    "when": "view == githd.files && viewItem =~ /^folder-/",
                     "group": "inline@3"
                 },
                 {
                     "command": "githd.showFilesTreeView",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && viewItem =~ /-list$/",
                     "group": "inline@4"
                 },
                 {
                     "command": "githd.showFilesListView",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && viewItem =~ /-tree$/",
                     "group": "inline@5"
                 },
                 {
                     "command": "githd.expandFolder",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && viewItem =~ /folder-/",
                     "group": "inline@6"
                 },
                 {
                     "command": "githd.collapseFolder",
-                    "when": "view == githd.files && (viewItem == folder || viewItem == focusFolder || viewItem == commitFolder)",
+                    "when": "view == githd.files && viewItem =~ /folder-/",
                     "group": "inline@7"
                 }
             ],
