@@ -189,6 +189,12 @@ export class Dataloader {
       return;
     }
 
+    // Don't cache if we are in a remote repo because createFileSystemWatcher will not work
+    if (repo.root.startsWith('/mnt')) {
+      this._cacheEnabled = false;
+      return;
+    }
+
     this._repo = repo;
     const watching = new vs.RelativePattern(path.join(repo.root, '.git'), '**');
     this._fsWatcher = vs.workspace.createFileSystemWatcher(watching);
