@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.4.1
+
+- Add a file icon for githd files.
+- Some tree view UI adjustments.
+- Bug fixes for cache.
+
 ## 2.4.0
 
 - Go back or forward on History view.
