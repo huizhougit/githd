@@ -68,14 +68,17 @@ class CommittedFileItem extends vs.TreeItem {
       query: `status=${file.status}`
     });
     if (file.stat) {
-      const [count, changes] = file.stat.split(' ');
-      const stat: string = `${count} <span style="color:var(--vscode-terminal-ansiGreen);">${changes.substring(
-        0,
-        changes.lastIndexOf('+') + 1
-      )}</span><span style="color:var(--vscode-terminal-ansiRed);">${changes.substring(
-        changes.indexOf('-'),
-        changes.lastIndexOf('-') + 1
-      )}</span>`;
+      const [count, changes]: (string | undefined)[] = file.stat.split(' ');
+      let stat: string = count ?? '0';
+      if (changes) {
+        stat += ` <span style="color:var(--vscode-terminal-ansiGreen);">${changes.substring(
+          0,
+          changes.lastIndexOf('+') + 1
+        )}</span><span style="color:var(--vscode-terminal-ansiRed);">${changes.substring(
+          changes.indexOf('-'),
+          changes.lastIndexOf('-') + 1
+        )}</span>`;
+      }
 
       const markdown = new vs.MarkdownString();
       markdown.isTrusted = true;
