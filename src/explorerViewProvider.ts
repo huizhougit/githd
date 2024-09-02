@@ -183,6 +183,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   private _rootCommitPosition: RootCommitPosition = RootCommitPosition.Current;
 
   private _view: vs.TreeView<CommittedTreeItem>;
+  private _building: boolean = false;
 
   constructor(
     context: vs.ExtensionContext,
@@ -277,10 +278,6 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       context.subscriptions
     );
 
-    this._context = this._model.filesViewContext;
-    this._withFolder = this._model.configuration.withFolder;
-    this._update();
-
     vs.window.onDidChangeActiveTextEditor(async (editor: vs.TextEditor | undefined) => {
       if (this._view.visible && this._treeRoot.length > 0 && editor) {
         const item = await this.findItemByPath(editor.document.uri);
@@ -289,6 +286,10 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
         }
       }
     });
+
+    this._context = this._model.filesViewContext;
+    this._withFolder = this._model.configuration.withFolder;
+    this._update();
   }
 
   provideFileDecoration(uri: vs.Uri): vs.ProviderResult<vs.FileDecoration> {
@@ -311,8 +312,17 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
   async getChildren(element?: CommittedTreeItem): Promise<CommittedTreeItem[]> {
     if (!element) {
       if (this._treeRoot.length === 0) {
+        // when there is a vscode extension restart, there could be multiple events
+        // coming in here and we only want to build the tree once. Mostly this is a
+        // vscode bug.
+        if (this._building) {
+          return [];
+        }
+        this._building = true;
+
         // build the tree here so that we can show the loading indicator
         await this._build();
+        this._building = false;
       }
       return this._treeRoot;
     }
