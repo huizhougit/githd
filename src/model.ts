@@ -64,7 +64,10 @@ export class Model {
   private _onDidChangeFilesViewContext = new vs.EventEmitter<FilesViewContext | undefined>();
   private _onDidChangeHistoryViewContext = new vs.EventEmitter<HistoryViewContext | undefined>();
 
-  constructor(context: vs.ExtensionContext, private _loader: Dataloader) {
+  constructor(
+    context: vs.ExtensionContext,
+    private _loader: Dataloader
+  ) {
     this._config = getConfiguration();
     Tracer.level = this._config.traceLevel;
     vs.commands.executeCommand('setContext', 'githd.disableInEditor', this._config.disabledInEditor);

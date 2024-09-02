@@ -22,7 +22,11 @@ export class InfoViewProvider implements vs.TextDocumentContentProvider {
   private _clickableProvider = new ClickableProvider(InfoViewProvider.scheme);
   private _onDidChange = new vs.EventEmitter<vs.Uri>();
 
-  constructor(context: vs.ExtensionContext, model: Model, private _gitService: GitService) {
+  constructor(
+    context: vs.ExtensionContext,
+    model: Model,
+    private _gitService: GitService
+  ) {
     context.subscriptions.push(vs.workspace.registerTextDocumentContentProvider(InfoViewProvider.scheme, this));
 
     vs.window.onDidChangeActiveTextEditor(

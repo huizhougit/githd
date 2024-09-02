@@ -31,7 +31,7 @@ class BlameViewStatProvider implements vs.Disposable, vs.HoverProvider {
 export class BlameViewProvider implements vs.HoverProvider {
   private _blame: GitBlameItem | undefined;
   private _statProvider: BlameViewStatProvider;
-  private _debouncing: NodeJS.Timer | undefined;
+  private _debouncing: NodeJS.Timeout | undefined;
   private _enabled = false;
   private _decoration = vs.window.createTextEditorDecorationType({
     after: {
@@ -40,7 +40,11 @@ export class BlameViewProvider implements vs.HoverProvider {
     }
   });
 
-  constructor(context: vs.ExtensionContext, model: Model, private _gitService: GitService) {
+  constructor(
+    context: vs.ExtensionContext,
+    model: Model,
+    private _gitService: GitService
+  ) {
     this.enabled = model.configuration.blameEnabled;
     this._statProvider = new BlameViewStatProvider(this);
     context.subscriptions.push(

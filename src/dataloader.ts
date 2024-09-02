@@ -42,9 +42,12 @@ export class Dataloader {
   private _fsWatcher: vs.FileSystemWatcher | undefined;
   private _repo: GitRepo | undefined;
   private _updating = false;
-  private _updateDelay: NodeJS.Timer | undefined;
+  private _updateDelay: NodeJS.Timeout | undefined;
 
-  constructor(ctx: vs.ExtensionContext, private _gitService: GitService) {
+  constructor(
+    ctx: vs.ExtensionContext,
+    private _gitService: GitService
+  ) {
     this._gitService.onDidChangeCurrentGitRepo(repo => this._updateRepo(repo), null, ctx.subscriptions);
   }
 
@@ -149,7 +152,7 @@ export class Dataloader {
       return '';
     }
 
-    return this._useCache(repo.root) ? this._cache.branch : (await this._gitService.getCurrentBranch(repo)) ?? '';
+    return this._useCache(repo.root) ? this._cache.branch : ((await this._gitService.getCurrentBranch(repo)) ?? '');
   }
 
   async getNextCommit(repo: GitRepo | undefined, ref: string): Promise<string> {

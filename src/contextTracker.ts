@@ -7,7 +7,10 @@ export class ContextTracker<T> {
   private _tracker: T[] = [];
   private _nextIndex: number = 0;
 
-  constructor(private _goBackFlag: string, private _goForwardFlag: string) {}
+  constructor(
+    private _goBackFlag: string,
+    private _goForwardFlag: string
+  ) {}
 
   setContext(context: T) {
     if (!context || isEqual(this.current, context)) {
