@@ -9,7 +9,8 @@ import { Tracer } from './tracer';
 import { Dataloader } from './dataloader';
 
 const firstLoadingCount = 30;
-const loadingPageSize = 300;
+const maxSingleLoadingCount = 2000;
+const maxPageSize = 10000;
 
 const stashTitleLabel = 'Git Stashes';
 const titleLabel = 'Git History';
@@ -26,13 +27,13 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   static defaultUri: vs.Uri = vs.Uri.parse(HistoryViewProvider.scheme + '://history//Git History');
 
   private _clickableProvider = new ClickableProvider(HistoryViewProvider.scheme);
-  private _commitsCount = 300;
+  private _commitsCount = 300; // the first page size
   private _content = '';
-  private _logCount = 0;
+  private _loadedCount = 0; // for all loaded entries which includes multiple pages
   private _currentLine = 0;
   private _loadAll = false;
   private _loadMoreClicked = false;
-  private _leftCount = 0;
+  private _leftCount = 0; // for a single page which includes multiple loadings
   private _totalCommitsCount = 0;
   private _onDidChange = new vs.EventEmitter<vs.Uri>();
 
@@ -301,15 +302,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       return;
     }
 
-    Tracer.verbose(
-      `HistoryView: left count ${this._leftCount}, current total count ${this._totalCommitsCount}, load more ${loadMore}`
-    );
-
     Tracer.info(`HistoryView: _updateContent. ${JSON.stringify(context)}`);
 
     const isStash = context.isStash ?? false;
     const firstLoading = this._leftCount == 0;
-    let logCount = this._express ? 2 * firstLoadingCount : firstLoadingCount;
+    let loadingCount = this._express ? 3 * firstLoadingCount : firstLoadingCount;
     if (firstLoading) {
       if (loadMore) {
         this._content = this._content.substring(0, this._content.length - moreLabel.length - 1);
@@ -321,33 +318,41 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
       // No pagination loading for statsh and line history.
       if (isStash || context.line) {
-        logCount = 10000; // Display at most 10k commits
+        loadingCount = 10000; // Display at most 10k commits
       } else {
-        const commitsCount = await this._loader.getCommitsCount(
-          context.repo,
-          context.branch,
-          context.specifiedPath,
-          context.author
-        );
-        let loadingCount = Math.min(commitsCount - this._logCount, this._commitsCount);
-        if (this._loadAll) {
-          loadingCount = commitsCount - this._logCount;
+        if (this._totalCommitsCount == 0) {
+          this._totalCommitsCount = await this._loader.getCommitsCount(
+            context.repo,
+            context.branch,
+            context.specifiedPath,
+            context.author
+          );
         }
-        this._leftCount = Math.max(0, loadingCount - firstLoadingCount);
-        this._totalCommitsCount = commitsCount;
+
+        // pageSize is the total count includes multiple loadings
+        let pageSize = Math.min(this._totalCommitsCount - this._loadedCount, this._commitsCount);
+        if (this._loadAll) {
+          pageSize = this._totalCommitsCount - this._loadedCount;
+        } else if (loadMore) {
+          pageSize = Math.min(2 * this._loadedCount, maxPageSize);
+        }
+        this._leftCount = Math.max(0, pageSize - firstLoadingCount);
       }
     } else {
-      logCount = this._express ? 5 * loadingPageSize : loadingPageSize;
-      logCount = Math.min(logCount, this._leftCount);
-      this._leftCount = this._leftCount - logCount;
+      loadingCount = Math.min(this._leftCount, maxSingleLoadingCount);
+      this._leftCount = this._leftCount - loadingCount;
     }
     this._updating = this._leftCount > 0;
+
+    Tracer.verbose(
+      `HistoryView: left count ${this._leftCount}, current total count ${this._totalCommitsCount}, loading count ${loadingCount}, load more ${loadMore}`
+    );
 
     const entries: GitLogEntry[] = await this._loader.getLogEntries(
       context.repo,
       this._express,
-      this._logCount,
-      logCount,
+      this._loadedCount,
+      loadingCount,
       context.branch,
       context.isStash,
       context.specifiedPath,
@@ -367,7 +372,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
     // const hasMore = !firstLoading && !isStash && this._currentTotalCount > logCount + this._logCount;
     entries.forEach(entry => {
-      ++this._logCount;
+      ++this._loadedCount;
       content += this._updateSubject(entry.subject, context.repo.remoteUrl);
       content += this._updateInfo(context, entry, isStash);
       content += this._updateStat(context, entry);
@@ -377,7 +382,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
     // All loadings are finished.
     if (!this._updating) {
-      if (this._totalCommitsCount > this._logCount) {
+      if (this._totalCommitsCount > this._loadedCount) {
         content += this._createClickableForMore();
       } else {
         this._moreClickableRange = undefined;
@@ -595,7 +600,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     Tracer.verbose('HistoryView: _reset');
     this._clearDecorations();
     this._content = '';
-    this._logCount = 0;
+    this._loadedCount = 0;
     this._leftCount = 0;
     this._currentLine = 0;
     this._totalCommitsCount = 0;

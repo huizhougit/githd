@@ -437,7 +437,7 @@ export class GitService {
       details += body + '\r\n\r\n';
     }
     details += '-----------------------------\r\n\r\n';
-    details += await this._exec(['show', '--format=', '--stat', '--stat-width=200', ref], repo.root);
+    details += await this._exec(['show', '--format=', '--stat', '--stat-width=120', ref], repo.root);
     return details;
   }
 
