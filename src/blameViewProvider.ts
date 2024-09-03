@@ -3,7 +3,7 @@ import * as vs from 'vscode';
 import { Model } from './model';
 import { GitService, GitBlameItem } from './gitService';
 import { Tracer } from './tracer';
-import { getPullRequests } from './utils';
+import { getPullRequests, isEmptyHash } from './utils';
 
 const NotCommitted = `Not committed yet`;
 
@@ -21,9 +21,12 @@ class BlameViewStatProvider implements vs.Disposable, vs.HoverProvider {
     if (!this._owner.isAvailable(document, position)) {
       return;
     }
-    let markdown = new vs.MarkdownString(`*\`Committed Files\`*\r\n>\r\n`);
-    markdown.appendCodeblock(this._owner.blame?.stat ?? '', 'txt');
+    let markdown = new vs.MarkdownString(
+      `*<span style="color:var(--vscode-githd-infoView-content);">Committed Files</span>*\r\n>\r\n`
+    );
+    markdown.appendCodeblock(this._owner.blame?.stat ?? '', 'typescript');
     markdown.appendMarkdown('>');
+    markdown.isTrusted = true;
     return new vs.Hover(markdown);
   }
 }
@@ -112,7 +115,7 @@ export class BlameViewProvider implements vs.HoverProvider {
       const repo = await this._gitService.getGitRepo(blame.file.fsPath);
       const ref: string = blame.hash;
       let args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
-      const commit: string = `[*${ref}*](command:githd.openCommit?${args} "Click to see commit details")`;
+      const commit: string = `*[<span style="color:var(--vscode-githd-historyView-hash);">${ref}</span>](command:githd.openCommit?${args} "Click to see commit details")*`;
       args = encodeURIComponent(JSON.stringify([blame.file]));
       const file: string = `[*file*](command:githd.viewFileHistory?${args} "Click to see current file history")`;
       const line: string = `[*line*](command:githd.viewLineHistory?${args} "Click to see current line history")`;
@@ -125,17 +128,18 @@ export class BlameViewProvider implements vs.HoverProvider {
       });
 
       subject += blame.subject.substring(lastPREnd);
+      const email = blame.email.replace('@', '\\@');
 
       Tracer.verbose(`Blame view: ${commit}`);
       const content: string = `
 ${commit}
-*\`${blame.author}\`*
-*\`${blame.email}\`*
-*\`(${blame.date})\`*
+*</span><span style="color:var(--vscode-githd-historyView-author);">${blame.author}</span>*
+*<span style="color:var(--vscode-githd-historyView-email);">${email}</span>*
+*(${blame.date})*
 &ensp;
-*\`(history:\`*${file}*\`||\`*${line}*\`)\`*
+*(<span style="color:var(--vscode-githd-historyView-title);">history</span>: ${file} || ${line})*
 
-${subject}
+### ${subject}
 
 ${blame.body}
 >`;

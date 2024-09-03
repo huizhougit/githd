@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as vs from 'vscode';
 import { execSync, spawn } from 'child_process';
 import { Tracer } from './tracer';
+import { isEmptyHash } from './utils';
 
 const EntrySeparator = '[githd-es]';
 const FormatSeparator = '[githd-fs]';
@@ -509,7 +510,7 @@ export class GitService {
       return;
     }
 
-    if (hash.startsWith('0000')) {
+    if (isEmptyHash(hash)) {
       Tracer.verbose(`Blame info skipped. repo ${repo.root} file ${filePath}:${line} ${hash}`);
       return;
     }

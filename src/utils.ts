@@ -37,3 +37,7 @@ export function getPullRequests(content: string): [string, number][] {
   }
   return found.map(pr => [pr, content.indexOf(pr)]);
 }
+
+export function isEmptyHash(hash: string | undefined): boolean {
+  return !hash || hash.startsWith('0000');
+}
