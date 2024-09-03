@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.4.2
+
+- Color blame details.
+- Load more commits in the subsequent pages.
+- Bug fixes.
+
 ## 2.4.1
 
 - Add a file icon for githd files.
