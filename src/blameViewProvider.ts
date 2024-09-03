@@ -106,11 +106,7 @@ export class BlameViewProvider implements vs.HoverProvider {
       return;
     }
 
-    const blame = this._blame;
-    if (!blame) {
-      return;
-    }
-
+    const blame = this._blame as GitBlameItem; // isAvailable will be false if _blame is undefined
     return new Promise(async resolve => {
       const repo = await this._gitService.getGitRepo(blame.file.fsPath);
       const ref: string = blame.hash;
@@ -122,13 +118,13 @@ export class BlameViewProvider implements vs.HoverProvider {
       let subject: string = '';
       let lastPREnd = 0;
 
-      getPullRequests(blame.subject).forEach(([pr, start]) => {
-        subject += blame.subject.substring(lastPREnd, start) + `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)})`;
+      getPullRequests(blame.subject ?? '').forEach(([pr, start]) => {
+        subject += blame.subject?.substring(lastPREnd, start) + `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)})`;
         lastPREnd = start + pr.length;
       });
 
-      subject += blame.subject.substring(lastPREnd);
-      const email = blame.email.replace('@', '\\@');
+      subject += blame.subject?.substring(lastPREnd);
+      const email = blame.email?.replace('@', '\\@');
 
       Tracer.verbose(`Blame view: ${commit}`);
       const content: string = `
@@ -153,7 +149,7 @@ ${blame.body}
   isAvailable(doc: vs.TextDocument, pos: vs.Position): boolean {
     if (
       !this._enabled ||
-      !this._blame?.hash ||
+      isEmptyHash(this._blame?.hash) ||
       doc.isDirty ||
       pos.line != this._blame?.line ||
       pos.character < doc.lineAt(this._blame.line).range.end.character ||
@@ -177,7 +173,6 @@ ${blame.body}
 
     const line = editor.selection.active.line;
     if (!this._blame || line != this._blame.line || file !== this._blame.file) {
-      // this._blame = { file, line, stat: '' };
       this._clear(editor);
       clearTimeout(this._debouncing);
       this._debouncing = setTimeout(() => this._update(editor), 250);
@@ -215,28 +210,29 @@ ${blame.body}
   private async _update(editor: vs.TextEditor): Promise<void> {
     const file = editor.document.uri;
     const line = editor.selection.active.line;
-    Tracer.verbose(`Try to update blame. ${file.fsPath}: ${line}`);
-    this._blame = await this._gitService.getBlameItem(file, line);
-    if (file !== editor.document.uri || line != editor.selection.active.line || editor.document.isDirty) {
-      // git blame could take long time and the active line has changed
-      Tracer.info(`This update is outdated. ${file.fsPath}: ${line}, dirty ${editor.document.isDirty}`);
-      this._blame = undefined;
-    }
+    Tracer.verbose(` Try to update blame. ${file.fsPath}: ${line}`);
 
+    this._blame = await this._gitService.getBlameItem(file, line);
     if (!this._blame) {
       return;
     }
 
     let contentText = '\u00a0\u00a0\u00a0\u00a0';
-    if (this._blame?.hash) {
-      contentText += `${this._blame.author} [${this._blame.relativeDate}]\u00a0\u2022\u00a0${this._blame.subject}`;
-    } else {
+    if (isEmptyHash(this._blame.hash)) {
       contentText += NotCommitted;
+    } else {
+      contentText += `${this._blame.author} [${this._blame.relativeDate}]\u00a0\u2022\u00a0${this._blame.subject}`;
     }
     const options: vs.DecorationOptions = {
       range: new vs.Range(line, Number.MAX_SAFE_INTEGER, line, Number.MAX_SAFE_INTEGER),
       renderOptions: { after: { contentText } }
     };
+    if (file !== editor.document.uri || line != editor.selection.active.line || editor.document.isDirty) {
+      // git blame could take long time and the active line has changed
+      Tracer.info(`This update is outdated. ${file.fsPath}: ${line}, dirty ${editor.document.isDirty}`);
+      this._blame = undefined;
+      return;
+    }
     editor.setDecorations(this._decoration, [options]);
   }
 

@@ -84,13 +84,13 @@ export interface GitBlameItem {
   file: vs.Uri;
   line: number;
   hash: string;
-  subject: string;
-  body: string;
-  author: string;
-  date: string;
-  relativeDate: string;
-  email: string;
-  stat: string;
+  subject?: string;
+  body?: string;
+  author?: string;
+  date?: string;
+  relativeDate?: string;
+  email?: string;
+  stat?: string;
 }
 
 function singleLined(value: string): string {
@@ -512,7 +512,7 @@ export class GitService {
 
     if (isEmptyHash(hash)) {
       Tracer.verbose(`Blame info skipped. repo ${repo.root} file ${filePath}:${line} ${hash}`);
-      return;
+      return { file, line, hash };
     }
 
     // get additional info: abbrev hash, relative date, body, stat
