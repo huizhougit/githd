@@ -872,17 +872,17 @@
         "@types/lodash": "^4.17.7",
         "@types/mocha": "^10.0.7",
         "@types/node": "22.x",
-        "@types/vscode": "^1.92.0",
+        "@types/vscode": "^1.93.0",
         "@typescript-eslint/eslint-plugin": "^8.4.0",
         "@typescript-eslint/parser": "^8.4.0",
         "@vscode/test-electron": "^2.4.1",
-        "eslint": "^9.9.1",
+        "eslint": "^9.10.0",
         "mocha": "^10.7.3",
         "prettier": "^3.3.3",
         "typescript": "^5.5.4"
     },
     "dependencies": {
         "lodash": "^4.17.21",
-        "lru-cache": "^11.0.0"
+        "lru-cache": "^11.0.1"
     }
 }
