@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.4.4
+
+- Downgrade vscode package to 1.91
+
 ## 2.4.3
 
 - Upgrade vscode package to 1.93

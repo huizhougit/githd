@@ -2,7 +2,7 @@
     "name": "githd",
     "displayName": "Git History Diff",
     "description": "View git history. View diff of committed files. View git blame info. View stash details.",
-    "version": "2.4.3",
+    "version": "2.4.4",
     "publisher": "huizhou",
     "author": {
         "name": "Hui Zhou",
