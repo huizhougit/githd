@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.4.3
+
+- Upgrade vscode package to 1.93
+
 ## 2.4.2
 
 - Color blame details.
