@@ -459,7 +459,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     }
     decorateWithoutWhitespace(this._subjectDecorationOptions, subject, this._currentLine, 0);
     ++this._currentLine;
-    return subject + '\n';
+    return subject + ' \n';
   }
 
   private _updateInfo(context: HistoryViewContext, entry: GitLogEntry, isStash: boolean): string {
