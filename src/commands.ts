@@ -1,5 +1,4 @@
 import * as path from 'path';
-import * as assert from 'assert';
 
 import * as vs from 'vscode';
 
@@ -236,8 +235,7 @@ export class CommandCenter {
   @command('githd.viewAuthorHistory')
   viewAuthorHistory(): void {
     Tracer.verbose('Command: githd.viewAuthorHistory');
-    assert(this._model.historyViewContext, 'history view context should exist');
-    const context: HistoryViewContext = this._model.historyViewContext;
+    const context = this._model.historyViewContext as HistoryViewContext;
     let placeHolder: string = `Select a author to see his/her commits`;
     vs.window
       .showQuickPick(selectAuthor(this._gitService, context.repo), {

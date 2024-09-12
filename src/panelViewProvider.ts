@@ -30,11 +30,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
     this._view = webviewView;
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [
-        this._webviewUri,
-        vscode.Uri.joinPath(this._extensionUri, 'node_modules', 'chart.js', 'dist'),
-        vscode.Uri.joinPath(this._extensionUri, 'node_modules', 'chartjs-adapter-date-fns', 'dist')
-      ]
+      localResourceRoots: [this._webviewUri, vscode.Uri.joinPath(this._extensionUri, 'dist')]
     };
     webviewView.webview.html = this._getWebviewContent(webviewView.webview);
 
@@ -106,17 +102,9 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
   private _getWebviewContent(webview: vscode.Webview) {
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._webviewUri, 'stats.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._webviewUri, 'style.css'));
-    const chartjsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'node_modules', 'chart.js', 'dist', 'chart.js')
-    );
+    const chartjsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'dist', 'chart.js'));
     const chartjsAdapterUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        'node_modules',
-        'chartjs-adapter-date-fns',
-        'dist',
-        'chartjs-adapter-date-fns.bundle.js'
-      )
+      vscode.Uri.joinPath(this._extensionUri, 'dist', 'chartjs-adapter-date-fns.bundle.js')
     );
 
     return `<!DOCTYPE html>

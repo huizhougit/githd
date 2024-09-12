@@ -10,27 +10,27 @@ GitHD aims to bring the most useful git history inside with the simplest and the
 
   - Move the file status to the end and show the file icons
 
-    ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/file_decoration.png)
+    ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/file_decoration.png)
 
   - Show file and folder operations in line
 
-    ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/inline_commands.png)
+    ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/inline_commands.png)
 
 - Go back or forward to the history log search
 
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/history_go_back.png)
+  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/history_go_back.png)
 
 - Go back or forward to the explore view list. Check the previous or next commit in explore view
 
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/explorer_commands.png)
+  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/explorer_commands.png)
 
 - Click link in blame view to see current file or line history
 
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/blame_file_line.png)
+  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/blame_file_line.png)
 
 - Add github PR link in commit info file
 
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/info_file_link.png)
+  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/info_file_link.png)
 
 - Better support for multiple editors
 
@@ -83,19 +83,19 @@ _Press F1_ and type or select below commands to run.
 
 **Note**, when you select different branch to see it's history, the repo will not checkout to that branch.
 
-![Image of branch history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/branch_history.gif)
+![Image of branch history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/branch_history.gif)
 
 ### View File or Folder History
 
-![Image of file history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/file_history.gif)
+![Image of file history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/file_history.gif)
 
-![Image of folder history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/folder_history.png)
+![Image of folder history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/folder_history.png)
 
 ### View line history and diff
 
-![Image of line history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/line_history.png)
+![Image of line history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/line_history.png)
 
-![Image of line diff](https://raw.githubusercontent.com/huizhougit/githd/master/resources/line_diff.png)
+![Image of line diff](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/line_diff.png)
 
 ### Diff Branch
 
@@ -104,20 +104,20 @@ _Press F1_ and type or select below commands to run.
 - Input a SHA to compare with current branch (`F1 -> GitHD: View Branch Diff -> Enter Commit SHA -> SHA`)
 - Input two SHAs to see their diffs (`F1 -> GitHD: View Branch Diff -> Enter Commit SHA -> SHA1 .. SHA2`)
 
-![Image of diff branch](https://raw.githubusercontent.com/huizhougit/githd/master/resources/diff_branch.gif)
+![Image of diff branch](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/diff_branch.gif)
 
 ### Git Blame
 
 You are able to see the latest commit info of each line. Hover on it to see the details and
 click the SHA to see committed files and their changes. You could disable it in the settings.
 
-![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/blame.png)
+![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/blame.png)
 
-![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/blame_hover.png)
+![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/blame_hover.png)
 
 ### Display of the Committed Files
 
-![Image of display files](https://raw.githubusercontent.com/huizhougit/githd/master/resources/display_files.gif)
+![Image of display files](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/display_files.gif)
 
 ### Express Mode
 
@@ -127,7 +127,7 @@ When the express mode is enabled, the History View will be loaded significantly 
 
 _Press F1_ and type or select `Preferences: Open Workspace Settings` or `Preferences: Open User Settings`. Search _**githd**_ and set the configurations.
 
-![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/configurations.png)
+![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/configurations.png)
 
 ## Changes
 

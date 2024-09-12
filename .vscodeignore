@@ -1,10 +1,7 @@
-.vscode/**
-.vscode-test/**
-out/test/**
-test/**
-src/**
-**/*.map
+.vscode
+node_modules
+out/
+src/
+resources/demo/
 .gitignore
 tsconfig.json
-vsc-extension-quickstart.md
-resources/*.gif

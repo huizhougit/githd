@@ -1,43 +1,20 @@
-// Available variables which can be used inside of strings.
-// ${workspaceRoot}: the root folder of the team
-// ${file}: the current opened file
-// ${fileBasename}: the current opened file's basename
-// ${fileDirname}: the current opened file's dirname
-// ${fileExtname}: the current opened file's extension
-// ${cwd}: the current working directory of the spawned process
-
-// A task runner that calls a custom npm script that compiles the extension.
 {
-    "version": "2.0.0",
-
-    // we want to run npm
-    "command": "npm",
-
-    // we run the custom script "compile" as defined in package.json
-    "args": ["run", "compile", "--loglevel", "silent"],
-
-    // The tsc compiler is started in watching mode
-    "isBackground": true,
-
-    // use the standard tsc in watch mode problem matcher to find compile problems in the output.
-    "problemMatcher": "$tsc-watch",
-    "tasks": [
-        {
-            "label": "npm",
-            "type": "shell",
-            "command": "npm",
-            "args": [
-                "run",
-                "compile",
-                "--loglevel",
-                "silent"
-            ],
-            "isBackground": true,
-            "problemMatcher": "$tsc-watch",
-            "group": {
-                "_id": "build",
-                "isDefault": false
-            }
-        }
-    ]
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "bundle",
+      "problemMatcher": [],
+      "label": "npm: bundle",
+      "detail": "esbuild src/extension.ts --bundle --outdir=dist --external:vscode --platform=node --target=node12.18 --sourcemap"
+    },
+    {
+      "type": "shell",
+      "label": "copy-chart-js",
+      "command": "cp node_modules/chart.js/dist/chart.js dist/ && cp node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js dist/",
+      "dependsOn": ["npm: bundle"]
+    }
+  ]
 }

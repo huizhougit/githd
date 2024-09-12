@@ -30,16 +30,7 @@
     "activationEvents": [
         "*"
     ],
-    "main": "./out/src/extension",
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "pretest": "npm run compile && npm run lint",
-        "pretty": "prettier -l \"src/**/*.ts\"",
-        "lint": "eslint src --ext ts",
-        "test": "node ./out/test/runTest.js"
-    },
+    "main": "./dist/extension",
     "contributes": {
         "languages": [
             {
@@ -892,6 +883,16 @@
             }
         ]
     },
+    "scripts": {
+        "vscode:prepublish": "npm run build",
+        "lint": "eslint src --ext ts",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "bundle": "esbuild src/extension.ts --bundle --outdir=dist --external:vscode --platform=node --target=node12.18 --sourcemap",
+        "copy-chart-js": "cp node_modules/chart.js/dist/chart.js dist/ && cp node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js dist/",
+        "build": "npm run bundle && npm run copy-chart-js",
+        "ts-compile": "tsc -p tsconfig.json",
+        "pretty": "prettier -l \"src/**/*.ts\""
+    },
     "devDependencies": {
         "@types/lodash": "^4.17.7",
         "@types/mocha": "^10.0.7",
@@ -900,16 +901,17 @@
         "@typescript-eslint/eslint-plugin": "^8.4.0",
         "@typescript-eslint/parser": "^8.4.0",
         "@vscode/test-electron": "^2.4.1",
+        "esbuild": "^0.23.1",
         "eslint": "^9.10.0",
         "mocha": "^10.7.3",
         "prettier": "^3.3.3",
         "typescript": "^5.5.4"
     },
     "dependencies": {
-        "lodash": "^4.17.21",
-        "lru-cache": "^11.0.1",
         "chart.js": "^3.7.0",
         "chartjs-adapter-date-fns": "^3.0.0",
-        "date-fns": "^3.6.0"
+        "date-fns": "^3.6.0",
+        "lodash": "^4.17.21",
+        "lru-cache": "^11.0.1"
     }
 }
