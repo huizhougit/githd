@@ -32,6 +32,8 @@ export interface HistoryViewContext {
   specifiedPath?: vs.Uri;
   line?: number;
   author?: string;
+  startTime?: Date;
+  endTime?: Date;
 }
 
 function getConfiguration(): Configuration {
@@ -186,7 +188,9 @@ export class Model {
       author: current.author,
       isStash: current.isStash,
       line: current.line,
-      specifiedPath: current.specifiedPath
+      specifiedPath: current.specifiedPath,
+      startTime: current.startTime,
+      endTime: current.endTime
     };
   }
 
@@ -204,7 +208,9 @@ export class Model {
       author: context.author,
       isStash: context.isStash,
       line: context.line,
-      specifiedPath: context.specifiedPath
+      specifiedPath: context.specifiedPath,
+      startTime: context.startTime,
+      endTime: context.endTime
     });
     this._onDidChangeHistoryViewContext.fire(context);
   }

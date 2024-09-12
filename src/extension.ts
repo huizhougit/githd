@@ -8,12 +8,14 @@ import { ExplorerViewProvider } from './explorerViewProvider';
 import { InfoViewProvider } from './infoViewProvider';
 import { BlameViewProvider } from './blameViewProvider';
 import { Dataloader } from './dataloader';
+import { PanelViewProvider } from './panelViewProvider';
 
 export function activate(context: vs.ExtensionContext) {
   let gitService = new GitService(context);
   let dataloader = new Dataloader(context, gitService);
   let model = new Model(context, dataloader);
-  let historyViewProvider = new HistoryViewProvider(context, model, dataloader, gitService);
+  let panelView = new PanelViewProvider(context, model);
+  let historyViewProvider = new HistoryViewProvider(context, model, dataloader, gitService, panelView);
   let explorerViewProvider = new ExplorerViewProvider(context, model, dataloader, gitService);
   new InfoViewProvider(context, model, gitService);
   new BlameViewProvider(context, model, gitService);

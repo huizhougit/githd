@@ -5,6 +5,7 @@ import * as vs from 'vscode';
 import { GitLogEntry, GitRepo, GitService } from './gitService';
 import { Tracer } from './tracer';
 import { LRUCache } from 'lru-cache';
+import { debounce } from './utils';
 
 class Cache {
   // cached log entries count
@@ -20,12 +21,20 @@ class Cache {
 
   constructor() {}
 
-  countKey(branch: string, file?: string, author?: string): string {
-    return `${branch},${file ?? ''},${author ?? ''}`;
+  countKey(branch: string, file?: string, author?: string, startTime?: Date, endTime?: Date): string {
+    return `${branch},${file ?? ''},${author ?? ''},${startTime?.getTime() ?? ''},${endTime?.getTime() ?? ''}`;
   }
 
-  logEntryKey(branch: string, stash?: boolean, file?: string, line?: number, author?: string): string {
-    return `${branch},${stash ? '1' : ''},${file ?? ''},${line ?? ''},${author ?? ''}`;
+  logEntryKey(
+    branch: string,
+    stash?: boolean,
+    file?: string,
+    line?: number,
+    author?: string,
+    startTime?: Date,
+    endTime?: Date
+  ): string {
+    return `${branch},${stash ? '1' : ''},${file ?? ''},${line ?? ''},${author ?? ''},${startTime?.getTime() ?? ''},${endTime?.getTime() ?? ''}`;
   }
 
   clear() {
@@ -42,12 +51,13 @@ export class Dataloader {
   private _fsWatcher: vs.FileSystemWatcher | undefined;
   private _repo: GitRepo | undefined;
   private _updating = false;
-  private _updateDelay: NodeJS.Timeout | undefined;
+  private _debouncedUpdate: (repo: GitRepo) => void;
 
   constructor(
     ctx: vs.ExtensionContext,
     private _gitService: GitService
   ) {
+    this._debouncedUpdate = debounce((repo: GitRepo) => this._updateCaches(repo), 1000);
     this._gitService.onDidChangeCurrentGitRepo(repo => this._updateRepo(repo), null, ctx.subscriptions);
   }
 
@@ -69,13 +79,27 @@ export class Dataloader {
     isStash?: boolean,
     file?: vs.Uri,
     line?: number,
-    author?: string
+    author?: string,
+    startTime?: Date,
+    endTime?: Date
   ): Promise<GitLogEntry[]> {
     if (!this._useCache(repo.root)) {
-      return this._gitService.getLogEntries(repo, express, start, count, branch, isStash, file, line, author);
+      return this._gitService.getLogEntries(
+        repo,
+        express,
+        start,
+        count,
+        branch,
+        isStash,
+        file,
+        line,
+        author,
+        startTime,
+        endTime
+      );
     }
 
-    const key = this._cache.logEntryKey(branch, isStash ?? false, file?.fsPath, line, author);
+    const key = this._cache.logEntryKey(branch, isStash ?? false, file?.fsPath, line, author, startTime, endTime);
     const cache: GitLogEntry[] | undefined = this._cache.logEntries.get(key);
     if (cache) {
       if (cache.length < Cache.logEntriesCount) {
@@ -97,7 +121,9 @@ export class Dataloader {
       isStash,
       file,
       line,
-      author
+      author,
+      startTime,
+      endTime
     );
 
     // Only update cache when loading the first page
@@ -118,7 +144,9 @@ export class Dataloader {
             isStash,
             file,
             line,
-            author
+            author,
+            startTime,
+            endTime
           );
 
           this._cache.logEntries.set(key, cacheEntries);
@@ -131,18 +159,25 @@ export class Dataloader {
     return entries;
   }
 
-  async getCommitsCount(repo: GitRepo, branch: string, file?: vs.Uri, author?: string): Promise<number> {
+  async getCommitsCount(
+    repo: GitRepo,
+    branch: string,
+    file?: vs.Uri,
+    author?: string,
+    startTime?: Date,
+    endTime?: Date
+  ): Promise<number> {
     if (!this._useCache(repo.root)) {
-      return this._gitService.getCommitsCount(repo, branch, file, author);
+      return this._gitService.getCommitsCount(repo, branch, file, author, startTime, endTime);
     }
 
-    const key = this._cache.countKey(branch, file?.fsPath, author);
+    const key = this._cache.countKey(branch, file?.fsPath, author, startTime, endTime);
     const count: number | undefined = this._cache.counts.get(key);
     if (count) {
       return count;
     }
 
-    const result = await this._gitService.getCommitsCount(repo, branch, file, author);
+    const result = await this._gitService.getCommitsCount(repo, branch, file, author, startTime, endTime);
     this._cache.counts.set(key, result);
     return result;
   }
@@ -201,10 +236,10 @@ export class Dataloader {
     this._repo = repo;
     const watching = new vs.RelativePattern(path.join(repo.root, '.git'), '**');
     this._fsWatcher = vs.workspace.createFileSystemWatcher(watching);
-    this._fsWatcher.onDidChange(uri => this._updateCaches(repo, uri));
-    this._fsWatcher.onDidCreate(uri => this._updateCaches(repo, uri));
-    this._fsWatcher.onDidDelete(uri => this._updateCaches(repo, uri));
-    this._updateCaches(repo);
+    this._fsWatcher.onDidChange(uri => this._handleFileUpdate(repo, uri));
+    this._fsWatcher.onDidCreate(uri => this._handleFileUpdate(repo, uri));
+    this._fsWatcher.onDidDelete(uri => this._handleFileUpdate(repo, uri));
+    this._handleFileUpdate(repo);
 
     Tracer.info(`Dataloader: started watching ${watching.baseUri.fsPath}`);
   }
@@ -214,7 +249,6 @@ export class Dataloader {
     if (this._fsWatcher) {
       this._fsWatcher.dispose();
     }
-    clearTimeout(this._updateDelay);
     this._cache.clear();
     this._updating = false;
   }
@@ -229,37 +263,38 @@ export class Dataloader {
     this._enableCache();
   }
 
-  private async _updateCaches(repo: GitRepo, uri?: vs.Uri): Promise<void> {
-    Tracer.verbose(`Dataloader: _updateCaches: current repo:${repo.root}, uri:${uri?.fsPath}`);
+  private _handleFileUpdate(repo: GitRepo, uri?: vs.Uri) {
+    Tracer.verbose(`Dataloader: _handleFileUpdate: current repo:${repo.root}, uri:${uri?.fsPath}`);
 
     // There will be many related file updates in a short time for a single user git command.
     // We want to batch them together have less updates.
     this._updating = true;
-    clearTimeout(this._updateDelay);
-    this._updateDelay = setTimeout(async () => {
-      Tracer.verbose(`Dataloader: _updateCaches: updating cache for ${repo.root}`);
+    this._debouncedUpdate(repo);
+  }
 
-      const branch = (await this._gitService.getCurrentBranch(repo)) ?? '';
-      const [commits, count, logs] = await Promise.all([
-        this._gitService.getCommits(repo, branch),
-        this._gitService.getCommitsCount(repo, branch),
-        this._gitService.getLogEntries(repo, false, 0, Cache.logEntriesCount, branch)
-      ]);
+  private async _updateCaches(repo: GitRepo): Promise<void> {
+    Tracer.verbose(`Dataloader: _updateCaches: updating cache for ${repo.root}`);
 
-      if (this._repo?.root !== repo.root) {
-        // The cache data fetching is finished after the repo is changed. We don't update
-        Tracer.warning(`Dataloader: different repo: ${repo.root} ${this._repo?.root}`);
-        return;
-      }
+    const branch = (await this._gitService.getCurrentBranch(repo)) ?? '';
+    const [commits, count, logs] = await Promise.all([
+      this._gitService.getCommits(repo, branch),
+      this._gitService.getCommitsCount(repo, branch),
+      this._gitService.getLogEntries(repo, false, 0, Cache.logEntriesCount, branch)
+    ]);
 
-      this._cache.branch = branch;
-      this._cache.commits = commits;
-      this._cache.counts.set(this._cache.countKey(branch), count);
-      this._cache.logEntries.set(this._cache.logEntryKey(branch), logs);
-      this._updating = false;
+    if (this._repo?.root !== repo.root) {
+      // The cache data fetching is finished after the repo is changed. We don't update
+      Tracer.warning(`Dataloader: different repo: ${repo.root} ${this._repo?.root}`);
+      return;
+    }
 
-      Tracer.verbose(`Dataloader: _updateCaches: cache updated for ${repo.root}`);
-    }, 1000); // Only update cache if there are no more file updates in the last second
+    this._cache.branch = branch;
+    this._cache.commits = commits;
+    this._cache.counts.set(this._cache.countKey(branch), count);
+    this._cache.logEntries.set(this._cache.logEntryKey(branch), logs);
+    this._updating = false;
+
+    Tracer.verbose(`Dataloader: _updateCaches: cache updated for ${repo.root}`);
   }
 
   private _useCache(repo: string): boolean {

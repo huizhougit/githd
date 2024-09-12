@@ -7,6 +7,7 @@ import { ClickableProvider } from './clickable';
 import { decorateWithoutWhitespace, getTextEditors, getPullRequests, prHoverMessage } from './utils';
 import { Tracer } from './tracer';
 import { Dataloader } from './dataloader';
+import { PanelViewProvider } from './panelViewProvider';
 
 const firstLoadingCount = 30;
 const maxSingleLoadingCount = 2000;
@@ -21,6 +22,7 @@ const loadingContent = ' ';
 const branchHoverMessage = new vs.MarkdownString('Select a branch to see its history');
 const authorHoverMessage = new vs.MarkdownString('Select an author to see the commits');
 const loadMoreHoverMessage = new vs.MarkdownString('Load more commits');
+const statsHoverMessage = new vs.MarkdownString('Show stats chart');
 
 export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-logs';
@@ -36,6 +38,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _leftCount = 0; // for a single page which includes multiple loadings
   private _totalCommitsCount = 0;
   private _onDidChange = new vs.EventEmitter<vs.Uri>();
+  private _logEntries: { entry: GitLogEntry; lineNumber: number }[] = [];
 
   private readonly _titleDecoration = vs.window.createTextEditorDecorationType({
     color: new vs.ThemeColor('githd.historyView.title')
@@ -107,7 +110,8 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     context: vs.ExtensionContext,
     private _model: Model,
     private _loader: Dataloader,
-    private _gitService: GitService
+    private _gitService: GitService,
+    private _panelView: PanelViewProvider
   ) {
     Tracer.info('Creating history view');
     context.subscriptions.push(vs.workspace.registerTextDocumentContentProvider(HistoryViewProvider.scheme, this));
@@ -121,6 +125,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._repoStatusBar.tooltip = 'Change the git repository';
     this.express = this._model.configuration.expressMode;
     this.commitsCount = this._model.configuration.commitsCount;
+
     this._model.onDidChangeConfiguration(
       config => {
         this.commitsCount = config.commitsCount;
@@ -191,6 +196,18 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       context.subscriptions
     );
 
+    vs.window.onDidChangeTextEditorVisibleRanges(
+      async e => {
+        if (e.textEditor.document.uri.scheme === HistoryViewProvider.scheme) {
+          if (!this._updating) {
+            this._setShadowArea();
+          }
+        }
+      },
+      this,
+      context.subscriptions
+    );
+
     vs.workspace.onDidChangeTextDocument(
       e => {
         if (e.document.uri.scheme === HistoryViewProvider.scheme) {
@@ -203,6 +220,8 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
             if (!this._loadMoreClicked) {
               editors.forEach(editor => this._moveToTop(editor));
             }
+            this._panelView.update();
+            this._setShadowArea();
             this._updatingResolver();
           }
         }
@@ -325,7 +344,9 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
             context.repo,
             context.branch,
             context.specifiedPath,
-            context.author
+            context.author,
+            context.startTime,
+            context.endTime
           );
         }
 
@@ -357,8 +378,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       context.isStash,
       context.specifiedPath,
       context.line,
-      context.author
+      context.author,
+      context.startTime,
+      context.endTime
     );
+    this._panelView.addLogs(entries);
     if (entries.length === 0) {
       this._content = isStash ? 'No Stash' : 'No History';
       this._update();
@@ -373,6 +397,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     // const hasMore = !firstLoading && !isStash && this._currentTotalCount > logCount + this._logCount;
     entries.forEach(entry => {
       ++this._loadedCount;
+      this._logEntries.push({ entry, lineNumber: this._currentLine }); // Store the entry
       content += this._updateSubject(entry.subject, context.repo.remoteUrl);
       content += this._updateInfo(context, entry, isStash);
       content += this._updateStat(context, entry);
@@ -382,7 +407,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
     // All loadings are finished.
     if (!this._updating) {
-      if (this._totalCommitsCount > this._loadedCount) {
+      if (this._totalCommitsCount > this._loadedCount && !context.startTime && !context.endTime) {
         content += this._createClickableForMore();
       } else {
         this._moreClickableRange = undefined;
@@ -440,6 +465,28 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     if (context.repo.root != this._currentRepo?.root) {
       content += ` (${context.repo.root})`;
     }
+
+    if (context.startTime && context.endTime) {
+      content += ` (${context.startTime.toLocaleString()} - ${context.endTime.toLocaleString()})`;
+
+      console.log(`string ${context.startTime.toString()}`);
+      console.log(`localeString ${context.startTime.toLocaleString()}`);
+      console.log(`timeString ${context.startTime.toTimeString()}`);
+      console.log(`localeTimeString ${context.startTime.toLocaleTimeString()}`);
+      console.log(`dateString ${context.startTime.toDateString()}`);
+      console.log(`localeDateString ${context.startTime.toLocaleDateString()}`);
+
+      console.log(`ISOString ${context.startTime.toISOString()}`);
+    }
+
+    const statsChart = '📊';
+    content += `\t`;
+    this._clickableProvider.addClickable({
+      range: new vs.Range(this._currentLine, content.length, this._currentLine, content.length + statsChart.length),
+      callback: () => vs.commands.executeCommand('githd.showStats'),
+      getHoverMessage: () => statsHoverMessage
+    });
+    content += statsChart;
 
     this._currentLine += 2;
     return content + ' \n\n';
@@ -605,6 +652,8 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._currentLine = 0;
     this._totalCommitsCount = 0;
     this._loadMoreClicked = false;
+    this._panelView.clearLogs();
+    this._logEntries = [];
   }
 
   private _startLoading() {
@@ -621,5 +670,62 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     await this._updatingPromise;
     this._updatingCanceled = false;
     Tracer.verbose('HistoryView: updating canceled');
+  }
+
+  private _setShadowArea() {
+    const editor = vs.window.visibleTextEditors.find(e => e.document.uri.scheme === HistoryViewProvider.scheme);
+
+    if (!editor) {
+      return;
+    }
+
+    const visibleRange = editor.visibleRanges[0];
+    if (!visibleRange) {
+      return;
+    }
+
+    if (this._logEntries.length === 0) {
+      return;
+    }
+
+    const startLine = visibleRange.start.line;
+    const endLine = visibleRange.end.line;
+
+    const startEntry = this._findLogEntryForLine(startLine, true);
+    const endEntry = this._findLogEntryForLine(endLine, false);
+
+    if (startEntry && endEntry) {
+      this._panelView.setShadowArea(endEntry.timestamp, startEntry.timestamp);
+    }
+  }
+
+  private _findLogEntryForLine(line: number, start: boolean): GitLogEntry {
+    if (line < 3) {
+      return this._logEntries[0].entry;
+    }
+
+    let low = 0;
+    let high = this._logEntries.length - 1;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const entry = this._logEntries[mid];
+
+      if (entry.lineNumber === line) {
+        return entry.entry;
+      }
+      if (entry.lineNumber < line) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    if (low >= this._logEntries.length) {
+      low = this._logEntries.length - 1;
+    }
+    if (high < 0) {
+      high = 0;
+    }
+    return start ? this._logEntries[high].entry : this._logEntries[low].entry;
   }
 }

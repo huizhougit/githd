@@ -118,6 +118,13 @@
                     "title": "GitHD",
                     "icon": "resources/icons/githd.svg"
                 }
+            ],
+            "panel": [
+                {
+                    "id": "githd-panel",
+                    "title": "GitHD: Stats",
+                    "icon": "resources/icons/githd.svg"
+                }
             ]
         },
         "views": {
@@ -125,6 +132,14 @@
                 {
                     "id": "githd.files",
                     "name": "Committed Files",
+                    "when": "githd.hasGitRepo"
+                }
+            ],
+            "githd-panel": [
+                {
+                    "id": "githd.stats",
+                    "type": "webview",
+                    "name": "Stats",
                     "when": "githd.hasGitRepo"
                 }
             ]
@@ -378,6 +393,11 @@
                 "command": "githd.setRepository",
                 "title": "Set Git Repository",
                 "category": "GitHD"
+            },
+            {
+                "command": "githd.showStats",
+                "title": "Show Stats",
+                "category": "GitHD"
             }
         ],
         "menus": {
@@ -544,6 +564,10 @@
                 },
                 {
                     "command": "githd.copyCommitHash",
+                    "when": "false"
+                },
+                {
+                    "command": "githd.showStats",
                     "when": "false"
                 }
             ],
@@ -883,6 +907,9 @@
     },
     "dependencies": {
         "lodash": "^4.17.21",
-        "lru-cache": "^11.0.1"
+        "lru-cache": "^11.0.1",
+        "chart.js": "^3.7.0",
+        "chartjs-adapter-date-fns": "^3.0.0",
+        "date-fns": "^3.6.0"
     }
 }

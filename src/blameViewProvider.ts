@@ -3,7 +3,7 @@ import * as vs from 'vscode';
 import { Model } from './model';
 import { GitService, GitBlameItem } from './gitService';
 import { Tracer } from './tracer';
-import { getPullRequests, isEmptyHash } from './utils';
+import { debounce, getPullRequests, isEmptyHash } from './utils';
 
 const NotCommitted = `Not committed yet`;
 
@@ -34,7 +34,7 @@ class BlameViewStatProvider implements vs.Disposable, vs.HoverProvider {
 export class BlameViewProvider implements vs.HoverProvider {
   private _blame: GitBlameItem | undefined;
   private _statProvider: BlameViewStatProvider;
-  private _debouncing: NodeJS.Timeout | undefined;
+  private _debouncedUpdate: (editor: vs.TextEditor) => void;
   private _enabled = false;
   private _decoration = vs.window.createTextEditorDecorationType({
     after: {
@@ -50,6 +50,7 @@ export class BlameViewProvider implements vs.HoverProvider {
   ) {
     this.enabled = model.configuration.blameEnabled;
     this._statProvider = new BlameViewStatProvider(this);
+    this._debouncedUpdate = debounce((editor: vs.TextEditor) => this._update(editor), 250);
     context.subscriptions.push(
       vs.languages.registerHoverProvider({ scheme: 'file' }, this),
       this._statProvider,
@@ -174,8 +175,7 @@ ${blame.body}
     const line = editor.selection.active.line;
     if (!this._blame || line != this._blame.line || file !== this._blame.file) {
       this._clear(editor);
-      clearTimeout(this._debouncing);
-      this._debouncing = setTimeout(() => this._update(editor), 250);
+      this._debouncedUpdate(editor);
     }
   }
 

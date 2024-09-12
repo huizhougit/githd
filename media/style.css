@@ -1,0 +1,75 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+label {
+  display: inline-block;
+  width: 120px;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+select,
+input {
+  width: 200px;
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+#chart-container {
+  width: 95%;
+  height: 80%;
+  max-height: 600px;
+}
+
+#chart {
+  width: 100%;
+  height: 100%;
+}
+
+#customDateRange {
+  margin-top: 10px;
+}
+
+.error-message {
+  color: #ff0000;
+  margin-top: 10px;
+}
+
+:root {
+  --chart-background-color: rgba(200, 200, 200, 0.2);
+  --chart-shadow-color: rgba(16, 122, 220);
+  --chart-selection-color: rgba(128, 128, 128, 0.61);
+  --deletions-background-color: rgba(255, 0, 0);
+  --deletions-border-color: rgb(200, 0, 0);
+  --insertions-background-color: rgba(0, 200, 0);
+  --insertions-border-color: rgb(0, 150, 0);
+}

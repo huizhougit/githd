@@ -10,6 +10,7 @@ import { GitService, GitRepo, GitRefType, GitCommittedFile } from './gitService'
 import { Tracer } from './tracer';
 import { ExplorerViewProvider } from './explorerViewProvider';
 import { Dataloader } from './dataloader';
+import { PanelViewProvider } from './panelViewProvider';
 
 function toGitUri(uri: vs.Uri, ref?: string): vs.Uri {
   return uri.with({
@@ -441,6 +442,12 @@ export class CommandCenter {
   clearFilesView(): void {
     Tracer.verbose('Command: githd.clearFilesView');
     this._model.clearFilesViewContexts();
+  }
+
+  @command('githd.showStats')
+  showStats(): void {
+    Tracer.verbose('Command: githd.showStats');
+    vs.commands.executeCommand(`${PanelViewProvider.viewType}.focus`);
   }
 
   private async _viewHistory(context: HistoryViewContext, all: boolean = false): Promise<void> {

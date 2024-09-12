@@ -47,6 +47,7 @@ export interface GitLogEntry {
   ref: string;
   author: string;
   email: string;
+  timestamp: number;
   date: string;
   stat?: string;
   lineInfo?: string;
@@ -208,13 +209,26 @@ export class GitService {
     return (await this._exec(['rev-parse', '--abbrev-ref', 'HEAD'], repo.root)).trim();
   }
 
-  async getCommitsCount(repo: GitRepo, branch: string, file?: vs.Uri, author?: string): Promise<number> {
+  async getCommitsCount(
+    repo: GitRepo,
+    branch: string,
+    file?: vs.Uri,
+    author?: string,
+    startTime?: Date,
+    endTime?: Date
+  ): Promise<number> {
     if (!repo) {
       return 0;
     }
     let args: string[] = ['rev-list', '--simplify-merges', '--count', branch];
     if (author) {
       args.push(`--author=${author}`);
+    }
+    if (startTime) {
+      args.push(`--after=${startTime.toISOString()}`);
+    }
+    if (endTime) {
+      args.push(`--before=${endTime.toISOString()}`);
     }
     if (file) {
       const filePath = (await this.getGitRelativePath(file)) ?? '.';
@@ -321,11 +335,14 @@ export class GitService {
     isStash?: boolean,
     file?: vs.Uri,
     line?: number,
-    author?: string
+    author?: string,
+    startTime?: Date,
+    endTime?: Date
   ): Promise<GitLogEntry[]> {
     Tracer.info(
       `Get entries. repo: ${repo.root}, express: ${express}, start: ${start}, count: ${count}, branch: ${branch}, ` +
-        `isStash: ${isStash}, file: ${file?.fsPath}, line: ${line}, author: ${author}`
+        `isStash: ${isStash}, file: ${file?.fsPath}, line: ${line}, author: ${author}, ` +
+        `startTime: ${startTime?.toISOString()}, endTime: ${endTime?.toISOString()}`
     );
     if (!repo) {
       return [];
@@ -345,6 +362,12 @@ export class GitService {
       args.unshift('log', `--skip=${start}`, `--max-count=${count}`, '--date-order', '--simplify-merges', branch);
       if (author) {
         args.push(`--author=${author}`);
+      }
+      if (startTime) {
+        args.push(`--after=${startTime.toISOString()}`);
+      }
+      if (endTime) {
+        args.push(`--before=${endTime.toISOString()}`);
       }
 
       if (file) {
@@ -372,6 +395,7 @@ export class GitService {
       let ref: string;
       let author: string;
       let email: string;
+      let timestamp: number;
       let date: string;
       let stat: string;
       let lineInfo: string;
@@ -393,10 +417,10 @@ export class GitService {
             email = value;
             break;
           case 5:
-            date = formatDate(parseInt(value));
+            timestamp = parseInt(value);
             break;
           case 6:
-            date += ` (${value})`;
+            date = formatDate(timestamp) + ` (${value})`;
             break;
           case 7:
             if (!!line) {
@@ -410,7 +434,8 @@ export class GitService {
               ref,
               author,
               email,
-              date,
+              timestamp,
+              date: date,
               stat,
               lineInfo
             });
