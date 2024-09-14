@@ -34,7 +34,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _loadedCount = 0; // for all loaded entries which includes multiple pages
   private _currentLine = 0;
   private _loadAll = false;
-  private _loadMoreClicked = false;
   private _leftCount = 0; // for a single page which includes multiple loadings
   private _totalCommitsCount = 0;
   private _onDidChange = new vs.EventEmitter<vs.Uri>();
@@ -217,9 +216,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
           if (this._updating) {
             this._updateContent(false);
           } else {
-            if (!this._loadMoreClicked) {
-              editors.forEach(editor => this._moveToTop(editor));
-            }
             this._panelView.update();
             this._setShadowArea();
             this._updatingResolver();
@@ -584,7 +580,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
           this._clickableProvider.removeClickable(this._moreClickableRange);
           this._moreClickableRange = undefined;
         }
-        this._loadMoreClicked = true;
         this._updateContent(true);
       },
       getHoverMessage: () => loadMoreHoverMessage
@@ -652,7 +647,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._leftCount = 0;
     this._currentLine = 0;
     this._totalCommitsCount = 0;
-    this._loadMoreClicked = false;
     this._panelView.clearLogs();
     this._logEntries = [];
   }
@@ -664,6 +658,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     this._content = loadingContent;
     this._update();
     this._updatingPromise = new Promise(resolve => (this._updatingResolver = resolve));
+    getTextEditors(HistoryViewProvider.scheme).forEach(editor => this._moveToTop(editor));
   }
 
   private async _cancelUpdating(): Promise<void> {
