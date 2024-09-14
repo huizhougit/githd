@@ -10,6 +10,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
   private _view: vscode.WebviewView | undefined;
   private _commits: { stats: string; date: number }[] = [];
   private _shadowArea: { start: number; end: number } | null = null;
+  private _dataBucketsCount: number;
   constructor(
     context: vscode.ExtensionContext,
     private _model: Model
@@ -23,6 +24,13 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
         }
       })
     );
+    this._dataBucketsCount = _model.configuration.dataBucketsCount;
+    this._model.onDidChangeConfiguration(() => {
+      if (this._dataBucketsCount !== _model.configuration.dataBucketsCount) {
+        this._dataBucketsCount = _model.configuration.dataBucketsCount;
+        this.update();
+      }
+    });
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -69,11 +77,12 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
   }
 
   update() {
-    Tracer.verbose('PanelViewProvider: update');
+    Tracer.verbose(`PanelViewProvider: update: commits ${this._commits.length} buckets ${this._dataBucketsCount}`);
     if (this._view) {
       this._view.webview.postMessage({
         type: 'updateChart',
-        data: this._commits
+        data: this._commits,
+        bucketsCount: this._dataBucketsCount
       });
     }
   }

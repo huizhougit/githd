@@ -2,6 +2,7 @@
   const vscode = acquireVsCodeApi();
   let chartInstance = null;
   let currentData = [];
+  let currentBucketsCount = 0;
   let isDragging = false;
   let startX, endX;
 
@@ -36,7 +37,7 @@
         switch (message.type) {
           case 'updateChart':
             log('Updating chart:', message);
-            renderChart(message.data);
+            renderChart(message.data, message.bucketsCount);
             break;
           case 'setShadowArea':
             log('Setting shadow area:', message);
@@ -96,7 +97,7 @@
     }
   }
 
-  function renderChart(data) {
+  function renderChart(data, bucketsCount) {
     if (data.length === 0) {
       displayError('No data available for the selected range');
       return;
@@ -105,15 +106,9 @@
     data.reverse();
 
     currentData = data;
+    currentBucketsCount = bucketsCount;
     log('Raw data:', JSON.stringify(data.slice(0, 5))); // Log first 5 items
     createOrUpdateChart();
-  }
-
-  function calculateBucketCount(chartWidth) {
-    const bucketCount = Math.max(30, Math.floor(chartWidth / (16 + 22)));
-
-    log(`Calculated bucket count: ${bucketCount}, chartWidth: ${chartWidth}`);
-    return 122;
   }
 
   function getTimeUnit(start, end) {
@@ -121,8 +116,7 @@
     console.log('Date range:', start, 'to', end, 'Diff in minutes:', diffMinutes);
     if (diffMinutes <= 120) return 'minute'; // 2 hours
     if (diffMinutes <= 4320) return 'hour'; // 3 days
-    if (diffMinutes <= 43200) return 'day'; // 30 days
-    if (diffMinutes <= 172800) return 'day'; // 4 months (120 days)
+    if (diffMinutes <= 129600) return 'day'; // 90 days
     if (diffMinutes <= 525600) return 'week'; // 1 year
     return 'month';
   }
@@ -365,7 +359,7 @@
   function aggregateDataIntoBuckets(data) {
     const start = data[0].date;
     const end = data[data.length - 1].date;
-    const bucketCount = 122;
+    const bucketCount = currentBucketsCount;
 
     // Handle case where start and end are very close or identical
     if (end - start < bucketCount) {

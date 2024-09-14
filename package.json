@@ -99,6 +99,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Cache some git data to improve performance. Whenever there is a change under .git the cache will be updated."
+                },
+                "githd.statsView.dataBucketsCount": {
+                    "type": "number",
+                    "default": 91,
+                    "description": "The number of buckets to display in the stats view. The bigger the value you set, the higher resolution the chart will be."
                 }
             }
         },

@@ -14,6 +14,7 @@ export interface Configuration {
   readonly disabledInEditor: boolean;
   withFolder: boolean;
   readonly cacheEnabled: boolean;
+  readonly dataBucketsCount: number;
 }
 
 export interface FilesViewContext {
@@ -45,7 +46,8 @@ function getConfiguration(): Configuration {
     blameEnabled: <boolean>vs.workspace.getConfiguration('githd.blameView').get('enabled'),
     disabledInEditor: <boolean>vs.workspace.getConfiguration('githd.editor').get('disabled'),
     traceLevel: <string>vs.workspace.getConfiguration('githd').get('traceLevel'),
-    cacheEnabled: <boolean>vs.workspace.getConfiguration('githd').get('cacheEnabled')
+    cacheEnabled: <boolean>vs.workspace.getConfiguration('githd').get('cacheEnabled'),
+    dataBucketsCount: <number>vs.workspace.getConfiguration('githd.statsView').get('dataBucketsCount')
   };
 }
 
@@ -86,7 +88,8 @@ export class Model {
           newConfig.blameEnabled !== this._config.blameEnabled ||
           newConfig.disabledInEditor !== this._config.disabledInEditor ||
           newConfig.traceLevel !== this._config.traceLevel ||
-          newConfig.cacheEnabled !== this._config.cacheEnabled
+          newConfig.cacheEnabled !== this._config.cacheEnabled ||
+          newConfig.dataBucketsCount !== this._config.dataBucketsCount
         ) {
           Tracer.info(`Model: configuration updated ${JSON.stringify(newConfig)}`);
           this._config = newConfig;
