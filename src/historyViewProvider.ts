@@ -323,6 +323,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
     Tracer.info(`HistoryView: _updateContent. ${JSON.stringify(context)}`);
 
+    const timeRangeSet = context.startTime || context.endTime;
     const isStash = context.isStash ?? false;
     const firstLoading = this._leftCount == 0;
     let loadingCount = this._express ? 3 * firstLoadingCount : firstLoadingCount;
@@ -352,7 +353,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
         // pageSize is the total count includes multiple loadings
         let pageSize = Math.min(this._totalCommitsCount - this._loadedCount, this._commitsCount);
-        if (this._loadAll) {
+        if (this._loadAll || timeRangeSet) {
           pageSize = this._totalCommitsCount - this._loadedCount;
         } else if (loadMore) {
           pageSize = Math.min(2 * this._loadedCount, maxPageSize);

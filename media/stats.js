@@ -110,7 +110,21 @@
   }
 
   function calculateBucketCount(chartWidth) {
-    return Math.max(30, Math.floor(chartWidth / (16 + 22)));
+    const bucketCount = Math.max(30, Math.floor(chartWidth / (16 + 22)));
+
+    log(`Calculated bucket count: ${bucketCount}, chartWidth: ${chartWidth}`);
+    return 122;
+  }
+
+  function getTimeUnit(start, end) {
+    const diffMinutes = Math.ceil((end - start) / (1000 * 60));
+    console.log('Date range:', start, 'to', end, 'Diff in minutes:', diffMinutes);
+    if (diffMinutes <= 120) return 'minute'; // 2 hours
+    if (diffMinutes <= 4320) return 'hour'; // 3 days
+    if (diffMinutes <= 43200) return 'day'; // 30 days
+    if (diffMinutes <= 172800) return 'day'; // 4 months (120 days)
+    if (diffMinutes <= 525600) return 'week'; // 1 year
+    return 'month';
   }
 
   function createOrUpdateChart() {
@@ -126,13 +140,12 @@
     }
 
     const chartWidth = ctx.clientWidth;
-    const bucketCount = calculateBucketCount(chartWidth);
-    const aggregatedData = aggregateDataIntoBuckets(currentData, bucketCount);
+    const aggregatedData = aggregateDataIntoBuckets(currentData);
     log('First aggregated item:', JSON.stringify(aggregatedData[0]));
     log('Last aggregated item:', JSON.stringify(aggregatedData[aggregatedData.length - 1]));
 
     const dateRange = getDateRange(aggregatedData);
-    log('Date range:', new Date(dateRange.start), new Date(dateRange.end), aggregatedData.length);
+    log('Date range:', new Date(dateRange.start), new Date(dateRange.end));
 
     const timeUnit = getTimeUnit(dateRange.start, dateRange.end);
     log('Selected time unit:', timeUnit);
@@ -141,7 +154,6 @@
       minute: 'HH:mm',
       hour: 'HH:mm',
       day: 'yyyy/MM/dd',
-      week: 'yyyy/MM/dd',
       month: 'yyyy/MM',
       quarter: 'yyyy/MM',
       year: 'yyyy'
@@ -246,8 +258,11 @@
             type: 'time',
             time: {
               unit: timeUnit,
-              displayFormats: timeUnitFormats,
-              tooltipFormat: context => timeUnitFormats[timeUnit] || timeUnitFormats.minute
+              displayFormats: {
+                ...timeUnitFormats,
+                week: 'yyyy/MM/dd'
+              },
+              tooltipFormat: _ => timeUnitFormats[timeUnit] || timeUnitFormats.month
             },
             stacked: true,
             ticks: {
@@ -347,9 +362,10 @@
     return Math.max(4, Math.floor(chartWidth / 100));
   }
 
-  function aggregateDataIntoBuckets(data, bucketCount) {
+  function aggregateDataIntoBuckets(data) {
     const start = data[0].date;
     const end = data[data.length - 1].date;
+    const bucketCount = 122;
 
     // Handle case where start and end are very close or identical
     if (end - start < bucketCount) {
@@ -410,28 +426,15 @@
     }
   }
 
-  function getTimeUnit(start, end) {
-    const diffMinutes = Math.ceil((end - start) / (1000 * 60));
-    console.log('Date range:', start, 'to', end, 'Diff in minutes:', diffMinutes);
-    if (diffMinutes <= 120) return 'minute';
-    if (diffMinutes <= 2880) return 'hour';
-    if (diffMinutes <= 20160) return 'day';
-    if (diffMinutes <= 80640) return 'week';
-    if (diffMinutes <= 525600) return 'month';
-    return 'quarter';
-  }
-
   function handleResize() {
     if (chartInstance) {
       log('Resizing chart');
-      const chartWidth = document.getElementById('chart').clientWidth;
-      const bucketCount = calculateBucketCount(chartWidth);
-      const aggregatedData = aggregateDataIntoBuckets(currentData, bucketCount);
-      updateChartData(chartInstance, aggregatedData, chartWidth);
+      const aggregatedData = aggregateDataIntoBuckets(currentData);
+      updateChartData(chartInstance, aggregatedData);
     }
   }
 
-  function updateChartData(chart, aggregatedData, chartWidth) {
+  function updateChartData(chart, aggregatedData) {
     chart.data.labels = aggregatedData.map(d => d.date);
     chart.data.datasets[0].data = aggregatedData.map(d => d.deletions);
     chart.data.datasets[1].data = aggregatedData.map(d => d.insertions);
@@ -439,6 +442,7 @@
       x: d.date,
       y: d.commits
     }));
+    const chartWidth = document.getElementById('chart').clientWidth;
     chart.options.scales.x.ticks.maxTicksLimit = calculateMaxTicksLimit(chartWidth);
     chart.update();
   }
