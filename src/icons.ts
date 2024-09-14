@@ -2,7 +2,7 @@ import * as path from 'path';
 
 import { Uri } from 'vscode';
 
-const iconsRootPath = path.join(path.dirname(__dirname), '..', 'resources', 'icons');
+const iconsRootPath = path.join(path.dirname(__dirname), '..', 'media', 'icons');
 export function getIconUri(iconName: string, theme: string): Uri {
   return Uri.file(path.join(iconsRootPath, theme, `${iconName}.svg`));
 }

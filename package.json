@@ -16,7 +16,7 @@
         "type": "git",
         "url": "https://github.com/huizhougit/githd.git"
     },
-    "icon": "resources/icons/icon.png",
+    "icon": "media/icons/icon.png",
     "categories": [
         "Other"
     ],
@@ -36,8 +36,8 @@
             {
                 "id": "githd",
                 "icon": {
-                    "light": "resources/icons/githd.svg",
-                    "dark": "resources/icons/githd.svg"
+                    "light": "media/icons/githd.svg",
+                    "dark": "media/icons/githd.svg"
                 }
             }
         ],
@@ -107,14 +107,14 @@
                 {
                     "id": "githd-explorer",
                     "title": "GitHD",
-                    "icon": "resources/icons/githd.svg"
+                    "icon": "media/icons/githd.svg"
                 }
             ],
             "panel": [
                 {
                     "id": "githd-panel",
                     "title": "GitHD: Stats",
-                    "icon": "resources/icons/githd.svg"
+                    "icon": "media/icons/githd.svg"
                 }
             ]
         },
@@ -145,8 +145,8 @@
                 "command": "githd.viewHistory",
                 "title": "GitHD: View History",
                 "icon": {
-                    "light": "resources/icons/githd.svg",
-                    "dark": "resources/icons/githd.svg"
+                    "light": "media/icons/githd.svg",
+                    "dark": "media/icons/githd.svg"
                 }
             },
             {
@@ -154,8 +154,8 @@
                 "title": "Go Back",
                 "category": "GitHD",
                 "icon": {
-                    "light": "resources/icons/light/arrow-left.svg",
-                    "dark": "resources/icons/dark/arrow-left.svg"
+                    "light": "media/icons/light/arrow-left.svg",
+                    "dark": "media/icons/dark/arrow-left.svg"
                 }
             },
             {
@@ -163,8 +163,8 @@
                 "title": "Go Forward",
                 "category": "GitHD",
                 "icon": {
-                    "light": "resources/icons/light/arrow-rightt.svg",
-                    "dark": "resources/icons/dark/arrow-right.svg"
+                    "light": "media/icons/light/arrow-rightt.svg",
+                    "dark": "media/icons/dark/arrow-right.svg"
                 }
             },
             {
@@ -249,64 +249,64 @@
                 "command": "githd.goBackFilesView",
                 "title": "Go Back",
                 "icon": {
-                    "light": "resources/icons/light/arrow-left.svg",
-                    "dark": "resources/icons/dark/arrow-left.svg"
+                    "light": "media/icons/light/arrow-left.svg",
+                    "dark": "media/icons/dark/arrow-left.svg"
                 }
             },
             {
                 "command": "githd.goBackNoMore",
                 "title": "No More",
                 "icon": {
-                    "light": "resources/icons/light/arrow-left-no-more.svg",
-                    "dark": "resources/icons/dark/arrow-left-no-more.svg"
+                    "light": "media/icons/light/arrow-left-no-more.svg",
+                    "dark": "media/icons/dark/arrow-left-no-more.svg"
                 }
             },
             {
                 "command": "githd.goForwardFilesView",
                 "title": "Go Forward",
                 "icon": {
-                    "light": "resources/icons/light/arrow-right.svg",
-                    "dark": "resources/icons/dark/arrow-right.svg"
+                    "light": "media/icons/light/arrow-right.svg",
+                    "dark": "media/icons/dark/arrow-right.svg"
                 }
             },
             {
                 "command": "githd.goForwardNoMore",
                 "title": "No More",
                 "icon": {
-                    "light": "resources/icons/light/arrow-right-no-more.svg",
-                    "dark": "resources/icons/dark/arrow-right-no-more.svg"
+                    "light": "media/icons/light/arrow-right-no-more.svg",
+                    "dark": "media/icons/dark/arrow-right-no-more.svg"
                 }
             },
             {
                 "command": "githd.previousCommit",
                 "title": "Previous Commit (Older One)",
                 "icon": {
-                    "light": "resources/icons/light/fold-down.svg",
-                    "dark": "resources/icons/dark/fold-down.svg"
+                    "light": "media/icons/light/fold-down.svg",
+                    "dark": "media/icons/dark/fold-down.svg"
                 }
             },
             {
                 "command": "githd.previousCommitNoMore",
                 "title": "No More Previous",
                 "icon": {
-                    "light": "resources/icons/light/fold-down-no-more.svg",
-                    "dark": "resources/icons/dark/fold-down-no-more.svg"
+                    "light": "media/icons/light/fold-down-no-more.svg",
+                    "dark": "media/icons/dark/fold-down-no-more.svg"
                 }
             },
             {
                 "command": "githd.nextCommit",
                 "title": "Next Commit (Newer One)",
                 "icon": {
-                    "light": "resources/icons/light/fold-up.svg",
-                    "dark": "resources/icons/dark/fold-up.svg"
+                    "light": "media/icons/light/fold-up.svg",
+                    "dark": "media/icons/dark/fold-up.svg"
                 }
             },
             {
                 "command": "githd.nextCommitNoMore",
                 "title": "No More Next",
                 "icon": {
-                    "light": "resources/icons/light/fold-up-no-more.svg",
-                    "dark": "resources/icons/dark/fold-up-no-more.svg"
+                    "light": "media/icons/light/fold-up-no-more.svg",
+                    "dark": "media/icons/dark/fold-up-no-more.svg"
                 }
             },
             {
