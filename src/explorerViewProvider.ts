@@ -9,11 +9,6 @@ import { Tracer } from './tracer';
 import { Resource } from './resource';
 import { Dataloader } from './dataloader';
 
-const rootFolderIcon = {
-  dark: getIconUri('structure', 'dark'),
-  light: getIconUri('structure', 'light')
-};
-
 class InfoItem extends vs.TreeItem {
   constructor(label: string, description?: string) {
     super(label);
@@ -173,6 +168,11 @@ enum RootCommitPosition {
 
 export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeItem>, vs.FileDecorationProvider {
   static scheme: string = 'githd-committed';
+
+  private readonly _rootFolderIcon = {
+    dark: getIconUri('structure', 'dark'),
+    light: getIconUri('structure', 'light')
+  };
 
   private _onDidChange = new vs.EventEmitter<CommittedTreeItem | undefined>();
   private _withFolder: boolean;
@@ -494,7 +494,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       '',
       label,
       description,
-      rootFolderIcon
+      this._rootFolderIcon
     );
     this._buildFileTree(folder, committedFiles);
     this._treeRoot.push(folder);
@@ -513,7 +513,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
       '',
       label,
       relativePath,
-      rootFolderIcon
+      this._rootFolderIcon
     );
     if (fs.lstatSync(specifiedPath.fsPath).isFile()) {
       if (lineInfo) {

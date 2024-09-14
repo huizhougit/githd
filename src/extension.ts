@@ -9,8 +9,10 @@ import { InfoViewProvider } from './infoViewProvider';
 import { BlameViewProvider } from './blameViewProvider';
 import { Dataloader } from './dataloader';
 import { PanelViewProvider } from './panelViewProvider';
+import { initializeIcons } from './icons';
 
 export function activate(context: vs.ExtensionContext) {
+  initializeIcons(context);
   let gitService = new GitService(context);
   let dataloader = new Dataloader(context, gitService);
   let model = new Model(context, dataloader);
