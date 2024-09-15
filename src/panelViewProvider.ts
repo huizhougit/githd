@@ -24,13 +24,14 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
         }
       })
     );
-    this._dataBucketsCount = _model.configuration.dataBucketsCount;
     this._model.onDidChangeConfiguration(() => {
-      if (this._dataBucketsCount !== _model.configuration.dataBucketsCount) {
-        this._dataBucketsCount = _model.configuration.dataBucketsCount;
+      const bucketsCount = this._model.configuration.dataBucketsCount;
+      if (!!bucketsCount && this._dataBucketsCount !== bucketsCount) {
+        this._dataBucketsCount = bucketsCount;
         this.update();
       }
     });
+    this._dataBucketsCount = _model.configuration.dataBucketsCount ?? 91;
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
