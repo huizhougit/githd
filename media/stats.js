@@ -451,26 +451,23 @@
       let startPos = (start - chartStart) / chartRange;
       let endPos = (end - chartStart) / chartRange;
 
-      // Make sure startPos and endPos are between 0 and 1
-      startPos = Math.max(0, Math.min(startPos, 1));
-      endPos = Math.max(0, Math.min(endPos, 1));
+      log(`Setting shadow area: before adjust, startPos: ${startPos}, endPos: ${endPos}`);
 
       // Ensure the shadow area is at least 0.22% of the chart width
       const minWidth = 0.0022;
-
-      // Adjust positions if they are out of bounds. It could happen when the many commits are in the first or last bucket.
-      if (startPos >= 1) {
-        startPos = 1 - minWidth;
-        endPos = 1;
-      }
-      if (endPos <= 0) {
-        startPos = 0;
-        endPos = minWidth;
-      }
-
       const width = endPos - startPos;
       if (width < minWidth) {
         endPos = startPos + minWidth;
+      }
+
+      // Adjust positions if they are out of bounds. It could happen when the many commits are in the first or last bucket.
+      if (startPos >= 1 || endPos >= 1) {
+        startPos = 1 - minWidth;
+        endPos = 1;
+      }
+      if (startPos <= 0 || endPos <= 0) {
+        startPos = 0;
+        endPos = minWidth;
       }
 
       log(
@@ -545,7 +542,7 @@
   }
 
   function log(...message) {
-    // console.log(...message);
+    console.log(...message);
   }
 
   log('Chart.js loaded:', typeof Chart !== 'undefined');
