@@ -48,7 +48,7 @@
             break;
         }
       } catch (error) {
-        displayError('An error occurred while processing the data.', error);
+        displayError('An error occurred while processing the data.' + error.message);
       }
     });
 
@@ -163,7 +163,6 @@
       }
       log('Chart created/updated successfully');
     } catch (error) {
-      console.error('Error creating/updating chart:', error);
       displayError('Error creating/updating chart: ' + error.message);
     }
   }
@@ -411,8 +410,8 @@
     };
   }
 
-  function displayError(message, error) {
-    console.error('Displaying error:', message, error);
+  function displayError(message) {
+    console.error('Displaying error:', message);
     const ctx = document.getElementById('chart');
     if (chartInstance) {
       chartInstance.destroy();
@@ -448,25 +447,25 @@
       const chartEnd = scales.x.max;
       const chartRange = chartEnd - chartStart;
 
-      console.log('Chart date range:', new Date(chartStart), new Date(chartEnd));
-      console.log('Requested shadow range:', new Date(start), new Date(end));
-
       // Calculate positions based on the nearest labels
       let startPos = (start - chartStart) / chartRange;
       let endPos = (end - chartStart) / chartRange;
 
-      // If start and end are the same, create a small range around the point
-      if (start === end) {
-        const labelRange = 1 / chartInstance.data.labels.length;
-        const halfWidth = labelRange * 0.4;
-        startPos -= halfWidth;
-        endPos += halfWidth;
+      // Ensure the shadow area is at least 0.22% of the chart width
+      const width = endPos - startPos;
+      const minWidth = 0.0022;
+      if (width < minWidth) {
+        endPos = startPos + minWidth;
       }
 
       startPos = Math.min(1, Math.max(0, startPos));
       endPos = Math.min(1, Math.max(0, endPos));
 
-      log('Setting shadow area:', new Date(start), new Date(end), 'Positions:', startPos, endPos);
+      log(
+        `Setting shadow area: ${new Date(start)} - ${new Date(end)} Positions: ${startPos} - ${endPos}, width percentage: ${
+          width * 100
+        }%`
+      );
 
       // Update the chart options
       chartInstance.options.plugins.shadowArea = {
