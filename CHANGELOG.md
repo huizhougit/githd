@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.5.0
+
+- Add stats chart.
+- Use esbuild to reduce the extension package size.
+
 ## 2.4.4
 
 - Downgrade vscode package to 1.91

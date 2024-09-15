@@ -4,45 +4,10 @@ View git history. View commit details. View diff of committed files. View git bl
 
 GitHD aims to bring the most useful git history inside with the simplest and the most convenient way.
 
-## What's new in 2.4
+## What's new in 2.5
 
-- New user experience of explorer view
-
-  - Move the file status to the end and show the file icons
-
-    ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/file_decoration.png)
-
-  - Show file and folder operations in line
-
-    ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/inline_commands.png)
-
-- Go back or forward to the history log search
-
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/history_go_back.png)
-
-- Go back or forward to the explore view list. Check the previous or next commit in explore view
-
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/explorer_commands.png)
-
-- Click link in blame view to see current file or line history
-
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/blame_file_line.png)
-
-- Add github PR link in commit info file
-
-  ![Image](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/info_file_link.png)
-
-- Better support for multiple editors
-
-## What's new in 2.0
-
-- **Git blame view**. You are able to see the latest commit info which presents at the end of each line.
-- **Git stash view**. You are able to see the change details of stashes.
-- Allow user to **input two commits** to see their branches or specified files diffs.
-- Allow user to see file diff between **un-committed local** and specified commit.
-- Move the color configures to Contribution point so that you are able to configure them with [customized color](https://code.visualstudio.com/docs/getstarted/themes#_customizing-a-color-theme).
-- Some UI related improvments and fixes.
-- Tracing system introduced (tracing is disabled by default).
+- Add stats chart. It reflects the commit stats of the history view.
+  ![Image of stats chart](https://raw.githubusercontent.com/huizhougit/githd/master/resources/stats_chart.gif)
 
 ## Features
 
@@ -62,6 +27,7 @@ GitHD aims to bring the most useful git history inside with the simplest and the
 - Go back or forward on Explorer view.
 - Check the previous (older) or next (newer) commit.
 - Go to github PR links from blame view and commit info.
+- View commit **stats chart**. It reflects the commit stats of the history view.
 
 ## Commands
 
@@ -83,19 +49,19 @@ _Press F1_ and type or select below commands to run.
 
 **Note**, when you select different branch to see it's history, the repo will not checkout to that branch.
 
-![Image of branch history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/branch_history.gif)
+![Image of branch history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/branch_history.gif)
 
 ### View File or Folder History
 
-![Image of file history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/file_history.gif)
+![Image of file history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/file_history.gif)
 
-![Image of folder history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/folder_history.png)
+![Image of folder history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/folder_history.png)
 
 ### View line history and diff
 
-![Image of line history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/line_history.png)
+![Image of line history](https://raw.githubusercontent.com/huizhougit/githd/master/resources/line_history.png)
 
-![Image of line diff](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/line_diff.png)
+![Image of line diff](https://raw.githubusercontent.com/huizhougit/githd/master/resources/line_diff.png)
 
 ### Diff Branch
 
@@ -104,20 +70,20 @@ _Press F1_ and type or select below commands to run.
 - Input a SHA to compare with current branch (`F1 -> GitHD: View Branch Diff -> Enter Commit SHA -> SHA`)
 - Input two SHAs to see their diffs (`F1 -> GitHD: View Branch Diff -> Enter Commit SHA -> SHA1 .. SHA2`)
 
-![Image of diff branch](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/diff_branch.gif)
+![Image of diff branch](https://raw.githubusercontent.com/huizhougit/githd/master/resources/diff_branch.gif)
 
 ### Git Blame
 
 You are able to see the latest commit info of each line. Hover on it to see the details and
 click the SHA to see committed files and their changes. You could disable it in the settings.
 
-![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/blame.png)
+![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/blame.png)
 
-![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/blame_hover.png)
+![Image of blame](https://raw.githubusercontent.com/huizhougit/githd/master/resources/blame_hover.png)
 
 ### Display of the Committed Files
 
-![Image of display files](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/display_files.gif)
+![Image of display files](https://raw.githubusercontent.com/huizhougit/githd/master/resources/display_files.gif)
 
 ### Express Mode
 
@@ -127,7 +93,7 @@ When the express mode is enabled, the History View will be loaded significantly 
 
 _Press F1_ and type or select `Preferences: Open Workspace Settings` or `Preferences: Open User Settings`. Search _**githd**_ and set the configurations.
 
-![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/demo/configurations.png)
+![Image of the configurations](https://raw.githubusercontent.com/huizhougit/githd/master/resources/configurations.png)
 
 ## Changes
 
@@ -139,7 +105,7 @@ _Press F1_ and type or select `Preferences: Open Workspace Settings` or `Prefere
 
 ## Thanks
 
-**Big thanks** to the contributions of **_Thomas Müller_**, **_Eugene Voynov_**, **_yigger_** and **_Ralf Sternberg_**!
+**Big thanks** to all the contributors and users!
 
 ## Unofficial Author's Words
 
