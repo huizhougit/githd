@@ -542,7 +542,7 @@
   }
 
   function log(...message) {
-    console.log(...message);
+    // console.log(...message);
   }
 
   log('Chart.js loaded:', typeof Chart !== 'undefined');
