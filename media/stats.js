@@ -206,16 +206,14 @@
             type: 'line',
             backgroundColor: context => {
               const chart = context.chart;
-              const { ctx, scales, chartArea } = chart;
+              const { ctx, chartArea } = chart;
               if (!chartArea) {
                 return null;
               }
 
               const { startPos, endPos } = chart.options.plugins.shadowArea;
               if (startPos !== null && endPos !== null) {
-                const left = scales.x.getPixelForValue(aggregatedData[0].date);
-                const right = scales.x.getPixelForValue(aggregatedData[aggregatedData.length - 1].date);
-                const gradient = ctx.createLinearGradient(left, 0, right, 0);
+                const gradient = ctx.createLinearGradient(0, 0, chartWidth, 0);
                 const backgroundColor = getComputedStyle(document.documentElement)
                   .getPropertyValue('--chart-background-color')
                   .trim();
@@ -443,38 +441,39 @@
   function setShadowArea(start, end) {
     if (chartInstance) {
       const { scales } = chartInstance;
-      const chartStart = scales.x.min;
-      const chartEnd = scales.x.max;
-      const chartRange = chartEnd - chartStart;
 
-      // Calculate positions based on the nearest labels
-      let startPos = (start - chartStart) / chartRange;
-      let endPos = (end - chartStart) / chartRange;
+      const chartWidth = document.getElementById('chart').clientWidth;
 
-      log(`Setting shadow area: before adjust, startPos: ${startPos}, endPos: ${endPos}`);
+      let startPos = scales.x.getPixelForValue(start) / chartWidth;
+      let endPos = scales.x.getPixelForValue(end) / chartWidth;
+      const chartStartPos = scales.x.getPixelForValue(scales.x.min) / chartWidth;
+      const chartEndPos = scales.x.getPixelForValue(scales.x.max) / chartWidth;
+
+      log(
+        `Setting shadow area: before adjust: pos ${startPos} - ${endPos}, chart pos: ${chartStartPos} - ${chartEndPos}, chartWidth: ${chartWidth}`
+      );
+
+      // Adjust start and end if they are out of visible area. It could happen when the many commits are in the last bucket.
+      // These commits date are after the bucket date.
+      if (startPos > chartEndPos) {
+        startPos = chartEndPos;
+      }
+      if (endPos > chartEndPos) {
+        endPos = chartEndPos;
+      }
 
       // Ensure the shadow area is at least 0.22% of the chart width
       const minWidth = 0.0022;
       const width = endPos - startPos;
       if (width < minWidth) {
-        endPos = startPos + minWidth;
+        startPos = endPos - minWidth;
+        if (startPos < chartStartPos) {
+          startPos = chartStartPos;
+          endPos = startPos + minWidth;
+        }
       }
 
-      // Adjust positions if they are out of bounds. It could happen when the many commits are in the first or last bucket.
-      if (startPos >= 1 || endPos >= 1) {
-        startPos = 1 - minWidth;
-        endPos = 1;
-      }
-      if (startPos <= 0 || endPos <= 0) {
-        startPos = 0;
-        endPos = minWidth;
-      }
-
-      log(
-        `Setting shadow area: ${new Date(start)} - ${new Date(end)} Positions: ${startPos} - ${endPos}, width percentage: ${
-          width * 100
-        }%`
-      );
+      log(`Setting shadow area: Positions: ${startPos} - ${endPos}, width percentage: ${width * 100}%`);
 
       // Update the chart options
       chartInstance.options.plugins.shadowArea = {
@@ -497,7 +496,9 @@
       const startPos = (adjustedStartX - chartArea.left) / chartArea.width;
       const endPos = (adjustedEndX - chartArea.left) / chartArea.width;
 
-      log('Updating selection:', startPos, endPos);
+      log(
+        `Updating selection: pos ${startPos} - ${endPos}, start - end: ${startX} - ${endX}, adjusted start - end: ${adjustedStartX} - ${adjustedEndX}, chartArea: ${chartArea.left} - ${chartArea.right}`
+      );
       chartInstance.options.plugins.selection = {
         startPos: startPos,
         endPos: endPos
