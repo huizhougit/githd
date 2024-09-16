@@ -211,9 +211,11 @@
                 return null;
               }
 
+              const currentWidth = chart.width;
+              log(`Current chart width: ${currentWidth}, chartWidth: ${chartWidth}`);
               const { startPos, endPos } = chart.options.plugins.shadowArea;
               if (startPos !== null && endPos !== null) {
-                const gradient = ctx.createLinearGradient(0, 0, chartWidth, 0);
+                const gradient = ctx.createLinearGradient(0, 0, currentWidth, 0);
                 const backgroundColor = getComputedStyle(document.documentElement)
                   .getPropertyValue('--chart-background-color')
                   .trim();
@@ -422,6 +424,8 @@
       log('Resizing chart');
       const aggregatedData = aggregateDataIntoBuckets(currentData);
       updateChartData(chartInstance, aggregatedData);
+      // Add this line to update the shadow area after resize
+      setShadowArea(chartInstance.options.plugins.shadowArea.start, chartInstance.options.plugins.shadowArea.end);
     }
   }
 
@@ -442,7 +446,7 @@
     if (chartInstance) {
       const { scales } = chartInstance;
 
-      const chartWidth = document.getElementById('chart').clientWidth;
+      const chartWidth = chartInstance.width;
 
       let startPos = scales.x.getPixelForValue(start) / chartWidth;
       let endPos = scales.x.getPixelForValue(end) / chartWidth;
@@ -477,6 +481,8 @@
 
       // Update the chart options
       chartInstance.options.plugins.shadowArea = {
+        start,
+        end,
         startPos,
         endPos
       };
