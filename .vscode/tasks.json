@@ -5,16 +5,9 @@
   "tasks": [
     {
       "type": "npm",
-      "script": "bundle",
+      "script": "build",
       "problemMatcher": [],
-      "label": "npm: bundle",
-      "detail": "esbuild src/extension.ts --bundle --outdir=dist --external:vscode --platform=node --target=node12.18 --sourcemap"
-    },
-    {
-      "type": "shell",
-      "label": "copy-chart-js",
-      "command": "cp node_modules/chart.js/dist/chart.js dist/ && cp node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js dist/",
-      "dependsOn": ["npm: bundle"]
+      "label": "npm: build"
     }
   ]
 }

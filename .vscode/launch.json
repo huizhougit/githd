@@ -9,7 +9,7 @@
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "preLaunchTask": "copy-chart-js",
+      "preLaunchTask": "npm: build",
       "sourceMaps": true,
       "smartStep": true
     }

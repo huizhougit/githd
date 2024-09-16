@@ -893,7 +893,7 @@
         "lint": "eslint src --ext ts",
         "typecheck": "tsc -p tsconfig.json --noEmit",
         "bundle": "esbuild src/extension.ts --bundle --outdir=dist --external:vscode --platform=node --target=node12.18 --sourcemap",
-        "copy-chart-js": "cp node_modules/chart.js/dist/chart.js dist/ && cp node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js dist/",
+        "copy-chart-js": "cpy node_modules/chart.js/dist/chart.js node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js dist/ --flat",
         "build": "npm run bundle && npm run copy-chart-js",
         "ts-compile": "tsc -p tsconfig.json",
         "pretty": "prettier -l \"src/**/*.ts\""
@@ -906,6 +906,7 @@
         "@typescript-eslint/eslint-plugin": "^8.4.0",
         "@typescript-eslint/parser": "^8.4.0",
         "@vscode/test-electron": "^2.4.1",
+        "cpy-cli": "^5.0.0",
         "esbuild": "^0.23.1",
         "eslint": "^9.10.0",
         "mocha": "^10.7.3",
