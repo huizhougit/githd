@@ -243,7 +243,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       async e => {
         if (e.textEditor.document.uri.scheme === HistoryViewProvider.scheme) {
           if (!this._updating) {
-            this._setShadowArea();
+            this._setShadowArea(e.textEditor);
           }
         }
       },
@@ -266,7 +266,9 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
             this._updateContent(false);
           } else {
             this._panelView.update();
-            this._setShadowArea();
+            if (vs.window.activeTextEditor?.document.uri.scheme === HistoryViewProvider.scheme) {
+              this._setShadowArea(vs.window.activeTextEditor);
+            }
             this._updatingResolver();
           }
         }
@@ -747,13 +749,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     Tracer.verbose('HistoryView: updating canceled');
   }
 
-  private _setShadowArea() {
-    const editor = vs.window.visibleTextEditors.find(e => e.document.uri.scheme === HistoryViewProvider.scheme);
-
-    if (!editor) {
-      return;
-    }
-
+  private _setShadowArea(editor: vs.TextEditor) {
     const visibleRange = editor.visibleRanges[0];
     if (!visibleRange) {
       return;
