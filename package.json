@@ -118,7 +118,7 @@
             "panel": [
                 {
                     "id": "githd-panel",
-                    "title": "GitHD: Stats",
+                    "title": "GitHD",
                     "icon": "media/icons/githd.svg"
                 }
             ]
