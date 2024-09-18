@@ -24,6 +24,84 @@ const authorHoverMessage = new vs.MarkdownString('Select an author to see the co
 const loadMoreHoverMessage = new vs.MarkdownString('Load more commits');
 const statsHoverMessage = new vs.MarkdownString('Show stats chart');
 
+function createTitleDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.title')
+  });
+}
+
+function createBranchDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.branch')
+  });
+}
+
+function createFileDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.filePath')
+  });
+}
+
+function createSubjectDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.subject')
+  });
+}
+
+function createHashDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.hash')
+  });
+}
+
+function createSelectedHashDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    backgroundColor: new vs.ThemeColor('merge.currentContentBackground'),
+    isWholeLine: true,
+    overviewRulerColor: 'darkgreen',
+    overviewRulerLane: vs.OverviewRulerLane.Full
+  });
+}
+
+function createRefDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.ref')
+  });
+}
+
+function createAuthorDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.author')
+  });
+}
+
+function createEmailDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.email')
+  });
+}
+
+function createMoreDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    color: new vs.ThemeColor('githd.historyView.more')
+  });
+}
+
+function createLoadingDecoration(): vs.TextEditorDecorationType {
+  return vs.window.createTextEditorDecorationType({
+    light: {
+      after: {
+        contentIconPath: getIconUri('loading', 'light')
+      }
+    },
+    dark: {
+      after: {
+        contentIconPath: getIconUri('loading', 'dark')
+      }
+    }
+  });
+}
+
 export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   static scheme: string = 'githd-logs';
   static defaultUri: vs.Uri = vs.Uri.parse(HistoryViewProvider.scheme + '://history//Git History');
@@ -39,51 +117,17 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   private _onDidChange = new vs.EventEmitter<vs.Uri>();
   private _logEntries: { entry: GitLogEntry; lineNumber: number }[] = [];
 
-  private readonly _titleDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.title')
-  });
-  private readonly _branchDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.branch')
-  });
-  private readonly _fileDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.filePath')
-  });
-  private readonly _subjectDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.subject')
-  });
-  private readonly _hashDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.hash')
-  });
-  private readonly _selectedHashDecoration = vs.window.createTextEditorDecorationType({
-    backgroundColor: new vs.ThemeColor('merge.currentContentBackground'),
-    isWholeLine: true,
-    overviewRulerColor: 'darkgreen',
-    overviewRulerLane: vs.OverviewRulerLane.Full
-  });
-  private readonly _refDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.ref')
-  });
-  private readonly _authorDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.author')
-  });
-  private readonly _emailDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.email')
-  });
-  private readonly _moreDecoration = vs.window.createTextEditorDecorationType({
-    color: new vs.ThemeColor('githd.historyView.more')
-  });
-  private readonly _loadingDecoration = vs.window.createTextEditorDecorationType({
-    light: {
-      after: {
-        contentIconPath: getIconUri('loading', 'light')
-      }
-    },
-    dark: {
-      after: {
-        contentIconPath: getIconUri('loading', 'dark')
-      }
-    }
-  });
+  private _titleDecoration: vs.TextEditorDecorationType = createTitleDecoration();
+  private _branchDecoration: vs.TextEditorDecorationType = createBranchDecoration();
+  private _fileDecoration: vs.TextEditorDecorationType = createFileDecoration();
+  private _subjectDecoration: vs.TextEditorDecorationType = createSubjectDecoration();
+  private _hashDecoration: vs.TextEditorDecorationType = createHashDecoration();
+  private _selectedHashDecoration: vs.TextEditorDecorationType = createSelectedHashDecoration();
+  private _refDecoration: vs.TextEditorDecorationType = createRefDecoration();
+  private _authorDecoration: vs.TextEditorDecorationType = createAuthorDecoration();
+  private _emailDecoration: vs.TextEditorDecorationType = createEmailDecoration();
+  private _moreDecoration: vs.TextEditorDecorationType = createMoreDecoration();
+  private _loadingDecoration: vs.TextEditorDecorationType = createLoadingDecoration();
 
   private _titleDecorationOptions: vs.Range[] = [];
   private _fileDecorationRange: vs.Range | undefined;
@@ -211,6 +255,11 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       e => {
         if (e.document.uri.scheme === HistoryViewProvider.scheme) {
           Tracer.verbose('HistoryView: onDidChangeTextDocument');
+          if (this._content === loadingContent) {
+            // reset decorations here to make them synchronized with the content as close as possible
+            this._resetDecorations();
+          }
+
           const editors: vs.TextEditor[] = getTextEditors(HistoryViewProvider.scheme);
           editors.forEach(editor => this._setDecorations(editor));
           if (this._updating) {
@@ -624,8 +673,39 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     editor.setDecorations(this._moreDecoration, this._moreClickableRange ? [this._moreClickableRange] : []);
   }
 
+  private _resetDecorations() {
+    Tracer.verbose('HistoryView: _resetDecorations');
+    this._clearDecorations();
+    this._createDecorations();
+  }
+
+  private _createDecorations() {
+    this._titleDecoration = createTitleDecoration();
+    this._fileDecoration = createFileDecoration();
+    this._branchDecoration = createBranchDecoration();
+    this._subjectDecoration = createSubjectDecoration();
+    this._hashDecoration = createHashDecoration();
+    this._selectedHashDecoration = createSelectedHashDecoration();
+    this._refDecoration = createRefDecoration();
+    this._authorDecoration = createAuthorDecoration();
+    this._emailDecoration = createEmailDecoration();
+    this._moreDecoration = createMoreDecoration();
+    this._loadingDecoration = createLoadingDecoration();
+  }
+
   private _clearDecorations() {
-    Tracer.verbose('HistoryView: _clearDecorations');
+    this._titleDecoration.dispose();
+    this._fileDecoration.dispose();
+    this._branchDecoration.dispose();
+    this._subjectDecoration.dispose();
+    this._hashDecoration.dispose();
+    this._selectedHashDecoration.dispose();
+    this._refDecoration.dispose();
+    this._authorDecoration.dispose();
+    this._emailDecoration.dispose();
+    this._moreDecoration.dispose();
+    this._loadingDecoration.dispose();
+
     this._clickableProvider.clear();
     this._moreClickableRange = undefined;
 
@@ -641,7 +721,6 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
 
   private _reset() {
     Tracer.verbose('HistoryView: _reset');
-    this._clearDecorations();
     this._content = '';
     this._loadedCount = 0;
     this._leftCount = 0;
