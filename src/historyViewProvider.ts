@@ -405,7 +405,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         } else if (loadMore) {
           pageSize = Math.min(2 * this._loadedCount, maxPageSize);
         }
-        this._leftCount = Math.max(0, pageSize - firstLoadingCount);
+        this._leftCount = Math.max(0, pageSize - loadingCount);
       }
     } else {
       loadingCount = Math.min(this._leftCount, maxSingleLoadingCount);
