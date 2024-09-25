@@ -312,6 +312,7 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
   set express(value: boolean) {
     this._express = value;
     this._expressStatusBar.text = 'githd: Express ' + (value ? 'On' : 'Off');
+    vs.commands.executeCommand('setContext', 'githd.expressMode', value);
   }
 
   private set commitsCount(count: number) {
@@ -531,7 +532,10 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
     content += `\t`;
     this._clickableProvider.addClickable({
       range: new vs.Range(this._currentLine, content.length, this._currentLine, content.length + statsChart.length),
-      callback: () => vs.commands.executeCommand('githd.showStats'),
+      callback: () =>
+        this._express
+          ? vs.window.showInformationMessage('Stats chart is only available when Express mode is disabled.')
+          : vs.commands.executeCommand('githd.showStats'),
       getHoverMessage: () => statsHoverMessage
     });
     content += statsChart;

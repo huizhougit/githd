@@ -25,7 +25,9 @@
         "diff",
         "git diff",
         "git log",
-        "git history"
+        "git history",
+        "git history diff",
+        "githd"
     ],
     "activationEvents": [
         "*"
@@ -53,7 +55,7 @@
                 "githd.logView.commitsCount": {
                     "type": "number",
                     "default": 300,
-                    "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking `...` or load the entire log with command.",
+                    "markdownDescription": "The commits count listed in history view. Other than setting it, you can load more logs with clicking `...` or load the entire log with command.",
                     "enum": [
                         100,
                         200,
@@ -136,7 +138,7 @@
                     "id": "githd.stats",
                     "type": "webview",
                     "name": "Stats",
-                    "when": "githd.hasGitRepo"
+                    "when": "githd.hasGitRepo && !githd.expressMode"
                 }
             ]
         },
