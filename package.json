@@ -53,7 +53,7 @@
                 "githd.logView.commitsCount": {
                     "type": "number",
                     "default": 300,
-                    "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking ... or load the entire log with command.",
+                    "description": "The commits count listed in history view. Other than setting it, you can load more logs with clicking `...` or load the entire log with command.",
                     "enum": [
                         100,
                         200,
@@ -66,7 +66,7 @@
                 "githd.logView.expressMode": {
                     "type": "boolean",
                     "default": false,
-                    "description": "The Express Mode will load the history view much faster. But the change stat will not be present."
+                    "description": "The Express Mode will load the history view much faster when the number of commits is large. But the change stats and the stats chart will not be present."
                 },
                 "githd.logView.displayExpressStatus": {
                     "type": "boolean",
