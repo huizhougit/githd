@@ -66,7 +66,7 @@ button:hover {
 
 :root {
   --chart-background-color: rgba(200, 200, 200, 0.2);
-  --chart-shadow-color: rgba(16, 122, 220);
+  --chart-shadow-color: rgba(16, 122, 220, 0.81);
   --chart-selection-color: rgba(128, 128, 128, 0.61);
   --deletions-background-color: rgba(255, 0, 0);
   --deletions-border-color: rgb(200, 0, 0);

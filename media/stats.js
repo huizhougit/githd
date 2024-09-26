@@ -238,7 +238,7 @@
             pointRadius: 0,
             pointHoverRadius: 0,
             fill: true,
-            tension: 0.3,
+            tension: 0.22,
             yAxisID: 'y1'
           }
         ]
