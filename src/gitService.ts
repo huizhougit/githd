@@ -667,7 +667,7 @@ export class GitService {
       return result;
     } catch (err) {
       Tracer.error(`git command failed: ${cmd} ${args.join(' ')} (${Date.now() - start}ms) ${cwd} ${err}`);
-      throw err;
+      return '';
     }
   }
 }
