@@ -606,8 +606,10 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       info += '>';
     }
     if (entry.date) {
-      info += ', ';
-      info += entry.date;
+      info += ', ' + entry.date.toLocaleString();
+    }
+    if (!this._model.configuration.cacheEnabled && entry.relativeDate) {
+      info += ` (${entry.relativeDate})`;
     }
     ++this._currentLine;
     return info + '\n';

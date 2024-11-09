@@ -10,10 +10,6 @@ import { isEmptyHash } from './utils';
 const EntrySeparator = '[githd-es]';
 const FormatSeparator = '[githd-fs]';
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp * 1000).toDateString();
-}
-
 function normalizeFilePath(fsPath: string): string {
   fsPath = path.normalize(fsPath);
   if (os.platform() == 'win32') {
@@ -49,6 +45,7 @@ export interface GitLogEntry {
   email: string;
   timestamp: number;
   date: string;
+  relativeDate: string;
   stat?: string;
   lineInfo?: string;
 }
@@ -351,8 +348,22 @@ export class GitService {
     if (isStash) {
       format += '%gd:';
     }
-    format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%ct${FormatSeparator}%cr${FormatSeparator}`;
-    let args: string[] = [`--format=${format}`];
+
+    enum logItem {
+      subject,
+      hash,
+      ref,
+      author,
+      email,
+      timestamp,
+      date,
+      relativeDate,
+      additional,
+      total
+    }
+
+    format += `%s${FormatSeparator}%h${FormatSeparator}%d${FormatSeparator}%aN${FormatSeparator}%ae${FormatSeparator}%ct${FormatSeparator}%cd${FormatSeparator}%cr${FormatSeparator}`;
+    let args: string[] = [`--format=${format}`, '--date=local'];
     if (!express && !line) {
       args.push('--shortstat');
     }
@@ -397,32 +408,36 @@ export class GitService {
       let email: string;
       let timestamp: number;
       let date: string;
+      let relativeDate: string;
       let stat: string;
       let lineInfo: string;
       entry.split(FormatSeparator).forEach((value, index) => {
-        switch (index % 8) {
-          case 0:
+        switch (index % logItem.total) {
+          case logItem.subject:
             subject = singleLined(value);
             break;
-          case 1:
+          case logItem.hash:
             hash = value;
             break;
-          case 2:
+          case logItem.ref:
             ref = value;
             break;
-          case 3:
+          case logItem.author:
             author = value;
             break;
-          case 4:
+          case logItem.email:
             email = value;
             break;
-          case 5:
+          case logItem.timestamp:
             timestamp = parseInt(value);
             break;
-          case 6:
-            date = formatDate(timestamp) + ` (${value})`;
+          case logItem.date:
+            date = value;
             break;
-          case 7:
+          case logItem.relativeDate:
+            relativeDate = value;
+            break;
+          case logItem.additional:
             if (!!line) {
               lineInfo = value.trim();
             } else {
@@ -435,7 +450,8 @@ export class GitService {
               author,
               email,
               timestamp,
-              date: date,
+              date,
+              relativeDate,
               stat,
               lineInfo
             });
