@@ -273,13 +273,15 @@ export class CommandCenter {
   }
 
   @command('githd.diffFile')
-  async diffFile(specifiedPath: vs.Uri, ref?: string): Promise<void> {
+  // explorer/context will pass two args while editor/context will one
+  async diffFile(specifiedPath: vs.Uri, _: any, ref?: string): Promise<void> {
     Tracer.verbose('Command: githd.diffFile');
     return this._diffPath(specifiedPath, ref);
   }
 
   @command('githd.diffFolder')
-  async diffFolder(specifiedPath: vs.Uri, ref?: string): Promise<void> {
+  // explorer/context will pass two args while editor/context will one
+  async diffFolder(specifiedPath: vs.Uri, _: any, ref?: string): Promise<void> {
     Tracer.verbose('Command: githd.diffFolder');
     return this._diffPath(specifiedPath, ref);
   }

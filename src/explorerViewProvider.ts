@@ -229,7 +229,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
           Tracer.warning('ExplorerViewProvider: diffFileFromTreeView has empty commit ref');
           return;
         }
-        vs.commands.executeCommand('githd.diffFile', fileItem.file.fileUri, this._context.rightRef);
+        vs.commands.executeCommand('githd.diffFile', fileItem.file.fileUri, null, this._context.rightRef);
       }),
       vs.commands.registerCommand('githd.diffFolderFromTreeView', (folder: FolderItem) => {
         if (!this._context?.rightRef) {
@@ -239,6 +239,7 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
         vs.commands.executeCommand(
           'githd.diffFolder',
           vs.Uri.file(path.join(this._context.repo.root, folder.gitRelativePath)),
+          null,
           this._context.rightRef
         );
       }),
