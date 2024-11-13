@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.5.4
+
+- Bug fixes.
+
 ## 2.5.3
 
 - Bug fixes.
