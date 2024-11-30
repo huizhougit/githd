@@ -21,8 +21,8 @@ class Cache {
 
   constructor() {}
 
-  countKey(branch: string, file?: string, author?: string, startTime?: Date, endTime?: Date): string {
-    return `${branch},${file ?? ''},${author ?? ''},${startTime?.getTime() ?? ''},${endTime?.getTime() ?? ''}`;
+  countKey(branch: string, author?: string, startTime?: Date, endTime?: Date): string {
+    return `${branch},${author ?? ''},${startTime?.getTime() ?? ''},${endTime?.getTime() ?? ''}`;
   }
 
   logEntryKey(
@@ -162,22 +162,21 @@ export class Dataloader {
   async getCommitsCount(
     repo: GitRepo,
     branch: string,
-    file?: vs.Uri,
     author?: string,
     startTime?: Date,
     endTime?: Date
   ): Promise<number> {
     if (!this._useCache(repo.root)) {
-      return this._gitService.getCommitsCount(repo, branch, file, author, startTime, endTime);
+      return this._gitService.getCommitsCount(repo, branch, author, startTime, endTime);
     }
 
-    const key = this._cache.countKey(branch, file?.fsPath, author, startTime, endTime);
+    const key = this._cache.countKey(branch, author, startTime, endTime);
     const count: number | undefined = this._cache.counts.get(key);
     if (count) {
       return count;
     }
 
-    const result = await this._gitService.getCommitsCount(repo, branch, file, author, startTime, endTime);
+    const result = await this._gitService.getCommitsCount(repo, branch, author, startTime, endTime);
     this._cache.counts.set(key, result);
     return result;
   }

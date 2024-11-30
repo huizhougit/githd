@@ -209,7 +209,6 @@ export class GitService {
   async getCommitsCount(
     repo: GitRepo,
     branch: string,
-    file?: vs.Uri,
     author?: string,
     startTime?: Date,
     endTime?: Date
@@ -227,13 +226,10 @@ export class GitService {
     if (endTime) {
       args.push(`--before=${endTime.toISOString()}`);
     }
-    if (file) {
-      const filePath = (await this.getGitRelativePath(file)) ?? '.';
-      args.push('--', '--follow', filePath);
-    } else {
-      // the '--' is to avoid same branch and file names caused  error
-      args.push('--');
-    }
+
+    // the '--' is to avoid same branch and file names caused error
+    args.push('--');
+
     return parseInt(await this._exec(args, repo.root));
   }
 
@@ -386,10 +382,10 @@ export class GitService {
         if (line) {
           args.push(`-L ${line},${line}:${filePath}`, '--');
         } else {
-          args.push('--', '--follow', filePath);
+          args.push('--follow', '--', filePath);
         }
       } else {
-        // the '--' is to avoid same branch and file names caused  error
+        // the '--' is to avoid same branch and file names caused error
         args.push('--');
       }
     }

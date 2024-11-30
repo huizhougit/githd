@@ -385,14 +385,13 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
       }
 
       // No pagination loading for statsh and line history.
-      if (isStash || context.line) {
+      if (isStash || context.specifiedPath) {
         loadingCount = 10000; // Display at most 10k commits
       } else {
         if (this._totalCommitsCount == 0) {
           this._totalCommitsCount = await this._loader.getCommitsCount(
             context.repo,
             context.branch,
-            context.specifiedPath,
             context.author,
             context.startTime,
             context.endTime
