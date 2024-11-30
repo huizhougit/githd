@@ -384,7 +384,8 @@ export class HistoryViewProvider implements vs.TextDocumentContentProvider {
         this._content = '';
       }
 
-      // No pagination loading for statsh and line history.
+      // No pagination loading for statsh and file history. When specifiedPath is set, we need the git
+      // option --follow but it is not compatible with certain commit-limiting options, such as --skip
       if (isStash || context.specifiedPath) {
         loadingCount = 10000; // Display at most 10k commits
       } else {
