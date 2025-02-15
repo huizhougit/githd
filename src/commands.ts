@@ -130,6 +130,11 @@ export class CommandCenter {
     private _historyView: HistoryViewProvider,
     private _explorerView: ExplorerViewProvider
   ) {
+    // register an empty document content provider
+    vs.workspace.registerTextDocumentContentProvider('githd-empty', {
+      provideTextDocumentContent: () => ''
+    });
+
     context.subscriptions.push(
       ...Commands.map(({ id, method }) => {
         return vs.commands.registerCommand(id, (...args: any[]) =>
@@ -362,13 +367,10 @@ export class CommandCenter {
       leftRef = this._model.filesViewContext.leftRef;
       title = `${leftRef} .. ${rightRef}`;
     }
-    vs.commands.executeCommand<void>(
-      'vscode.diff',
-      toGitUri(file.oldFileUri, leftRef),
-      toGitUri(file.fileUri, rightRef),
-      title + ' | ' + path.basename(file.gitRelativePath),
-      { preview: true }
-    );
+    title += ' | ' + path.basename(file.gitRelativePath);
+    let left = file.status == 'A' ? vs.Uri.parse('githd-empty:') : toGitUri(file.oldFileUri, leftRef);
+    let right = file.status == 'D' ? vs.Uri.parse('githd-empty:') : toGitUri(file.fileUri, rightRef);
+    vs.commands.executeCommand<void>('vscode.diff', left, right, title, { preview: true });
   }
 
   @command('githd.openCommitInfo')

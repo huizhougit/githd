@@ -154,7 +154,11 @@ export class Model {
       });
       this._onDidChangeFilesViewContext.fire(context);
     }
-    vs.commands.executeCommand('workbench.view.extension.githd-explorer');
+
+    // sleep a bit to make sure the context set event is fired before opening the view
+    setTimeout(() => {
+      vs.commands.executeCommand('workbench.view.extension.githd-explorer');
+    }, 100);
   }
 
   goBackFilesViewContext() {

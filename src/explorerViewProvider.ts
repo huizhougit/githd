@@ -290,7 +290,6 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
 
     this._context = this._model.filesViewContext;
     this._withFolder = this._model.configuration.withFolder;
-    this._update();
   }
 
   provideFileDecoration(uri: vs.Uri): vs.ProviderResult<vs.FileDecoration> {
