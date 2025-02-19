@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.5.6
+
+- Bug fixes.
+
 ## 2.5.5
 
 - Bug fixes.
