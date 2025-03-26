@@ -610,13 +610,13 @@ export class GitService {
   private async _scanFolder(folder: string, includeSubFolders?: boolean): Promise<number> {
     const children = fs.readdirSync(folder, { withFileTypes: true });
     const promises = children
-      .filter(child => child.isDirectory())
+      .filter(child => child.isDirectory() || child.isFile())
       .map(async child => {
         if (child.name === '.git') {
           await this.getGitRepo(folder);
           return 1;
         }
-        if (includeSubFolders) {
+        if (includeSubFolders && child.isDirectory()) {
           return await this._scanFolder(path.join(folder, child.name));
         }
         return 0;
