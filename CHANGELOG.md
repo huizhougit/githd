@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.5.7
+
+- Add refresh to files view.
+- Update blame view configuration.
+
 ## 2.5.6
 
 - Bug fixes.
