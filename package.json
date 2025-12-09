@@ -277,6 +277,11 @@
                 }
             },
             {
+                "command": "githd.refreshFilesView",
+                "title": "Refresh",
+                "icon": "$(refresh)"
+            },
+            {
                 "command": "githd.goForwardNoMore",
                 "title": "No More",
                 "icon": {
@@ -529,6 +534,11 @@
                     "when": "false"
                 },
                 {
+
+                    "command": "githd.refreshFilesView",
+                    "when": "false"
+                },
+                {
                     "command": "githd.goForwardNoMore",
                     "when": "false"
                 },
@@ -609,6 +619,11 @@
                     "command": "githd.nextCommitNoMore",
                     "when": "view == githd.files && githd.hasGitRepo && !githd.hasNextCommit",
                     "group": "navigation@4"
+                },
+                                {
+                    "command": "githd.refreshFilesView",
+                    "when": "view == githd.files && githd.hasGitRepo",
+                    "group": "navigation@8"
                 },
                 {
                     "command": "githd.clearFilesView",

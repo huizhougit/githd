@@ -363,6 +363,10 @@ export class ExplorerViewProvider implements vs.TreeDataProvider<CommittedTreeIt
     this._onDidChange.fire(undefined);
   }
 
+  async refresh(): Promise<void> {
+    await this._update();
+  }
+
   private get commitOrStashString(): string {
     return this._context?.isStash ? 'Stash' : 'Commit';
   }

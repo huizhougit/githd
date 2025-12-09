@@ -333,6 +333,12 @@ export class CommandCenter {
     this._model.goForwardFilesViewContext();
   }
 
+  @command('githd.refreshFilesView')
+  async refreshFilesView(): Promise<void> {
+    Tracer.verbose('Command: githd.refreshFilesView');
+    await this._explorerView.refresh();
+  }
+
   @command('githd.goBackNoMore')
   dummyForGoBackIcon(): void {}
 
