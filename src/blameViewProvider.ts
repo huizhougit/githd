@@ -18,7 +18,7 @@ class BlameViewStatProvider implements vs.Disposable, vs.HoverProvider {
   }
 
   provideHover(document: vs.TextDocument, position: vs.Position): vs.ProviderResult<vs.Hover> {
-    if (!this._owner.isAvailable(document, position)) {
+    if (!this._owner.shouldShowHover(document, position)) {
       return;
     }
     let markdown = new vs.MarkdownString(
@@ -42,11 +42,11 @@ class BlameViewInfoProvider implements vs.Disposable, vs.HoverProvider {
   }
 
   provideHover(document: vs.TextDocument, position: vs.Position): vs.ProviderResult<vs.Hover> {
-    if (!this._owner.isAvailable(document, position)) {
+    if (!this._owner.shouldShowHover(document, position)) {
       return;
     }
 
-    const blame = this._owner.blame as GitBlameItem; // isAvailable will be false if _blame is undefined
+    const blame = this._owner.blame as GitBlameItem; // shouldShowHover will be false if _blame is undefined
     return new Promise(async resolve => {
       const repo = await this._gitService.getGitRepo(blame.file.fsPath);
       const ref: string = blame.hash;
@@ -92,7 +92,7 @@ export class BlameViewProvider {
   private _infoProvider: BlameViewInfoProvider;
   private _statProvider: BlameViewStatProvider;
   private _debouncedUpdate: (editor: vs.TextEditor) => void;
-  private _enabled = false;
+  private _blameViewMode: 'disabled' | 'blame' | 'detail' = 'disabled';
   private _decoration = vs.window.createTextEditorDecorationType({
     after: {
       color: new vs.ThemeColor('githd.blameView.info'),
@@ -105,7 +105,7 @@ export class BlameViewProvider {
     model: Model,
     private _gitService: GitService
   ) {
-    this.enabled = model.configuration.blameEnabled;
+    this._blameViewMode = model.configuration.blameViewMode;
     this._statProvider = new BlameViewStatProvider(this);
     this._infoProvider = new BlameViewInfoProvider(this, _gitService);
     this._debouncedUpdate = debounce((editor: vs.TextEditor) => this._update(editor), 250);
@@ -142,27 +142,24 @@ export class BlameViewProvider {
 
     model.onDidChangeConfiguration(
       config => {
-        this.enabled = config.blameEnabled;
+        this._blameViewMode = config.blameViewMode;
       },
       null,
       context.subscriptions
     );
   }
 
-  private set enabled(value: boolean) {
-    if (this._enabled !== value) {
-      Tracer.info(`Blame view: set enabled ${value}`);
-      this._enabled = value;
-    }
+  private get _enabled(): boolean {
+    return this._blameViewMode !== 'disabled';
   }
 
   get blame(): GitBlameItem | undefined {
     return this._blame;
   }
 
-  isAvailable(doc: vs.TextDocument, pos: vs.Position): boolean {
+  shouldShowHover(doc: vs.TextDocument, pos: vs.Position): boolean {
     if (
-      !this._enabled ||
+      this._blameViewMode === 'disabled' ||
       isEmptyHash(this._blame?.hash) ||
       doc.isDirty ||
       pos.line != this._blame?.line ||
@@ -171,7 +168,7 @@ export class BlameViewProvider {
     ) {
       return false;
     }
-    return true;
+    return this._blameViewMode === 'detail';
   }
 
   private async _onDidChangeSelection(editor: vs.TextEditor) {

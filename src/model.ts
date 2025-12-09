@@ -10,7 +10,7 @@ export interface Configuration {
   readonly expressMode: boolean;
   readonly displayExpress: boolean;
   readonly traceLevel: string;
-  readonly blameEnabled: boolean;
+  readonly blameViewMode: 'disabled' | 'blame' | 'detail';
   readonly disabledInEditor: boolean;
   withFolder: boolean;
   readonly cacheEnabled: boolean;
@@ -43,7 +43,7 @@ function getConfiguration(): Configuration {
     commitsCount: <number>vs.workspace.getConfiguration('githd.logView').get('commitsCount'),
     expressMode: <boolean>vs.workspace.getConfiguration('githd.logView').get('expressMode'),
     displayExpress: <boolean>vs.workspace.getConfiguration('githd.logView').get('displayExpressStatus'),
-    blameEnabled: <boolean>vs.workspace.getConfiguration('githd.blameView').get('enabled'),
+    blameViewMode: <'disabled' | 'blame' | 'detail'>vs.workspace.getConfiguration('githd.blameView').get('enabled'),
     disabledInEditor: <boolean>vs.workspace.getConfiguration('githd.editor').get('disabled'),
     traceLevel: <string>vs.workspace.getConfiguration('githd').get('traceLevel'),
     cacheEnabled: <boolean>vs.workspace.getConfiguration('githd').get('cacheEnabled'),
@@ -85,7 +85,7 @@ export class Model {
           newConfig.commitsCount !== this._config.commitsCount ||
           newConfig.expressMode !== this._config.expressMode ||
           newConfig.displayExpress !== this._config.displayExpress ||
-          newConfig.blameEnabled !== this._config.blameEnabled ||
+          newConfig.blameViewMode !== this._config.blameViewMode ||
           newConfig.disabledInEditor !== this._config.disabledInEditor ||
           newConfig.traceLevel !== this._config.traceLevel ||
           newConfig.cacheEnabled !== this._config.cacheEnabled ||

@@ -76,9 +76,14 @@
                     "description": "Display the express mode setting on the status bar"
                 },
                 "githd.blameView.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show git blame information for each line"
+                    "type": "string",
+                    "default": "detail",
+                    "enum": [
+                        "disabled",
+                        "blame",
+                        "detail"
+                    ],
+                    "markdownDescription": "Show git blame information for each line. `disabled`: disabled, `blame`: show blame info only, `detail`: show blame info with hover messages"
                 },
                 "githd.editor.disabled": {
                     "type": "boolean",
