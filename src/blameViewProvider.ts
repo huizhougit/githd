@@ -31,8 +31,65 @@ class BlameViewStatProvider implements vs.Disposable, vs.HoverProvider {
   }
 }
 
-export class BlameViewProvider implements vs.HoverProvider {
+class BlameViewInfoProvider implements vs.Disposable, vs.HoverProvider {
+  private _disposables: vs.Disposable[] = [];
+  constructor(private _owner: BlameViewProvider, private _gitService: GitService) {
+    this._disposables.push(vs.languages.registerHoverProvider({ scheme: 'file' }, this));
+  }
+
+  dispose(): void {
+    vs.Disposable.from(...this._disposables).dispose();
+  }
+
+  provideHover(document: vs.TextDocument, position: vs.Position): vs.ProviderResult<vs.Hover> {
+    if (!this._owner.isAvailable(document, position)) {
+      return;
+    }
+
+    const blame = this._owner.blame as GitBlameItem; // isAvailable will be false if _blame is undefined
+    return new Promise(async resolve => {
+      const repo = await this._gitService.getGitRepo(blame.file.fsPath);
+      const ref: string = blame.hash;
+      let args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
+      const commit: string = `*[${ref}](command:githd.openCommit?${args} "Click to see commit details")*`;
+      args = encodeURIComponent(JSON.stringify([blame.file]));
+      const file: string = `[*file*](command:githd.viewFileHistory?${args} "Click to see current file history")`;
+      const line: string = `[*line*](command:githd.viewLineHistory?${args} "Click to see current line history")`;
+      let subject: string = '';
+      let lastPREnd = 0;
+
+      getPullRequests(blame.subject ?? '').forEach(([pr, start]) => {
+        subject += blame.subject?.substring(lastPREnd, start) + `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)})`;
+        lastPREnd = start + pr.length;
+      });
+
+      subject += blame.subject?.substring(lastPREnd);
+      const email = blame.email?.replace('@', '\\@');
+
+      Tracer.verbose(`Blame view: ${commit}`);
+      const content: string = `
+${commit}
+*</span><span style="color:var(--vscode-githd-historyView-author);">${blame.author}</span>*
+*<span style="color:var(--vscode-githd-historyView-email);">${email}</span>*
+*(${blame.date})*
+&ensp;
+*(<span style="color:var(--vscode-githd-historyView-title);">history</span>: ${file} || ${line})*
+
+### ${subject}
+
+${blame.body}
+>`;
+
+      let markdown = new vs.MarkdownString(content);
+      markdown.isTrusted = true;
+      return resolve(new vs.Hover(markdown));
+    });
+  }
+}
+
+export class BlameViewProvider {
   private _blame: GitBlameItem | undefined;
+  private _infoProvider: BlameViewInfoProvider;
   private _statProvider: BlameViewStatProvider;
   private _debouncedUpdate: (editor: vs.TextEditor) => void;
   private _enabled = false;
@@ -50,9 +107,10 @@ export class BlameViewProvider implements vs.HoverProvider {
   ) {
     this.enabled = model.configuration.blameEnabled;
     this._statProvider = new BlameViewStatProvider(this);
+    this._infoProvider = new BlameViewInfoProvider(this, _gitService);
     this._debouncedUpdate = debounce((editor: vs.TextEditor) => this._update(editor), 250);
     context.subscriptions.push(
-      vs.languages.registerHoverProvider({ scheme: 'file' }, this),
+      this._infoProvider,
       this._statProvider,
       this._decoration
     );
@@ -100,51 +158,6 @@ export class BlameViewProvider implements vs.HoverProvider {
 
   get blame(): GitBlameItem | undefined {
     return this._blame;
-  }
-
-  provideHover(document: vs.TextDocument, position: vs.Position): vs.ProviderResult<vs.Hover> {
-    if (!this.isAvailable(document, position)) {
-      return;
-    }
-
-    const blame = this._blame as GitBlameItem; // isAvailable will be false if _blame is undefined
-    return new Promise(async resolve => {
-      const repo = await this._gitService.getGitRepo(blame.file.fsPath);
-      const ref: string = blame.hash;
-      let args: string = encodeURIComponent(JSON.stringify([repo, ref, blame.file]));
-      const commit: string = `*[${ref}](command:githd.openCommit?${args} "Click to see commit details")*`;
-      args = encodeURIComponent(JSON.stringify([blame.file]));
-      const file: string = `[*file*](command:githd.viewFileHistory?${args} "Click to see current file history")`;
-      const line: string = `[*line*](command:githd.viewLineHistory?${args} "Click to see current line history")`;
-      let subject: string = '';
-      let lastPREnd = 0;
-
-      getPullRequests(blame.subject ?? '').forEach(([pr, start]) => {
-        subject += blame.subject?.substring(lastPREnd, start) + `[*${pr}*](${repo?.remoteUrl}/pull/${pr.substring(1)})`;
-        lastPREnd = start + pr.length;
-      });
-
-      subject += blame.subject?.substring(lastPREnd);
-      const email = blame.email?.replace('@', '\\@');
-
-      Tracer.verbose(`Blame view: ${commit}`);
-      const content: string = `
-${commit}
-*</span><span style="color:var(--vscode-githd-historyView-author);">${blame.author}</span>*
-*<span style="color:var(--vscode-githd-historyView-email);">${email}</span>*
-*(${blame.date})*
-&ensp;
-*(<span style="color:var(--vscode-githd-historyView-title);">history</span>: ${file} || ${line})*
-
-### ${subject}
-
-${blame.body}
->`;
-
-      let markdown = new vs.MarkdownString(content);
-      markdown.isTrusted = true;
-      return resolve(new vs.Hover(markdown));
-    });
   }
 
   isAvailable(doc: vs.TextDocument, pos: vs.Position): boolean {
