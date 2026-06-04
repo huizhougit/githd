@@ -94,7 +94,9 @@ async function getRefFromQuickPickItem(
   item: vs.QuickPickItem | EnterShaPickItem,
   inputBoxTitle: string
 ): Promise<string | undefined> {
-  return (<EnterShaPickItem>item).openShaTextBox ? await vs.window.showInputBox({ prompt: inputBoxTitle }) : item.label;
+  return (<EnterShaPickItem>item).openShaTextBox
+    ? await vs.window.showInputBox({ prompt: inputBoxTitle, ignoreFocusOut: true })
+    : item.label;
 }
 
 async function selectAuthor(gitService: GitService, repo: GitRepo): Promise<vs.QuickPickItem[]> {
@@ -300,7 +302,8 @@ export class CommandCenter {
     }
     vs.window
       .showInputBox({
-        placeHolder: `Input a ref(sha1) to see it's committed files`
+        placeHolder: `Input a ref(sha1) to see it's committed files`,
+        ignoreFocusOut: true
       })
       .then(ref => this._model.setFilesViewContext({ rightRef: ref?.trim(), repo }));
   }
